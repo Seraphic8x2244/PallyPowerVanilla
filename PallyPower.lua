@@ -94,6 +94,7 @@ end
 
 PP_Symbols = 0
 IsPally = 0
+PP_TestMode = nil -- nil = off, "prot"/"holy"/"ret" = active test profile
 lastClassBtn = 1
 lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
 hasRighteousFury = false
@@ -646,7 +647,7 @@ function PallyPower_OnEvent(event,arg1)
             end
         end
         local _, class = UnitClass("player")
-        if class == "PALADIN" then
+        if class == "PALADIN" or PP_TestMode then
             PallyPower_ScanSpells()
             PallyPower_SendSelf()
         end        
@@ -780,6 +781,46 @@ function PallyPower_SlashCommandHandler(msg)
         PallyPower_AutoBuffAll()
         return true
     end
+
+    -- /pp test <profile> - Debug command to fake talent/spell data
+    local _, _, testArg = string.find(msg, "^test%s*(.*)$")
+    if testArg ~= nil then
+        testArg = string.lower(testArg)
+        if testArg == "prot" or testArg == "holy" or testArg == "ret" then
+            PP_TestMode = testArg
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff8800[PallyPower] Test mode ENABLED: |cffffffff" .. testArg)
+            DEFAULT_CHAT_FRAME:AddMessage("|cffff8800[PallyPower] Faking paladin spells/talents. Use |cffffffff/pp test off|cffff8800 to disable.")
+            PallyPower_ScanSpells()
+            getglobal("PallyPowerBuffBar"):Show()
+            PP_NextScan = 0.1
+            return true
+        elseif testArg == "off" or testArg == "clear" or testArg == "reset" or testArg == "" then
+            if PP_TestMode then
+                PP_TestMode = nil
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[PallyPower] Test mode DISABLED. Real spell data restored.")
+                -- Re-scan real spells
+                PallyPower_ScanSpells()
+                -- If not actually a paladin, hide buff bar again
+                local _, class = UnitClass("player")
+                if class ~= "PALADIN" then
+                    getglobal("PallyPowerBuffBar"):Hide()
+                end
+                PP_NextScan = 0.1
+            else
+                DEFAULT_CHAT_FRAME:AddMessage("|cffffff00[PallyPower] Test mode is not active.")
+            end
+            return true
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00[PallyPower] Test profiles: |cffffffffprot|cffffff00, |cffffffffholy|cffffff00, |cffffffffret|cffffff00, |cffffffffoff")
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  All profiles include: Wisdom 6, Might 7, Salvation 1, Light 3, Devo 7, Ret 5, Conc 1")
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test prot |r- + Sanctuary 4, Sanctity Aura")
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test holy |r- + Wisdom +5, Might +5 talents, Kings, Sanctity Aura")
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test ret  |r- + Kings, Devo Aura +5 talent, Sanctity Aura")
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test off  |r- Disable test mode")
+            return true
+        end
+    end
+
     if PallyPowerFrame:IsVisible() then
         PallyPowerFrame:Hide()
     else
@@ -1597,7 +1638,82 @@ function PallyPower_UpdateUI()
     end
 end
 
+-- Build fake RankInfo/AuraRankInfo/SealRankInfo for a test profile.
+-- Profiles: "prot", "holy", "ret"
+function PallyPower_BuildTestProfile(profile)
+    local RankInfo = {}
+    local AuraRankInfo = {}
+    local SealRankInfo = {}
+
+    -- Helper to create a blessing entry
+    local function mkBless(rank, talent)
+        return { rank = tostring(rank), id = 1, idsmall = 1, name = PallyPower_BlessingID[0], talent = talent or 0 }
+    end
+    local function mkAura(id, rank, talent)
+        return { rank = tostring(rank), id = 1, name = PallyPower_AuraID[id], talent = talent or 0 }
+    end
+
+    -- Common baseline blessings for all profiles
+    RankInfo[0] = { rank = "6", id = 1, idsmall = 1, name = PallyPower_BlessingID[0], talent = 0 } -- Wisdom 6
+    RankInfo[1] = { rank = "7", id = 1, idsmall = 1, name = PallyPower_BlessingID[1], talent = 0 } -- Might 7
+    RankInfo[2] = { rank = "1", id = 1, idsmall = 1, name = PallyPower_BlessingID[2], talent = 0 } -- Salvation 1
+    RankInfo[3] = { rank = "3", id = 1, idsmall = 1, name = PallyPower_BlessingID[3], talent = 0 } -- Light 3
+
+    -- Common baseline auras for all profiles
+    AuraRankInfo[0] = mkAura(0, 7, 0) -- Devotion Aura 7
+    AuraRankInfo[1] = mkAura(1, 5, 0) -- Retribution Aura 5
+    AuraRankInfo[2] = mkAura(2, 1, 0) -- Concentration Aura 1
+
+    if profile == "prot" then
+        -- Blessing of Sanctuary (5) rank 4
+        RankInfo[5] = { rank = "4", id = 1, idsmall = 1, name = PallyPower_BlessingID[5], talent = 0 }
+        -- Sanctity Aura (6)
+        AuraRankInfo[6] = mkAura(6, 1, 0)
+
+    elseif profile == "holy" then
+        -- Upgrade Wisdom/Might with Improved Blessings talent (+5)
+        RankInfo[0]["talent"] = 5 -- Improved Wisdom
+        RankInfo[1]["talent"] = 5 -- Improved Might
+        -- Kings (4)
+        RankInfo[4] = { rank = "1", id = 1, idsmall = 1, name = PallyPower_BlessingID[4], talent = 0 }
+        -- Sanctity Aura (6)
+        AuraRankInfo[6] = mkAura(6, 1, 0)
+
+    elseif profile == "ret" then
+        -- Kings (4)
+        RankInfo[4] = { rank = "1", id = 1, idsmall = 1, name = PallyPower_BlessingID[4], talent = 0 }
+        -- Improved Devotion Aura (+5 talent)
+        AuraRankInfo[0]["talent"] = 5
+        -- Sanctity Aura (6)
+        AuraRankInfo[6] = mkAura(6, 1, 0)
+    end
+
+    -- Add common data
+    RankInfo["symbols"] = 0
+    RankInfo["freeassign"] = PP_PerUser.freeassign
+
+    return RankInfo, AuraRankInfo, SealRankInfo
+end
+
 function PallyPower_ScanSpells()
+    -- If test mode is active, inject fake data and skip real spell scanning
+    if PP_TestMode then
+        local RankInfo, AuraRankInfo, SealRankInfo = PallyPower_BuildTestProfile(PP_TestMode)
+        AllPallys[UnitName("player")] = RankInfo
+        AllPallysAuras[UnitName("player")] = AuraRankInfo
+        AllPallysSeals[UnitName("player")] = SealRankInfo
+        PP_IsPally = true
+        initialized = true
+        if not PallyPower_Assignments[UnitName("player")] then
+            PallyPower_Assignments[UnitName("player")] = {}
+        end
+        if not PallyPower_SealAssignments[UnitName("player")] then
+            PallyPower_SealAssignments[UnitName("player")] = -1
+        end
+        PallyPower_SendSelf()
+        return RankInfo
+    end
+
     local RankInfo = {}
     local AuraRankInfo = {}
     local SealRankInfo = {}
@@ -1793,7 +1909,7 @@ function PallyPower_Refresh()
     end]]
 
     local _, class = UnitClass("player")
-    if class == "PALADIN" then
+    if class == "PALADIN" or PP_TestMode then
         PallyPower_ScanSpells()
         PallyPower_SendSelf()
     end
