@@ -1,4 +1,5 @@
-# PallyPowerTW for Turtle WOW w/Nampower & UnitXP SP3
+# PallyPowerTW for WoW Vanilla
+w/Nampower & UnitXP SP3 support
 
 ## Required Dependencies
 > - [Nampower](https://gitea.com/avitasia/nampower) installed.
