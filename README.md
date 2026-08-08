@@ -1,5 +1,5 @@
-# PallyPowerTW for WoW Vanilla
-w/Nampower & UnitXP SP3 support
+# PallyPowerTW for Vanilla World of Warcraft (1.12.1)
+> - Nampower & UnitXP SP3 support
 
 ## Required Dependencies
 > - [Nampower](https://gitea.com/avitasia/nampower) installed.
@@ -9,8 +9,8 @@ w/Nampower & UnitXP SP3 support
 > - Blessing duration and mana cost is now done via lookup, rather than hardcoded to support any 1.12.1 client.
 
 ## Please note!
-## 1) Use your Left mouse button to do a Greater Blessing!
-## 2) Use your Right mouse button to do Normal (10 min) Blessings!
+Use your Left mouse button to do a Greater Blessing!
+Use your Right mouse button to do Normal (10 min) Blessings!
 
 <img src="https://raw.githubusercontent.com/ivanovlk/PallyPowerTW/refs/heads/master/ScreenShot.png" float="left" align="left" width="100%">
 
