@@ -4,6 +4,9 @@
 > - [Nampower](https://gitea.com/avitasia/nampower) installed.
 > - [UnitXP_SP3](https://codeberg.org/konaka/UnitXP_SP3) installed.
 
+## Fork Changes
+> - Blessing duration and mana cost is now done via lookup, rather than hardcoded to support any 1.12.1 client.
+
 ## Please note!
 ## 1) Use your Left mouse button to do a Greater Blessing!
 ## 2) Use your Right mouse button to do Normal (10 min) Blessings!
