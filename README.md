@@ -9,17 +9,13 @@
 > - Blessing duration and mana cost is now done via lookup, rather than hardcoded to support any 1.12.1 client.
 
 ## Please note!
-Use your Left mouse button to do a Greater Blessing!
-Use your Right mouse button to do Normal (10 min) Blessings!
+> - Use your Left mouse button to do a Greater Blessing!
+> - Use your Right mouse button to do Normal (10 min) Blessings!
+> - Hunter pets and Warrors share same class so if you use Greater blessings it will affect both Warriors and Pets ( not a bug )
+> - Currently "[Patch FR] Turtle WoW en français + Pack de voix française corrigé pour VoiceOver" is not supported. PPTW does not work correctly when this mod is installed
 
-<img src="https://raw.githubusercontent.com/ivanovlk/PallyPowerTW/refs/heads/master/ScreenShot.png" float="left" align="left" width="100%">
-
-### BuffBar horizontal layout with hidden default Aura frame
-<img src="https://raw.githubusercontent.com/ivanovlk/PallyPowerTW/refs/heads/master/ScreenShotAura.png">
-
-### How to install: Download the zip file and rename to PallyPowerTW or use Turtle WOW Launcher
-### Hunter pets and Warrors share same class so if you use Greater blessings it will affect both Warriors and Pets ( not a bug )
-### Currently "[Patch FR] Turtle WoW en français + Pack de voix française corrigé pour VoiceOver" is not supported. PPTW does not work correctly when this mod is installed
+## How to install 
+Download the zip file and rename to PallyPowerTW or use Turtle WOW Launcher
 
 ## Additional info -> https://github.com/ivanovlk/PallyPowerTW/wiki/PallyPowerTW-Addon-Wiki
 
