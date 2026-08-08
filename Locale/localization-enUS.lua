@@ -1,4 +1,4 @@
-PallyPower_Version = GetAddOnMetadata("PallyPowerTW", "Version")
+PallyPower_Version = GetAddOnMetadata("PallyPowerVanilla", "Version")
 SLASH_PALLYPOWER1 = "/pp"
 SLASH_PALLYPOWER2 = "/pallypower"
 
@@ -66,11 +66,10 @@ PallyPower_BuffBarTitle = "Pally Buffs (%d)"
 
 --- By Lines... Keep People the same, feel free to add yourself in the _Credits3 line if your localizing
 --- And feel free to add a friend or two to special thanks
-PallyPower_Credits1 = "Pally Power - by ivanovlk"
+PallyPower_Credits1 = "Pally Power Vanilla"
 PallyPower_Credits2 = "Version "..PallyPower_Version
 PallyPower_Credits3 = ""
-PallyPower_Credits4 = "Original update by Hjorim / Sneakyfoot / Rake / Xerron / Azgaardian / Aznamir"
-PallyPower_Credits5 = "Updated version for Turtle WoW including Pets and other improvements by ivanovlk"
+PallyPower_Credits4 = "Original update by Hjorim / Sneakyfoot / Rake / Xerron / Azgaardian / Aznamir / ivanovlk / TheRealFayz"
 
 -- Buff name, Class Name
 PallyPower_CouldntFind = "Couldn't find a target for %s on %s!"
@@ -140,7 +139,7 @@ PALLYPOWER_TEXT_WARNING_SAVE = "You are about to save changes to set '|cffffffff
 PALLYPOWER_MESSAGE_BB_CENTERED = "PallyPowerBuffBar centered on the screen."
 PALLYPOWER_MESSAGE_BB_NOTFOUND = "Frame PallyPowerBuffBar not found."
 
-PALLYPOWER_MESSAGE_NEWVERSION = "New version of PallyPowerTW available"
+PALLYPOWER_MESSAGE_NEWVERSION = "New version of PallyPowerVanilla available"
 
 PALLYPOWER_FREEASSIGN = "Free Assignment"
 PALLYPOWER_FREEASSIGN_DESC = "Allow others to change your blessings without being Party Leader / Raid Assistant."
