@@ -1,12 +1,37 @@
-# PallyPowerTW for Vanilla World of Warcraft (1.12.1)
-> - Nampower & UnitXP SP3 support
+# PallyPowerVanilla for World of Warcraft (1.12.1)
+PallyPowerVanilla is a fork of PallyPowerTW focused on compatibility with
+World of Warcraft 1.12.1-based clients.
 
-## Required Dependencies
-> - [Nampower](https://gitea.com/avitasia/nampower) installed.
-> - [UnitXP_SP3](https://codeberg.org/konaka/UnitXP_SP3) installed.
+The project aims to retain the improvements made by PallyPowerTW while
+removing assumptions tied to any one server where practical.
+
+## Lineage and Credits
+
+PallyPowerVanilla is a fork of PallyPowerTW by TheRealFayz, itself based on
+the work of earlier PallyPower authors and contributors.
+
+Credit for the original addon, its design, and inherited code belongs to
+their respective authors and contributors.
+
+PallyPowerVanilla is maintained as a compatibility and maintenance fork.
+Development of this fork makes extensive use of AI-assisted coding.
+
+## Compatibility
+
+PallyPowerVanilla targets World of Warcraft clients based on the 1.12.1 API.
+
+The goal is broad compatibility rather than targeting a specific private
+server.
+
+The addon should degrade gracefully when optional extensions are unavailable.
+
+## Optional Dependencies
+[Nampower](https://gitea.com/avitasia/nampower) Provides enhanced spell/aura functionality when available.
+[UnitXP_SP3](https://codeberg.org/konaka/UnitXP_SP3) Provides enhanced range and line-of-sight information.
+[SuperWoW] Used for enhanced unit/GUID functionality where supported.
 
 ## Fork Changes
-> - Blessing duration and mana cost is now done via lookup, rather than hardcoded to support any 1.12.1 client.
+Blessing duration and mana cost is now done via lookup, rather than hardcoded to support any 1.12.1 client.
 
 ## Please note!
 > - Use your Left mouse button to do a Greater Blessing!
@@ -15,7 +40,7 @@
 > - Currently "[Patch FR] Turtle WoW en français + Pack de voix française corrigé pour VoiceOver" is not supported. PPTW does not work correctly when this mod is installed
 
 ## How to install 
-Download the zip file and rename to PallyPowerTW or use Turtle WOW Launcher
+Download the zip file and rename to PallyPowerVanilla
 
 ## Additional info -> https://github.com/ivanovlk/PallyPowerTW/wiki/PallyPowerTW-Addon-Wiki
 
@@ -51,6 +76,7 @@ Download the zip file and rename to PallyPowerTW or use Turtle WOW Launcher
 - Added Spanish localization by Nuevemasnueve
 
 ### Changelog
+- 08.08.26 - Added dynamic lookup in spellbook for blessing cost and duration
 - 25.08.25 - If Salvation is assigned, user is tank, and no individual blessings, do not count against nneed ( So the buffbar button stays green even with tank missing Salvation)
 - 25.08.25 - Assign/Clear raid icon when player is marked as tank if we are Raid leader/Assist or party leader
 - 22.08.25 - Allow assignments of seals for each paladin
