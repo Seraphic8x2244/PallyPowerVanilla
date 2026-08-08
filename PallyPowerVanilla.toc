@@ -8,8 +8,6 @@
 ## SavedVariablesPerCharacter: PallyPower_Assignments, PallyPower_AuraAssignments, PallyPower_SealAssignments, PallyPower_NormalAssignments, PP_PerUser, PP_Presets
 
 Locale\localization-enUS.lua
-Locale\localization-deDE.lua
-Locale\localization-esEs.lua
 
 PallyPowerManaCost.lua
 PallyPower.lua
