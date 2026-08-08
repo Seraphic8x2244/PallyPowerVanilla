@@ -12,8 +12,8 @@
 				PallyPower_StopScaling(arg1)
 			</OnMouseUp>
 		</Scripts>
-		<NormalTexture file="Interface\AddOns\PallyPowerTW\PallyPower-ResizeGrip" />
-		<HighlightTexture file="Interface\AddOns\PallyPowerTW\PallyPower-ResizeGrip" alphaMode="ADD" />
+		<NormalTexture file="Interface\AddOns\PallyPowerVanilla\PallyPower-ResizeGrip" />
+		<HighlightTexture file="Interface\AddOns\PallyPowerVanilla\PallyPower-ResizeGrip" alphaMode="ADD" />
 	</Button>
 	<Button name="BuffGridButtonTemplate" virtual="true">
 		<Size>
@@ -21,7 +21,7 @@
 		</Size>
 		<Layers>
 			<Layer level="OVERLAY">
-				<Texture name="$parentIcon" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_SealOfWisdom">
+				<Texture name="$parentIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfWisdom">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -73,7 +73,7 @@
 						</Anchor>
 					</Anchors>
 				</FontString>
-				<Texture name="$parentIcon" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_SealOfWisdom">
+				<Texture name="$parentIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfWisdom">
 					<Size>
 						<AbsDimension x="12" y="12" />
 					</Size>
@@ -338,7 +338,7 @@
 						</Anchor>
 					</Anchors>
 				</FontString>
-				<Texture name="$parentClassIcon" file="Interface\AddOns\PallyPowerTW\Icons\Paladin">
+				<Texture name="$parentClassIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Paladin">
 					<Size>
 						<AbsDimension x="26" y="26" />
 					</Size>
@@ -350,7 +350,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentBuffIcon" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_SealOfWisdom">
+				<Texture name="$parentBuffIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfWisdom">
 					<Size>
 						<AbsDimension x="26" y="26" />
 					</Size>
@@ -400,7 +400,7 @@
 		</Backdrop>
 		<Layers>
 			<Layer level="OVERLAY">
-				<Texture name="$parentBuffIcon" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_SealOfFury">
+				<Texture name="$parentBuffIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfFury">
 					<Size>
 						<AbsDimension x="26" y="26" />
 					</Size>
@@ -453,7 +453,7 @@
 						</Anchor>
 					</Anchors>
 				</FontString>
-				<Texture name="$parentIcon0" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_SealOfWisdom">
+				<Texture name="$parentIcon0" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfWisdom">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -465,7 +465,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon1" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_FistOfJustice">
+				<Texture name="$parentIcon1" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_FistOfJustice">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -477,7 +477,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon2" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_SealOfSalvation">
+				<Texture name="$parentIcon2" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfSalvation">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -489,7 +489,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon3" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_PrayerOfHealing02">
+				<Texture name="$parentIcon3" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_PrayerOfHealing02">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -501,7 +501,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon4" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Magic_MageArmor">
+				<Texture name="$parentIcon4" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Magic_MageArmor">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -513,7 +513,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon5" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Nature_LightningShield">
+				<Texture name="$parentIcon5" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Nature_LightningShield">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -525,7 +525,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon6" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_DevotionAura">
+				<Texture name="$parentIcon6" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_DevotionAura">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -537,7 +537,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon7" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_AuraOfLight">
+				<Texture name="$parentIcon7" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_AuraOfLight">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -549,7 +549,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentIcon8" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_MindSooth">
+				<Texture name="$parentIcon8" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_MindSooth">
 					<Size>
 						<AbsDimension x="16" y="16" />
 					</Size>
@@ -1305,7 +1305,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClassA" file="Interface\AddOns\PallyPowerTW\Icons\Spell_Holy_AuraMastery">
+				<Texture name="$parentClassA" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_AuraMastery">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1317,7 +1317,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClassS" file="Interface\AddOns\PallyPowerTW\Icons\Ability_Thunderbolt">
+				<Texture name="$parentClassS" file="Interface\AddOns\PallyPowerVanilla\Icons\Ability_Thunderbolt">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1329,7 +1329,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass0" file="Interface\AddOns\PallyPowerTW\Icons\Warrior">
+				<Texture name="$parentClass0" file="Interface\AddOns\PallyPowerVanilla\Icons\Warrior">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1341,7 +1341,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass1" file="Interface\AddOns\PallyPowerTW\Icons\Rogue">
+				<Texture name="$parentClass1" file="Interface\AddOns\PallyPowerVanilla\Icons\Rogue">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1353,7 +1353,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass2" file="Interface\AddOns\PallyPowerTW\Icons\Priest">
+				<Texture name="$parentClass2" file="Interface\AddOns\PallyPowerVanilla\Icons\Priest">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1365,7 +1365,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass3" file="Interface\AddOns\PallyPowerTW\Icons\Druid">
+				<Texture name="$parentClass3" file="Interface\AddOns\PallyPowerVanilla\Icons\Druid">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1377,7 +1377,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass4" file="Interface\AddOns\PallyPowerTW\Icons\Paladin">
+				<Texture name="$parentClass4" file="Interface\AddOns\PallyPowerVanilla\Icons\Paladin">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1389,7 +1389,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass5" file="Interface\AddOns\PallyPowerTW\Icons\Hunter">
+				<Texture name="$parentClass5" file="Interface\AddOns\PallyPowerVanilla\Icons\Hunter">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1401,7 +1401,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass6" file="Interface\AddOns\PallyPowerTW\Icons\Mage">
+				<Texture name="$parentClass6" file="Interface\AddOns\PallyPowerVanilla\Icons\Mage">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1413,7 +1413,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass7" file="Interface\AddOns\PallyPowerTW\Icons\Warlock">
+				<Texture name="$parentClass7" file="Interface\AddOns\PallyPowerVanilla\Icons\Warlock">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1425,7 +1425,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass8" file="Interface\AddOns\PallyPowerTW\Icons\Shaman">
+				<Texture name="$parentClass8" file="Interface\AddOns\PallyPowerVanilla\Icons\Shaman">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
@@ -1437,7 +1437,7 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass9" file="Interface\AddOns\PallyPowerTW\Icons\Pet">
+				<Texture name="$parentClass9" file="Interface\AddOns\PallyPowerVanilla\Icons\Pet">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
