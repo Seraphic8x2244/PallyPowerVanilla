@@ -38,28 +38,25 @@ The resulting structure should contain:
 
 ## Features
 
-* Greater and normal Blessing management.
-* Individual Blessing assignments.
-* Aura assignments and management.
-* Seal assignments for each Paladin.
-* Assignment presets, including Auras.
-* Automatic assignment-grid adjustment when Paladins join or leave the group.
-* Tank assignments and synchronisation between Paladins.
-* Raid icon assignment and removal for marked tanks when the player has the appropriate group permissions.
-* pfUI tank-assignment integration when pfUI is available.
-* Optional pfUI HD icons.
-* UnitXP_SP3 line-of-sight and range checking when available.
-* Mana checking before casting.
-* Righteous Fury tracking on the buff bar.
-* Direct Aura and Blessing assignment from the buff bar.
-* Horizontal and vertical buff-bar layouts.
-* Optional sound notification when Blessings expire.
-* Optional hiding of the Blizzard Aura frame.
-* Solo buff-frame support.
-* Hunter pet support.
-* `/pp report` for displaying class, assignment and Aura information.
-* Synchronised assignment changes without requiring Party Leader or Raid Assistant privileges.
-* Spanish localisation by Nuevemasnueve.
+* Regular and Greater Blessing management
+* Individual Blessing, Aura and Seal assignments
+* Assignment presets, including Auras
+* Automatic assignment-grid adjustment when Paladins join or leave the group
+* Tank assignments and synchronisation between Paladins
+* Raid icon assignment and removal for marked tanks when the player has the appropriate group permissions
+* pfUI tank-assignment integration when pfUI is available
+* Optional pfUI HD icons
+* UnitXP_SP3 line-of-sight and range checking when available
+* Mana checking before casting
+* Righteous Fury tracking on the buff bar
+* Direct Aura and Blessing assignment from the buff bar
+* Horizontal and vertical buff-bar layouts
+* Optional sound notification when Blessings expire
+* Optional hiding of the Blizzard Aura frame
+* Solo buff-frame support
+* Hunter pet support
+* `/pp report` for displaying class, assignment and Aura information
+* Synchronised assignment changes without requiring Party Leader or Raid Assistant privileges
 
 ## PallyPowerVanilla Changes
 
