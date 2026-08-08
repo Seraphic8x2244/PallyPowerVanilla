@@ -23,8 +23,8 @@
 						</Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerTW\Icons\Minimap"/>
-				<PushedTexture file="Interface\AddOns\PallyPowerTW\Icons\Minimap_Down"/>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\Icons\Minimap"/>
+				<PushedTexture file="Interface\AddOns\PallyPowerVanilla\Icons\Minimap_Down"/>
 				<HighlightTexture alphaMode="ADD" file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight"/>
 				<Scripts>
 					<OnLoad>
