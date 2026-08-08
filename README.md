@@ -1,88 +1,87 @@
-# PallyPowerVanilla for World of Warcraft (1.12.1)
-PallyPowerVanilla is a fork of PallyPowerTW focused on compatibility with
-World of Warcraft 1.12.1-based clients.
+# PallyPowerVanilla for World of Warcraft 1.12.1
 
-The project aims to retain the improvements made by PallyPowerTW while
-removing assumptions tied to any one server where practical.
+PallyPowerVanilla is a maintenance and compatibility fork of PallyPowerTW for World of Warcraft clients based on the 1.12.1 API.
 
-## Lineage and Credits
-
-PallyPowerVanilla is a fork of PallyPowerTW by TheRealFayz, itself based on
-the work of earlier PallyPower authors and contributors.
-
-Credit for the original addon, its design, and inherited code belongs to
-their respective authors and contributors.
-
-PallyPowerVanilla is maintained as a compatibility and maintenance fork.
-Development of this fork makes extensive use of AI-assisted coding.
+The project aims to retain the improvements made by PallyPowerTW while removing server-specific assumptions where practical, allowing the addon to work across a broader range of Vanilla 1.12.1 environments.
 
 ## Compatibility
 
-PallyPowerVanilla targets World of Warcraft clients based on the 1.12.1 API.
+PallyPowerVanilla targets World of Warcraft 1.12.1-based clients rather than any specific server.
 
-The goal is broad compatibility rather than targeting a specific private
-server.
+Blessing mana costs and durations are determined dynamically from the player's learned spells instead of relying on server-specific hardcoded values.
 
-The addon should degrade gracefully when optional extensions are unavailable.
+Optional client extensions are detected when available and should not prevent the addon from operating when absent.
 
-## Optional Dependencies
-[Nampower](https://gitea.com/avitasia/nampower) Provides enhanced spell/aura functionality when available.
-[UnitXP_SP3](https://codeberg.org/konaka/UnitXP_SP3) Provides enhanced range and line-of-sight information.
-[SuperWoW] Used for enhanced unit/GUID functionality where supported.
+### Optional Dependencies
 
-## Fork Changes
-Blessing duration and mana cost is now done via lookup, rather than hardcoded to support any 1.12.1 client.
+* [Nampower](https://gitea.com/avitasia/nampower) — enhanced spell and aura functionality.
+* [UnitXP_SP3](https://codeberg.org/konaka/UnitXP_SP3) — enhanced range and line-of-sight information.
+* **SuperWoW** — enhanced unit and GUID functionality where supported.
 
-## Please note!
-> - Use your Left mouse button to do a Greater Blessing!
-> - Use your Right mouse button to do Normal (10 min) Blessings!
-> - Hunter pets and Warrors share same class so if you use Greater blessings it will affect both Warriors and Pets ( not a bug )
-> - Currently "[Patch FR] Turtle WoW en français + Pack de voix française corrigé pour VoiceOver" is not supported. PPTW does not work correctly when this mod is installed
+## Installation
 
-## How to install 
-Download the zip file and rename to PallyPowerVanilla
+1. Download the repository as a ZIP.
+2. Extract it into your `World of Warcraft\Interface\AddOns` directory.
+3. Ensure the addon folder is named `PallyPowerVanilla`.
 
-## Additional info -> https://github.com/ivanovlk/PallyPowerTW/wiki/PallyPowerTW-Addon-Wiki
+The resulting structure should contain:
 
-### Whats new:
-- Assign/Clear raid icon when player is marked as tank if we are Raid leader/Assist or party leader
-- Allow assignments of seals for each paladin. Very usefull for boss fights
-- GB is not allowed on pets if pets and warriors has different blessings assigned
-- If Warriors and pets have same assignment -> mark both of them as blessed when using GB
-- Update tank assignment in pfUI ( if available )
-- Allow to mark a player as a tank (and sync) in Assignment grid (middle mouse button click at player name below the class icon)
-- When a paladin leaves the party assignment grid is adjusted
-- Optional usage of PFUI HD Icons (option can be found in settings. Default use regular icons)
-- Make use of UnitXP_SP3 line of sight check (if available) and mana check before cast (mana check still under construction)
-- Allow saving Assignment presets like "All Salvation", "All Kings" and so on. Including Auras.
-- Fixed nasty memory leak in Assignment grid
-- /pp report to display full class/assignment list and aura
-- Hide Blizzard aura frame option ( Why ? Bacuse, I like it hidden and use PallyPower for aura management )
-- Allow change between horizontal or vertical layout for BuffBar
-- Allow others to change your blessings without being Party Leader / Raid Assistant.
-- Support for individual blessings
-- Support for Auras
-- Righteous fury on the buff bar
-- Left click for Greater blessings / right click for "small" blessings. 
-- If Individual blessings are selected small buffs are applied with Right click
-- Don't allow Individual blessings without global blessings. Also do not allow Global and Individual blessings to be the same 
-- Change Aura and Blessing assignment direclty via Buff Bar
-- Play sound when blessings expire
-- Included an option to change between Regular Blessings and Greater Blessings.
-- Shows the buff frame when solo
-- Included Pet in the buff table
-- Show the max rank of each blessing each paladin has available + if they have talents that buff the blessing (specific to v+)
-- Show the correct duration to each blessing based on v+ duration
-- Added Spanish localization by Nuevemasnueve
+`Interface\AddOns\PallyPowerVanilla\PallyPowerVanilla.toc`
 
-### Changelog
-- 08.08.26 - Added dynamic lookup in spellbook for blessing cost and duration
-- 25.08.25 - If Salvation is assigned, user is tank, and no individual blessings, do not count against nneed ( So the buffbar button stays green even with tank missing Salvation)
-- 25.08.25 - Assign/Clear raid icon when player is marked as tank if we are Raid leader/Assist or party leader
-- 22.08.25 - Allow assignments of seals for each paladin
-- 22.08.25 - Mark as tank reflects to pfUI tank assignment (if available). Don't allow GB on pets if Warriors assignment ~= pets assignment. If Same assignment -> Mark both as GBlessed
-- 09.08.25 - Warriors and hunter pets share same class so if they have same blessing assigned and you cast greater blessing PP marks both warriors and pets as blessed in buff bar
-- 15.07.25 - Fix: When casting Greater Blessings and several targets are out of range addon assumes they got the buff and does not allow to re-cast GB. 
-Now those targets are correctly marked as Need blessing and allow re-cast of GB.
-- 15.07.25 - Aura assignment is also saved in Presets 
-- 15.07.25 - Allow mark of player as a tank and sync with other paladins
+## Usage
+
+* **Left-click** a blessing to cast a Greater Blessing.
+* **Right-click** to cast a normal Blessing.
+* Individual Blessings, Greater Blessings, Auras and Seals can be configured through the assignment interface.
+* Players can be marked as tanks from the assignment grid using the middle mouse button.
+* Hunter pets share the Warrior class for Greater Blessing purposes. PallyPowerVanilla handles differing Warrior and pet assignments separately.
+
+## Features
+
+* Greater and normal Blessing management.
+* Individual Blessing assignments.
+* Aura assignments and management.
+* Seal assignments for each Paladin.
+* Assignment presets, including Auras.
+* Automatic assignment-grid adjustment when Paladins join or leave the group.
+* Tank assignments and synchronisation between Paladins.
+* Raid icon assignment and removal for marked tanks when the player has the appropriate group permissions.
+* pfUI tank-assignment integration when pfUI is available.
+* Optional pfUI HD icons.
+* UnitXP_SP3 line-of-sight and range checking when available.
+* Mana checking before casting.
+* Righteous Fury tracking on the buff bar.
+* Direct Aura and Blessing assignment from the buff bar.
+* Horizontal and vertical buff-bar layouts.
+* Optional sound notification when Blessings expire.
+* Optional hiding of the Blizzard Aura frame.
+* Solo buff-frame support.
+* Hunter pet support.
+* `/pp report` for displaying class, assignment and Aura information.
+* Synchronised assignment changes without requiring Party Leader or Raid Assistant privileges.
+* Spanish localisation by Nuevemasnueve.
+
+## PallyPowerVanilla Changes
+
+### Current Development Version
+
+* Blessing mana costs are dynamically determined from the highest learned spell rank.
+* Blessing durations are dynamically determined from learned spell data.
+* Removed reliance on the unsupported `PP_AutoEnabledUnitXP` CVar.
+* UnitXP automatic-enable state is stored using PallyPower SavedVariables.
+
+Further compatibility work is focused on identifying and removing remaining assumptions specific to individual 1.12.1 server implementations.
+
+## Known Limitations
+
+Some inherited functionality remains specific to v+ environments and is being reviewed for broader 1.12.1 compatibility.
+
+In particular, detection of talents that improve individual Blessings requires further compatibility work.
+
+## Lineage and Credits
+
+PallyPowerVanilla is a fork of PallyPowerTW by TheRealFayz, itself based on the work of earlier PallyPower authors and contributors.
+
+Credit for the original addon, its design and inherited code belongs to their respective authors and contributors.
+
+PallyPowerVanilla is maintained as a compatibility and maintenance fork. Development of this fork makes extensive use of AI-assisted coding.
