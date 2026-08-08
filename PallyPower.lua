@@ -385,10 +385,10 @@ function PallyPower_InitConfig()
     -- UnitXP SP3 detection (using Puppeteer's safer method)
     if UnitXP and pcall(UnitXP, "inSight", "player", "player") then
        PP_UnitXPDllLoaded = true
-       -- Auto-enable UnitXP SP3 if it was previously nil (first time detection)
-       if PP_PerUser.useunitxp_sp3 == false and GetCVar("PP_AutoEnabledUnitXP") ~= "1" then
+       -- Auto-enable UnitXP SP3 once using PallyPower's own SavedVariables.
+       if PP_PerUser.unitxp_autoenabled == nil then
            PP_PerUser.useunitxp_sp3 = true
-           SetCVar("PP_AutoEnabledUnitXP", "1")
+           PP_PerUser.unitxp_autoenabled = true
            DEFAULT_CHAT_FRAME:AddMessage("[PallyPower] UnitXP SP3 detected and auto-enabled for range/LOS checking")
        end
     else
@@ -1823,6 +1823,11 @@ function PallyPower_ScanSpells()
             end
         end
         i = i + 1
+    end
+
+    -- Read mana costs and blessing durations from the highest learned spell ranks.
+    if PallyPower_UpdateBlessingSpellData then
+        PallyPower_UpdateBlessingSpellData(RankInfo)
     end
 
     --Improved Blessings
