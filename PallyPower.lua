@@ -454,7 +454,7 @@ function PallyPower_OnUpdate(tdiff)
         LastCast[i] = k - tdiff
         if LastCast[i] <= 0 then
             if PP_PerUser.playsoundwhen0 == true then
-                PlaySoundFile("Interface\\Addons\\PallyPowerTW\\Sounds\\ding.mp3")
+                PlaySoundFile("Interface\\Addons\\PallyPowerVanilla\\Sounds\\ding.mp3")
             end
             LastCast[i] = nil
         end
@@ -463,7 +463,7 @@ function PallyPower_OnUpdate(tdiff)
         LastCastPlayer[i] = k - tdiff
         if LastCastPlayer[i] <= 0 then
             if PP_PerUser.playsoundwhen0 == true then
-                PlaySoundFile("Interface\\Addons\\PallyPowerTW\\Sounds\\ding.mp3")
+                PlaySoundFile("Interface\\Addons\\PallyPowerVanilla\\Sounds\\ding.mp3")
             end
             LastCastPlayer[i] = nil
         end
@@ -501,9 +501,9 @@ end
 function PallyPower_AdjustIcons()
     local icons_prefix
     if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerTW\\HD"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
     else
-        icons_prefix = "AddOns\\PallyPowerTW\\"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\"
     end
 
     AuraIcons[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_DevotionAura"
@@ -656,7 +656,7 @@ function PallyPower_OnEvent(event,arg1)
         PallyPower_ScanRaid()
     end
 
-    if event == "ADDON_LOADED" and arg1 == "PallyPowerTW" then
+    if event == "ADDON_LOADED" and arg1 == "PallyPowerVanilla" then
         PallyPower_AdjustIcons()
         PallyPower_MinimapButton_Init();
         PallyPower_InitConfig();   
@@ -1398,9 +1398,9 @@ function PallyPower_UpdateUI()
 
         local icons_prefix
         if PP_PerUser.usehdicons == true then
-            icons_prefix = "AddOns\\PallyPowerTW\\HD"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
         else
-            icons_prefix = "AddOns\\PallyPowerTW\\"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\"
         end
         
         PallyPowerBuffBarRF:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
@@ -1721,9 +1721,9 @@ function PallyPower_ScanSpells()
 
     local icons_prefix
     if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerTW\\HD"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
     else
-        icons_prefix = "AddOns\\PallyPowerTW\\"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\"
     end
 
     while true do
@@ -3240,9 +3240,9 @@ end
 function PallyPower_GetBuffTextureID(text)
     local icons_prefix
     if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerTW\\HD"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
     else
-        icons_prefix = "AddOns\\PallyPowerTW\\"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\"
     end
 
     for id, name in BuffIcon do
@@ -4049,9 +4049,9 @@ function PallyPower_CastSeal()
         -- Determine icon prefix (matches other checks in this file)
         local icons_prefix
         if PP_PerUser and PP_PerUser.usehdicons == true then
-            icons_prefix = "AddOns\\PallyPowerTW\\HD"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
         else
-            icons_prefix = "AddOns\\PallyPowerTW\\"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\"
         end
 
         -- If the player already has the seal buff active, don't re-cast
@@ -4236,8 +4236,8 @@ SlashCmdList["PPDBG"] = function()
   if BuffIcon then
     for i = 0, 9 do
       if BuffIcon[i] then
-        local short = string.gsub(BuffIcon[i], "Interface\\AddOns\\PallyPowerTW\\", "")
-        short = string.gsub(short, "Interface\\AddOns\\PallyPowerTW\\HD", "HD")
+        local short = string.gsub(BuffIcon[i], "Interface\\AddOns\\PallyPowerVanilla\\", "")
+        short = string.gsub(short, "Interface\\AddOns\\PallyPowerVanilla\\HD", "HD")
         log("BuffIcon[" .. i .. "]: " .. short)
       end
     end
@@ -4251,8 +4251,8 @@ SlashCmdList["PPDBG"] = function()
   if BlessingIcon then
     for i = 0, 9 do
       if BlessingIcon[i] then
-        local short = string.gsub(BlessingIcon[i], "Interface\\AddOns\\PallyPowerTW\\", "")
-        short = string.gsub(short, "Interface\\AddOns\\PallyPowerTW\\HD", "HD")
+        local short = string.gsub(BlessingIcon[i], "Interface\\AddOns\\PallyPowerVanilla\\", "")
+        short = string.gsub(short, "Interface\\AddOns\\PallyPowerVanilla\\HD", "HD")
         log("BlessingIcon[" .. i .. "]: " .. short)
       end
     end
@@ -4266,8 +4266,8 @@ SlashCmdList["PPDBG"] = function()
   if BuffIconSmall then
     for i = 0, 9 do
       if BuffIconSmall[i] then
-        local short = string.gsub(BuffIconSmall[i], "Interface\\AddOns\\PallyPowerTW\\", "")
-        short = string.gsub(short, "Interface\\AddOns\\PallyPowerTW\\HD", "HD")
+        local short = string.gsub(BuffIconSmall[i], "Interface\\AddOns\\PallyPowerVanilla\\", "")
+        short = string.gsub(short, "Interface\\AddOns\\PallyPowerVanilla\\HD", "HD")
         log("BuffIconSmall[" .. i .. "]: " .. short)
       end
     end
@@ -4288,8 +4288,8 @@ SlashCmdList["PPDBG"] = function()
       -- Check if it matches any BuffIcon
       for idx = 0, 9 do
         if BuffIcon and BuffIcon[idx] then
-          local checkIcon = string.gsub(BuffIcon[idx], "Interface\\AddOns\\PallyPowerTW\\Icons\\", "Interface\\Icons\\")
-          checkIcon = string.gsub(checkIcon, "Interface\\AddOns\\PallyPowerTW\\HDIcons\\", "Interface\\Icons\\")
+          local checkIcon = string.gsub(BuffIcon[idx], "Interface\\AddOns\\PallyPowerVanilla\\Icons\\", "Interface\\Icons\\")
+          checkIcon = string.gsub(checkIcon, "Interface\\AddOns\\PallyPowerVanilla\\HDIcons\\", "Interface\\Icons\\")
           if checkIcon == icon then
             log("  -> Matches BuffIcon[" .. idx .. "]")
           end
