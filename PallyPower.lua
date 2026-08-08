@@ -1,6 +1,6 @@
 local initialized = false
 
--- SuperWoW detection (v1.38)
+-- SuperWoW detection
 local PP_SuperWoW = SetAutoloot and true or false
 local PP_TrackedGUIDs = {}
 
