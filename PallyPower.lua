@@ -1695,6 +1695,105 @@ function PallyPower_BuildTestProfile(profile)
     return RankInfo, AuraRankInfo, SealRankInfo
 end
 
+
+-- Dynamic Improved Blessing talent detection.
+-- Uses Blizzard's existing global GameTooltip, matching the stock 1.12.1
+-- Talent UI implementation. No custom GameTooltipTemplate is created here.
+PallyPower_TalentDetection = {
+    might = { detected = 0, max = 0, name = nil },
+    wisdom = { detected = 0, max = 0, name = nil }
+}
+
+local function PallyPower_GetTalentTooltipText(tab, talent)
+    GameTooltip:Hide()
+    GameTooltip:SetOwner(UIParent, "ANCHOR_NONE")
+    GameTooltip:SetTalent(tab, talent)
+
+    local tooltipText = ""
+    local numLines = GameTooltip:NumLines() or 0
+
+    for line = 1, numLines do
+        local left = getglobal("GameTooltipTextLeft" .. line)
+        local right = getglobal("GameTooltipTextRight" .. line)
+
+        if left and left:GetText() then
+            tooltipText = tooltipText .. " " .. left:GetText()
+        end
+        if right and right:GetText() then
+            tooltipText = tooltipText .. " " .. right:GetText()
+        end
+    end
+
+    GameTooltip:Hide()
+    return tooltipText
+end
+
+function PallyPower_FindImprovedBlessingTalent(blessingSpellName)
+    if not blessingSpellName or blessingSpellName == "" then
+        return 0, 0, nil
+    end
+
+    local numTabs = GetNumTalentTabs() or 0
+
+    for tab = 1, numTabs do
+        local numTalents = GetNumTalents(tab) or 0
+
+        for talent = 1, numTalents do
+            local talentName, icon, tier, column, currRank, maxRank =
+                GetTalentInfo(tab, talent)
+
+            if talentName then
+                local tooltipText = PallyPower_GetTalentTooltipText(tab, talent)
+
+                local mentionsBlessing =
+                    string.find(tooltipText, blessingSpellName, 1, true)
+                local hasPercentage =
+                    string.find(tooltipText, "%d+%%")
+
+                if mentionsBlessing and hasPercentage then
+                    return currRank or 0, maxRank or 0, talentName
+                end
+            end
+        end
+    end
+
+    return 0, 0, nil
+end
+
+local function PallyPower_ApplyImprovedBlessingTalent(
+    RankInfo, blessingID, key
+)
+    if not RankInfo or not RankInfo[blessingID] then
+        PallyPower_TalentDetection[key] = {
+            detected = 0,
+            max = 0,
+            name = nil
+        }
+        return
+    end
+
+    local detected, maxRank, talentName =
+        PallyPower_FindImprovedBlessingTalent(
+            RankInfo[blessingID]["spellname"]
+        )
+
+    RankInfo[blessingID]["talent"] = detected
+
+    PallyPower_TalentDetection[key] = {
+        detected = detected,
+        max = maxRank,
+        name = talentName
+    }
+end
+
+function PallyPower_UpdateImprovedBlessingTalents(RankInfo)
+    -- Blessing IDs: 0 = Wisdom, 1 = Might.
+    -- Vanilla can resolve to two different talents.
+    -- Turtle/OctoWoW can resolve both searches to one combined talent.
+    PallyPower_ApplyImprovedBlessingTalent(RankInfo, 0, "wisdom")
+    PallyPower_ApplyImprovedBlessingTalent(RankInfo, 1, "might")
+end
+
 function PallyPower_ScanSpells()
     -- If test mode is active, inject fake data and skip real spell scanning
     if PP_TestMode then
@@ -1800,6 +1899,7 @@ function PallyPower_ScanSpells()
                         RankInfo[id]["id"] = i
                         RankInfo[id]["idsmall"] = i
                         RankInfo[id]["name"] = name
+                        RankInfo[id]["spellname"] = spellName
                         RankInfo[id]["talent"] = 0
                     end
                 end
@@ -1830,15 +1930,8 @@ function PallyPower_ScanSpells()
         PallyPower_UpdateBlessingSpellData(RankInfo)
     end
 
-    --Improved Blessings
-    nameTalent, icon, iconx, icony, currRank, maxRank = GetTalentInfo(3, 1);
-    if currRank > 0 then
-        for id = 0, 1 do -- wisdom & might
-            if (RankInfo[id]) then
-                RankInfo[id]["talent"] = currRank
-            end
-        end
-    end
+    -- Improved Might/Wisdom are detected independently from talent tooltips.
+    PallyPower_UpdateImprovedBlessingTalents(RankInfo)
     --Improved Concentration Aura
     nameTalent, icon, iconx, icony, currRank, maxRank = GetTalentInfo(1, 10);
     if currRank > 0 then
@@ -1888,8 +1981,7 @@ function PallyPower_ScanSpells()
         initialized = true
     end
 
-    nameTalent, icon, iconx, icony, currRank, maxRank = GetTalentInfo(3, 1);
-    if nameTalent ~= nil then 
+    if (GetNumTalentTabs() or 0) > 0 then
         initialized = true
     end
 
