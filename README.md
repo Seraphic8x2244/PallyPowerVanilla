@@ -4,9 +4,8 @@ PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** 
 
 The aim is to preserve the familiar PallyPower experience and compatibility with existing versions while improving the addon for modern Vanilla clients and servers.
 
-| Buff Bar | Blessing Management |
-|---|---|
-| ![Buff Bar](github-images/150-1.png) | ![Blessing Management](github-images/150-2.png) |
+
+![Buff Bar](github-images/150-1.png) ![Blessing Management](github-images/150-2.png)
 
 ## Project Goals
 
