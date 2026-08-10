@@ -1,4 +1,4 @@
-# PallyPowerVanilla v1.6.0
+# PallyPowerVanilla v1.6.1
 
 PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** for World of Warcraft 1.12.1.
 
