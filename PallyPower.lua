@@ -30,6 +30,7 @@ PALLYPOWER_MAXCLASSES = 10
 PALLYPOWER_MAXPERCLASS = 15
 PALLYPOWER_AURA_CLASS = 10
 PALLYPOWER_SEAL_CLASS = 11
+PALLYPOWER_RF_CLASS = 12
 PP_PREFIX = "PLPWR"
 
 AllPallys = {}
@@ -39,6 +40,7 @@ AllPallysSeals = {}
 PallyPower_Assignments = {}
 PallyPower_AuraAssignments = {}
 PallyPower_SealAssignments = {}
+PallyPower_RFAssignments = {}
 PallyPower_NormalAssignments = {}
 PallyPower_Tanks = {}
 
@@ -457,6 +459,13 @@ local function PP_UI_UpdateState()
             PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-Off")
         end
     end
+    if PP_UI_RFEye then
+        if PP_PerUser.showrfbutton then
+            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-On")
+        else
+            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-Off")
+        end
+    end
 
     if PP_UI_UnitXPState then
         if PP_UnitXPDllLoaded and PP_PerUser.useunitxp_sp3 then
@@ -552,6 +561,10 @@ function PallyPower_UI_Init()
     PP_UI_SealEye:SetScript("OnClick",function()
         SealOptionChk:SetChecked(not PP_PerUser.showsealbutton); PallyPower_SealOption(); PP_UI_UpdateState()
     end)
+    PP_UI_RFEye = PP_UI_CreateEyeButton("PP_UI_RFEye",PallyPowerFrameClassR,"Righteous Fury on Buff Bar")
+    PP_UI_RFEye:SetScript("OnClick",function()
+        RighteousFuryOptionChk:SetChecked(not PP_PerUser.showrfbutton); PallyPower_RighteousFuryOption(); PP_UI_UpdateState()
+    end)
 
     if PallyPowerFrameOptions then PallyPowerFrameOptions:SetText("Advanced") end
     if PallyPowerFrameOptionButton then PallyPowerFrameOptionButton:SetText("Advanced") end
@@ -559,10 +572,10 @@ function PallyPower_UI_Init()
     -- Options: hide moved controls, retain them internally, compact what remains.
     local movedLabels={PallyPower_OptionsFrameOption3,
         PallyPower_OptionsFrameOption4,
-        PallyPower_OptionsFrameOption5,PallyPower_OptionsFrameOption7,PallyPower_OptionsFrameOption7a,
+        PallyPower_OptionsFrameOption5,PallyPower_OptionsFrameOption6,PallyPower_OptionsFrameOption7,PallyPower_OptionsFrameOption7a,
         PallyPower_OptionsFrameOption10,PallyPower_OptionsFrameOption11,PallyPower_OptionsFrameOption13}
     for _,f in movedLabels do if f then f:Hide() end end
-    local movedControls={PallyPower_OptionsFrameFeedback,PallyPower_OptionsFrameSmart,FramesLockedOptionChk,AuraOptionChk,SealOptionChk,
+    local movedControls={PallyPower_OptionsFrameFeedback,PallyPower_OptionsFrameSmart,FramesLockedOptionChk,RighteousFuryOptionChk,AuraOptionChk,SealOptionChk,
         PlaySoundOptionChk,HorizontalLayoutOptionChk,UseUnitXPSP3OptionChk}
     for _,f in movedControls do if f then f:Hide() end end
 
@@ -676,18 +689,10 @@ function PallyPower_UI_Init()
     HideBlizzardFrameOptionChk:Show()
     PallyPower_OptionsFrameOption12:Show()
 
-    -- RF remains here while its management-column UI is still WIP.
-    PallyPower_OptionsFrameOption6:ClearAllPoints()
-    PallyPower_OptionsFrameOption6:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -229)
-    RighteousFuryOptionChk:ClearAllPoints()
-    RighteousFuryOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -229)
-    RighteousFuryOptionChk:Show()
-    PallyPower_OptionsFrameOption6:Show()
-
     -- ---------------------------------------------------------------
     -- Scanning
     -- ---------------------------------------------------------------
-    PP_UI_CreateSectionHeader("PP_UI_AdvancedScanningHeader", "Scanning", -267)
+    PP_UI_CreateSectionHeader("PP_UI_AdvancedScanningHeader", "Scanning", -237)
 
     PP_UI_UnitXPLabel = PallyPower_OptionsFrame:CreateFontString(
         "PP_UI_UnitXPLabel",
@@ -1056,6 +1061,9 @@ function PallyPower_OnEvent(event,arg1)
     if (event == "PLAYER_ENTERING_WORLD" and (not PallyPower_SealAssignments[UnitName("player")])) then
         PallyPower_SealAssignments[UnitName("player")] = -1
     end
+    if event == "PLAYER_ENTERING_WORLD" and PallyPower_RFAssignments[UnitName("player")] == nil then
+        PallyPower_RFAssignments[UnitName("player")] = false
+    end
 
     if event == "CHAT_MSG_ADDON" and arg1 == PP_PREFIX and (arg3 == "PARTY" or arg3 == "RAID") then
         PallyPower_ParseMessage(arg4, arg2)
@@ -1089,6 +1097,11 @@ function PallyPower_OnEvent(event,arg1)
                     PallyPower_SealAssignments[name] = nil
                 end
             end
+            for name in PallyPower_RFAssignments do
+                if (name ~= UnitName("player")) then
+                    PallyPower_RFAssignments[name] = nil
+                end
+            end
         end
         local _, class = UnitClass("player")
         if class == "PALADIN" or PP_TestMode then
@@ -1111,6 +1124,10 @@ function PallyPower_OnEvent(event,arg1)
         if PallyPower_CheckRigteousFurry() then
             PallyPower_CancelSalvationBuff()
         end
+
+        -- Refresh local Buff Bar state immediately when the player's auras change.
+        -- This updates Aura/RF red/green state without waiting for the normal scan.
+        PallyPower_UpdateUI()
     end
 end
 
@@ -1305,6 +1322,9 @@ function PallyPower_Report()
             if PallyPower_SealAssignments[name] and PallyPower_SealAssignments[name] ~= -1 then
                 blessings = blessings.." --- Seal: "..PallyPower_SealID[PallyPower_SealAssignments[name]]
             end
+            if PallyPower_RFAssignments[name] == true then
+                blessings = blessings.." --- Righteous Fury"
+            end
             SendChatMessage(name .. ": " .. blessings, type)
             PP_Debug(name .. ": " .. blessings)
         end
@@ -1351,6 +1371,7 @@ function PallyPowerGrid_Update(tdiff)
     end
     getglobal("PallyPowerFrameClassA"):SetTexture(PallyPower_AuraMastery)
     getglobal("PallyPowerFrameClassS"):SetTexture(PallyPower_AbilitySeal)
+    getglobal("PallyPowerFrameClassR"):SetTexture(PallyPower_RighteousFury)
 
     -- Pally 1 is always myself
     local i = 1
@@ -1460,6 +1481,11 @@ function PallyPowerGrid_Update(tdiff)
                 )
             else
                 getglobal("PallyPowerFramePlayer" .. i .. "ClassSIcon"):SetTexture(nil)
+            end
+            if PallyPower_RFAssignments[name] == true then
+                getglobal("PallyPowerFramePlayer" .. i .. "ClassRIcon"):SetTexture(PallyPower_RighteousFury)
+            else
+                getglobal("PallyPowerFramePlayer" .. i .. "ClassRIcon"):SetTexture(nil)
             end
             i = i + 1
             numPallys = numPallys + 1
@@ -1748,7 +1774,9 @@ function PallyPower_UpdateLayout()
     end
 
     -- Calculate which buttons should be shown
-    local showRF = (PP_PerUser.showrfbutton == true and hasRighteousFury == true) and (IsPally == 1)
+    local showRF = (PP_PerUser.showrfbutton == true and
+        PallyPower_RFAssignments[namePlayer] == true and
+        hasRighteousFury == true) and (IsPally == 1)
     local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (IsPally == 1)
     local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (IsPally == 1)
     
@@ -1871,7 +1899,9 @@ function PallyPower_UpdateUI()
             icons_prefix = "AddOns\\PallyPowerVanilla\\"
         end
         
-        PallyPowerBuffBarRF:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
+        -- RF is only shown when assigned. Red = assigned but missing;
+        -- successful detection below changes it to green.
+        PallyPowerBuffBarRF:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
         local i
         local testUnitBuff
         
@@ -1903,6 +1933,8 @@ function PallyPower_UpdateUI()
     
         PallyPowerBuffBarAura:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
         if PallyPower_AuraAssignments[namePlayer] then
+            -- Red = assigned aura missing; successful detection below changes it to green.
+            PallyPowerBuffBarAura:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
             getglobal("PallyPowerBuffBarAuraBuffIcon"):SetTexture(AuraIcons[PallyPower_AuraAssignments[namePlayer]])
             
             -- Use Nampower API if available for better performance
@@ -2494,6 +2526,7 @@ function PallyPower_Clear(fromupdate, who)
             end
             PallyPower_NormalAssignments = {}
             PallyPower_AuraAssignments = {}
+            PallyPower_RFAssignments = {}
             PallyPower_Tanks = {}
         end
     end
@@ -2601,6 +2634,13 @@ function PallyPower_SendSelf()
         PallyPower_SendMessage(msg)
     end
     
+    -- Separate command: old PallyPower clients ignore RFSELF safely.
+    if PallyPower_RFAssignments[UnitName("player")] == true then
+        PallyPower_SendMessage("RFSELF 1")
+    else
+        PallyPower_SendMessage("RFSELF 0")
+    end
+
     for name, _ in pairs(PallyPower_Tanks) do
         msg = "TANK " .. name
         PallyPower_SendMessage(msg)
@@ -2627,6 +2667,7 @@ function PallyPower_ParseMessage(sender, msg)
         end
         if string.find(msg, "^SELF") then
             PallyPower_Assignments[sender] = {}
+            PallyPower_RFAssignments[sender] = false
             AllPallys[sender] = {}
             local _, _, numbers, assign = string.find(msg, "SELF ([0-9n]*)@?([0-9n]*)")
             for id = 0, 5 do
@@ -2699,6 +2740,11 @@ function PallyPower_ParseMessage(sender, msg)
             end
             PP_NextScan = 0 --PallyPower_UpdateUI()
         end
+        if string.find(msg, "^RFSELF") then
+            local _, _, assigned = string.find(msg, "^RFSELF ([01])")
+            PallyPower_RFAssignments[sender] = (assigned == "1")
+            PP_NextScan = 0 --PallyPower_UpdateUI()
+        end
         if string.find(msg, "^ASSIGN") then
            local  _, _, name, class, skill = string.find(msg, "^ASSIGN (.*) (.*) (.*)")
             if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
@@ -2743,6 +2789,14 @@ function PallyPower_ParseMessage(sender, msg)
             end
             skill = skill + 0
             PallyPower_SealAssignments[name] = skill
+            PP_NextScan = 0 --PallyPower_UpdateUI()
+        end
+        if string.find(msg, "^RFASSIGN") then
+            local _, _, name, assigned = string.find(msg, "^RFASSIGN (.*) ([01])")
+            if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
+                return false
+            end
+            PallyPower_RFAssignments[name] = (assigned == "1")
             PP_NextScan = 0 --PallyPower_UpdateUI()
         end
         if string.find(msg, "^MASSIGN") then
@@ -2948,8 +3002,9 @@ end
 function PallyPowerGridButton_OnClick(btn, mouseBtn)
     local nameplayer = UnitName("player")
     local _, _, pnum, class = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class(.+)")
-    if class == "A" then class = 10 end
-    if class == "S" then class = 11 end
+    if class == "A" then class = PALLYPOWER_AURA_CLASS end
+    if class == "S" then class = PALLYPOWER_SEAL_CLASS end
+    if class == "R" then class = PALLYPOWER_RF_CLASS end
     pnum = pnum + 0
     class = class + 0
     pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
@@ -2958,7 +3013,7 @@ function PallyPowerGridButton_OnClick(btn, mouseBtn)
     end
 
     if (mouseBtn == "RightButton") then
-        if class ~= PALLYPOWER_AURA_CLASS and class ~= PALLYPOWER_SEAL_CLASS then
+        if class ~= PALLYPOWER_AURA_CLASS and class ~= PALLYPOWER_SEAL_CLASS and class ~= PALLYPOWER_RF_CLASS then
             PallyPower_Assignments[pname][class] = -1
             if (PallyPower_NormalAssignments[nameplayer] and PallyPower_NormalAssignments[nameplayer][class]) then
                 for lname in pairs(PallyPower_NormalAssignments[nameplayer][class]) do
@@ -2975,6 +3030,10 @@ function PallyPowerGridButton_OnClick(btn, mouseBtn)
             PallyPower_SealAssignments[pname] = -1
             PP_NextScan = 0 --PallyPower_UpdateUI()
             PallyPower_SendMessage("SASSIGN " .. pname .. " " .. "-1")
+        elseif class == PALLYPOWER_RF_CLASS then
+            PallyPower_RFAssignments[pname] = false
+            PP_NextScan = 0 --PallyPower_UpdateUI()
+            PallyPower_SendMessage("RFASSIGN " .. pname .. " 0")
         end
     else
         PallyPower_PerformCycle(pname, class, false)
@@ -3014,6 +3073,11 @@ function PallyPowerGridButton_OnEnter(btn)
             if sealIndex >= 0 and PallyPower_SealID[sealIndex] then
                 spellName = "Seal of " .. PallyPower_SealID[sealIndex]
             end
+        end
+    elseif class == "R" then
+        local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+        if pallyName and PallyPower_RFAssignments[pallyName] == true then
+            spellName = "Righteous Fury"
         end
     -- It's a Blessing assignment (Class0-9)
     else
@@ -3192,6 +3256,17 @@ function PallyPower_PerformSealCycle(name, skipempty)
     PP_NextScan = 0 --PallyPower_UpdateUI()
 end
 
+function PallyPower_PerformRFCycle(name)
+    local assigned = not (PallyPower_RFAssignments[name] == true)
+    PallyPower_RFAssignments[name] = assigned
+    if assigned then
+        PallyPower_SendMessage("RFASSIGN " .. name .. " 1")
+    else
+        PallyPower_SendMessage("RFASSIGN " .. name .. " 0")
+    end
+    PP_NextScan = 0 --PallyPower_UpdateUI()
+end
+
 function PallyPower_PerformCycleBackwards(name, class, skipempty)
     local nameplayer = UnitName("player")
     if class == PALLYPOWER_AURA_CLASS then
@@ -3200,6 +3275,10 @@ function PallyPower_PerformCycleBackwards(name, class, skipempty)
     end
     if class == PALLYPOWER_SEAL_CLASS then
         PallyPower_PerformSealCycleBackwards(name, skipempty)
+        return
+    end
+    if class == PALLYPOWER_RF_CLASS then
+        PallyPower_PerformRFCycle(name)
         return
     end
 
@@ -3286,6 +3365,10 @@ function PallyPower_PerformCycle(name, class, skipempty)
 
     if class == PALLYPOWER_SEAL_CLASS then
         PallyPower_PerformSealCycle(name, skipempty)
+        return
+    end
+    if class == PALLYPOWER_RF_CLASS then
+        PallyPower_PerformRFCycle(name)
         return
     end
 
