@@ -16,7 +16,6 @@ Optional client extensions are detected when available and should not prevent th
 
 * [Nampower](https://gitea.com/avitasia/nampower) — enhanced spell and aura functionality.
 * [UnitXP_SP3](https://codeberg.org/konaka/UnitXP_SP3) — enhanced range and line-of-sight information.
-* **SuperWoW** — enhanced unit and GUID functionality where supported.
 
 ## Installation
 
