@@ -5,7 +5,7 @@
 ## Notes: PallyPower for World of Warcraft 1.12.1-based clients
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
-## SavedVariablesPerCharacter: PallyPower_Assignments, PallyPower_AuraAssignments, PallyPower_SealAssignments, PallyPower_NormalAssignments, PP_PerUser, PP_Presets
+## SavedVariablesPerCharacter: PallyPower_Assignments, PallyPower_AuraAssignments, PallyPower_SealAssignments, PallyPower_RFAssignments, PallyPower_NormalAssignments, PP_PerUser, PP_Presets
 
 Locale\localization-enUS.lua
 PallyPowerManaCost.lua
