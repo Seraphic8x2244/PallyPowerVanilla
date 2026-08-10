@@ -287,7 +287,7 @@
 	</Frame>
 	<Button name="PallyPowerBuffButtonTemplate" virtual="true">
 		<Size>
-			<AbsDimension x="100" y="36" />
+			<AbsDimension x="90" y="30" />
 		</Size>
 		<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
 			<BackgroundInsets>
@@ -304,60 +304,60 @@
 			<Layer level="OVERLAY">
 				<FontString name="$parentTime" inherits="GameFontHighlightSmall" text="10:00" justifyH="RIGHT">
 					<Size>
-						<AbsDimension x="40" y="16" />
+						<AbsDimension x="28" y="10" />
 					</Size>
 					<Anchors>
 						<Anchor point="TOPRIGHT">
 							<Offset>
-								<AbsDimension x="-5" y="0" />
+								<AbsDimension x="-2" y="-1" />
 							</Offset>
 						</Anchor>
 					</Anchors>
 				</FontString>
 				<FontString name="$parentTime2" inherits="GameFontNormalSmall" text="10:00" justifyH="RIGHT">
 					<Size>
-						<AbsDimension x="40" y="16" />
+						<AbsDimension x="28" y="10" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPRIGHT">
+						<Anchor point="RIGHT">
 							<Offset>
-								<AbsDimension x="-5" y="-10" />
+								<AbsDimension x="-2" y="0" />
 							</Offset>
 						</Anchor>
 					</Anchors>
 				</FontString>
 				<FontString name="$parentText" inherits="GameFontHighlightSmall" text="99" justifyH="RIGHT">
 					<Size>
-						<AbsDimension x="40" y="16" />
+						<AbsDimension x="28" y="10" />
 					</Size>
 					<Anchors>
 						<Anchor point="BOTTOMRIGHT">
 							<Offset>
-								<AbsDimension x="-5" y="0" />
+								<AbsDimension x="-2" y="1" />
 							</Offset>
 						</Anchor>
 					</Anchors>
 				</FontString>
 				<Texture name="$parentClassIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Paladin">
 					<Size>
-						<AbsDimension x="26" y="26" />
+						<AbsDimension x="24" y="24" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT">
+						<Anchor point="LEFT">
 							<Offset>
-								<AbsDimension x="4" y="-5" />
+								<AbsDimension x="3" y="0" />
 							</Offset>
 						</Anchor>
 					</Anchors>
 				</Texture>
 				<Texture name="$parentBuffIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfWisdom">
 					<Size>
-						<AbsDimension x="26" y="26" />
+						<AbsDimension x="24" y="24" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentClassIcon" relativePoint="TOPRIGHT">
+						<Anchor point="LEFT">
 							<Offset>
-								<AbsDimension x="4" y="0" />
+								<AbsDimension x="33" y="0" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -385,7 +385,7 @@
 	</Button>
 	<Button name="PallyPowerAuraButtonTemplate" virtual="true">
 		<Size>
-			<AbsDimension x="100" y="36" />
+			<AbsDimension x="90" y="30" />
 		</Size>
 		<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
 			<BackgroundInsets>
@@ -402,14 +402,10 @@
 			<Layer level="OVERLAY">
 				<Texture name="$parentBuffIcon" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfFury">
 					<Size>
-						<AbsDimension x="26" y="26" />
+						<AbsDimension x="24" y="24" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT">
-							<Offset>
-								<AbsDimension x="34" y="-5" />
-							</Offset>
-						</Anchor>
+						<Anchor point="CENTER" />
 					</Anchors>
 				</Texture>
 			</Layer>
@@ -1089,7 +1085,7 @@
 	</Frame>
 	<Frame name="PallyPowerBuffBar" parent="UIParent" toplevel="true" movable="true" frameStrata="LOW" enableMouse="true">
 		<Size>
-			<AbsDimension x="110" y="302" />
+			<AbsDimension x="90" y="390" />
 		</Size>
 		<Anchors>
 			<Anchor point="LEFT" />
@@ -1097,25 +1093,32 @@
 		<Frames>
 			<Button name="$parentTitle">
 				<Size>
-					<AbsDimension x="110" y="20" />
+					<AbsDimension x="90" y="90" />
 				</Size>
 				<Anchors>
-					<Anchor point="TOPLEFT">
-						<Offset>
-							<AbsDimension x="0" y="-5" />
-						</Offset>
-					</Anchor>
+					<Anchor point="TOPLEFT" />
 				</Anchors>
+				<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+					<BackgroundInsets>
+						<AbsInset left="2" right="2" top="3" bottom="2" />
+					</BackgroundInsets>
+					<TileSize>
+						<AbsValue val="8" />
+					</TileSize>
+					<EdgeSize>
+						<AbsValue val="8" />
+					</EdgeSize>
+				</Backdrop>
 				<Layers>
 					<Layer level="OVERLAY">
-						<FontString name="$parentText" inherits="GameFontNormal" text="Pally Buffs">
+						<FontString name="$parentText" inherits="GameFontNormal" text="PallyPower">
 							<Size>
-								<AbsDimension x="130" y="12" />
+								<AbsDimension x="86" y="24" />
 							</Size>
 							<Anchors>
-								<Anchor point="CENTER">
+								<Anchor point="TOP">
 									<Offset>
-										<AbsDimension x="0" y="0" />
+										<AbsDimension x="0" y="-4" />
 									</Offset>
 								</Anchor>
 							</Anchors>
@@ -1137,129 +1140,146 @@
 					</OnMouseUp>
 				</Scripts>
 			</Button>
+
+			<!-- 2 x 3 control grid, each cell 30 x 30 -->
+			<Button name="PP_UI_LockButton">
+				<Size><AbsDimension x="30" y="30" /></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="TOPLEFT">
+						<Offset><AbsDimension x="0" y="-30" /></Offset>
+					</Anchor>
+				</Anchors>
+<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_lock.tga">
+	<Size>
+		<AbsDimension x="18" y="18" />
+	</Size>
+	<Anchors>
+		<Anchor point="CENTER" />
+	</Anchors>
+</NormalTexture>
+			</Button>
+			<Button name="PP_UI_VerboseButton">
+				<Size><AbsDimension x="30" y="30" /></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="PP_UI_LockButton" relativePoint="TOPRIGHT" />
+				</Anchors>
+<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_text.tga">
+	<Size>
+		<AbsDimension x="18" y="18" />
+	</Size>
+	<Anchors>
+		<Anchor point="CENTER" />
+	</Anchors>
+</NormalTexture>
+			</Button>
+			<Button name="PP_UI_SoundButton">
+				<Size><AbsDimension x="30" y="30" /></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="PP_UI_VerboseButton" relativePoint="TOPRIGHT" />
+				</Anchors>
+<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_sound.tga">
+	<Size>
+		<AbsDimension x="18" y="18" />
+	</Size>
+	<Anchors>
+		<Anchor point="CENTER" />
+	</Anchors>
+</NormalTexture>
+			</Button>
+			<Button name="PP_UI_OrientationButton">
+				<Size><AbsDimension x="30" y="30" /></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="PP_UI_LockButton" relativePoint="BOTTOMLEFT" />
+				</Anchors>
+<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_rotate.tga">
+	<Size>
+		<AbsDimension x="18" y="18" />
+	</Size>
+	<Anchors>
+		<Anchor point="CENTER" />
+	</Anchors>
+</NormalTexture>
+			</Button>
+			<Button name="PP_UI_SpareButton" enableMouse="false">
+				<Size><AbsDimension x="30" y="30" /></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="PP_UI_OrientationButton" relativePoint="TOPRIGHT" />
+				</Anchors>
+<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_blank.tga">
+	<Size>
+		<AbsDimension x="18" y="18" />
+	</Size>
+	<Anchors>
+		<Anchor point="CENTER" />
+	</Anchors>
+</NormalTexture>
+			</Button>
+			<Button name="PP_UI_FeedbackButton">
+				<Size><AbsDimension x="30" y="30" /></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="PP_UI_SpareButton" relativePoint="TOPRIGHT" />
+				</Anchors>
+<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_announce.tga">
+	<Size>
+		<AbsDimension x="18" y="18" />
+	</Size>
+	<Anchors>
+		<Anchor point="CENTER" />
+	</Anchors>
+</NormalTexture>
+			</Button>
+
 			<Button name="$parentRF" inherits="PallyPowerAuraButtonTemplate">
 				<Anchors>
-					<Anchor point="TOPLEFT">
-						<Offset>
-							<AbsDimension x="5" y="-28" />
-						</Offset>
-					</Anchor>
+					<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
 			<Button name="$parentAura" inherits="PallyPowerAuraButtonTemplate">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentRF" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
+					<Anchor point="TOPLEFT" relativeTo="$parentRF" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
 			<Button name="$parentSeal" inherits="PallyPowerAuraButtonTemplate">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentAura" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
+					<Anchor point="TOPLEFT" relativeTo="$parentAura" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
 			<Button name="$parentBuff1" inherits="PallyPowerBuffButtonTemplate">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentAura" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
+					<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
 			<Button name="$parentBuff2" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff1" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff1" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff3" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff2" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff2" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff4" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff3" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff3" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff5" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff4" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff4" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff6" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff5" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff5" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff7" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff6" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff6" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff8" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff7" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff7" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff9" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff8" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff8" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentBuff10" inherits="PallyPowerBuffButtonTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentBuff9" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
+				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff9" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
 			<Button name="$parentResizeButton" inherits="PallyPowerResizeTemplate">
 				<Anchors>
 					<Anchor point="BOTTOMRIGHT">
-						<Offset>
-							<AbsDimension x="1" y="-1" />
-						</Offset>
+						<Offset><AbsDimension x="1" y="-1" /></Offset>
 					</Anchor>
 				</Anchors>
 			</Button>

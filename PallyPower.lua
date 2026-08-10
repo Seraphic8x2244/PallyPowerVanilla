@@ -520,43 +520,27 @@ local function PP_UI_MoveOption(frame, label, y)
     end
 end
 
+local function PP_UI_SetControlEnabled(button, enabled)
+    if not button or not button:GetNormalTexture() then return end
+    if enabled then
+        button:GetNormalTexture():SetVertexColor(1, 1, 1)
+    else
+        button:GetNormalTexture():SetVertexColor(0.38, 0.38, 0.38)
+    end
+end
+
 local function PP_UI_UpdateState()
     if not PP_UI_READY then return end
 
-    if PP_UI_LockButton then
-        if PP_PerUser.frameslocked then
-            PP_UI_LockButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Lock-Locked")
-        else
-            PP_UI_LockButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Lock-Unlocked")
-        end
-        PP_UI_LockButton.icon:SetVertexColor(1, 1, 1)
-    end
+    -- Toggle controls: bright = enabled/current; grey = disabled.
+    PP_UI_SetControlEnabled(PP_UI_LockButton, PP_PerUser.frameslocked == true)
+    PP_UI_SetControlEnabled(PP_UI_VerboseButton, PP_PerUser.verbosebuffs == true)
+    PP_UI_SetControlEnabled(PP_UI_SoundButton, PP_PerUser.playsoundwhen0 == true)
 
-    if PP_UI_FeedbackButton then
-        PP_UI_FeedbackButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Print-Assignments")
-        -- Momentary action button: never visually represents a toggle state.
-        PP_UI_FeedbackButton.icon:SetVertexColor(1, 1, 1)
-    end
-
-    if PP_UI_SoundButton then
-        if PP_PerUser.playsoundwhen0 then
-            PP_UI_SoundButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Sound-On")
-        else
-            PP_UI_SoundButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Sound-Off")
-        end
-        PP_UI_SoundButton.icon:SetVertexColor(1, 1, 1)
-    end
-
-    if PP_UI_OrientationIcon then
-        PP_UI_OrientationIcon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Orientation")
-        if PP_PerUser.horizontal then
-            -- Currently horizontal: show DOWN, meaning "switch to vertical".
-            PP_UI_OrientationIcon:SetTexCoord(1, 1, 1, 0, 0, 1, 0, 0)
-        else
-            -- Currently vertical: show RIGHT, meaning "switch to horizontal".
-            PP_UI_OrientationIcon:SetTexCoord(0, 1, 1, 1, 0, 0, 1, 0)
-        end
-    end
+    -- Momentary/action controls remain bright.
+    PP_UI_SetControlEnabled(PP_UI_OrientationButton, true)
+    PP_UI_SetControlEnabled(PP_UI_FeedbackButton, true)
+    PP_UI_SetControlEnabled(PP_UI_SpareButton, true)
 
     if PP_UI_AuraEye then
         if PP_PerUser.showaurabutton then
@@ -609,59 +593,69 @@ function PallyPower_UI_Init()
     PP_UI_RegisterEscapeFrame("PallyPowerFrame")
     PP_UI_RegisterEscapeFrame("PallyPower_OptionsFrame")
 
-    -- Buff Bar header/title. Existing title click/drag scripts are untouched.
+    -- Buff Bar header/title and controls are defined in XML.
     PallyPowerBuffBarTitleText:SetText("PallyPower")
-    PallyPowerBuffBarTitleText:ClearAllPoints()
-    PallyPowerBuffBarTitleText:SetPoint("TOP", PallyPowerBuffBarTitle, "TOP", 0, -7)
     PallyPowerBuffBarTitleText:SetTextColor(0.96, 0.55, 0.73)
-    PallyPowerBuffBarTitleText:SetFontObject(GameFontNormalLarge)
-    PallyPowerBuffBarTitle:SetWidth(100); PallyPowerBuffBarTitle:SetHeight(50)
-    PallyPowerBuffBarTitle:ClearAllPoints()
-    PallyPowerBuffBarTitle:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 5, -4)
-    PallyPowerBuffBarTitle:SetBackdrop({
-        bgFile="Interface\\Tooltips\\UI-Tooltip-Background",
-        edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",
-        tile=true, tileSize=8, edgeSize=8,
-        insets={left=2,right=2,top=3,bottom=2}
-    })
-    PallyPowerBuffBarTitle:SetBackdropColor(0,0,0,PP_PerUser.transparency)
+    PallyPowerBuffBarTitle:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
 
-    PP_UI_LockButton = PP_UI_CreateIconButton("PP_UI_LockButton", PallyPowerBuffBar,
-        "Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Lock-Unlocked", "Lock / Unlock Frames", 6)
-    PP_UI_FeedbackButton = PP_UI_CreateIconButton("PP_UI_FeedbackButton", PallyPowerBuffBar,
-        "Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Print-Assignments", "Print Assignments to Chat", 30)
-    PP_UI_SoundButton = PP_UI_CreateIconButton("PP_UI_SoundButton", PallyPowerBuffBar,
-        "Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Sound-On", "Blessing Expiry Sound", 54)
+    -- Keep the six XML control cells above the title's drag surface.
+    local headerControls = {
+        PP_UI_LockButton, PP_UI_VerboseButton, PP_UI_SoundButton,
+        PP_UI_OrientationButton, PP_UI_SpareButton, PP_UI_FeedbackButton
+    }
+    for _, control in headerControls do
+        if control then
+            control:SetFrameLevel(PallyPowerBuffBarTitle:GetFrameLevel() + 2)
+        end
+    end
 
-    PP_UI_OrientationButton = CreateFrame("Button", "PP_UI_OrientationButton", PallyPowerBuffBar)
-    PP_UI_OrientationButton:SetWidth(22); PP_UI_OrientationButton:SetHeight(22)
-    PP_UI_OrientationButton:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 78, -27)
-    PP_UI_OrientationButton:SetFrameLevel(PallyPowerBuffBarTitle:GetFrameLevel() + 2)
-    PP_UI_OrientationIcon = PP_UI_OrientationButton:CreateTexture("PP_UI_OrientationIcon", "ARTWORK")
-    PP_UI_OrientationIcon:SetWidth(18)
-    PP_UI_OrientationIcon:SetHeight(18)
-    PP_UI_OrientationIcon:SetPoint("CENTER")
-    PP_UI_OrientationIcon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Orientation")
-    PP_UI_OrientationButton:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this,"Buff Bar Orientation","Click to switch between vertical and horizontal.")
+    PP_UI_LockButton:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Frame Lock", "Click to lock or unlock PallyPower frames.")
     end)
+    PP_UI_VerboseButton:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Buff Feedback", "Show or hide routine Blessing cast and failure messages.")
+    end)
+    PP_UI_SoundButton:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Blessing Expiry Sound", "Toggle the sound played when Blessings expire.")
+    end)
+    PP_UI_OrientationButton:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Buff Bar Orientation", "Switch between vertical and horizontal layouts.")
+    end)
+    PP_UI_FeedbackButton:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Announce Assignments", "Print current assignments to party or raid chat.")
+    end)
+
+    PP_UI_LockButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PP_UI_VerboseButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PP_UI_SoundButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_OrientationButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PP_UI_FeedbackButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     PP_UI_LockButton:SetScript("OnClick", function()
         FramesLockedOptionChk:SetChecked(not PP_PerUser.frameslocked)
-        PallyPower_FramesLockedOption(); PP_UI_UpdateState()
+        PallyPower_FramesLockedOption()
+        PP_UI_UpdateState()
     end)
-    PP_UI_FeedbackButton:SetScript("OnClick", function()
-        -- Report the current assignments once to party/raid chat.
-        PallyPower_Report()
+
+    PP_UI_VerboseButton:SetScript("OnClick", function()
+        PP_PerUser.verbosebuffs = not PP_PerUser.verbosebuffs
+        PP_UI_UpdateState()
     end)
+
     PP_UI_SoundButton:SetScript("OnClick", function()
         PlaySoundOptionChk:SetChecked(not PP_PerUser.playsoundwhen0)
-        PallyPower_PlaySoundOption(); PP_UI_UpdateState()
+        PallyPower_PlaySoundOption()
+        PP_UI_UpdateState()
     end)
+
     PP_UI_OrientationButton:SetScript("OnClick", function()
         HorizontalLayoutOptionChk:SetChecked(not PP_PerUser.horizontal)
-        PallyPower_HorizontalLayoutOption(); PP_UI_UpdateState()
+        PallyPower_HorizontalLayoutOption()
+        PP_UI_UpdateState()
+    end)
+
+    PP_UI_FeedbackButton:SetScript("OnClick", function()
+        PallyPower_Report()
     end)
 
     -- Blessing Management header and top-left technical area.
@@ -904,6 +898,7 @@ function PallyPower_InitConfig()
     if PP_PerUser.showsealbutton == nil then PP_PerUser.showsealbutton = true end
     if PP_PerUser.minimapbuttonshow == nil then PP_PerUser.minimapbuttonshow = true end
     if PP_PerUser.playsoundwhen0 == nil then PP_PerUser.playsoundwhen0 = true end
+    if PP_PerUser.verbosebuffs == nil then PP_PerUser.verbosebuffs = true end
     if PP_PerUser.minimapbuttonpos == nil then PP_PerUser.minimapbuttonpos = 30 end
     if PP_PerUser.freeassign == nil then PP_PerUser.freeassign = true end
     if PP_PerUser.horizontal == nil then PP_PerUser.horizontal = false end
@@ -1828,102 +1823,179 @@ function PallyPowerPlayerButton_OnEnter(plbtn)
     end
 end
 
+local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
+    if not btn then return end
+
+    local classIcon = getglobal(btn:GetName() .. "ClassIcon")
+    local buffIcon = getglobal(btn:GetName() .. "BuffIcon")
+    local timeText = getglobal(btn:GetName() .. "Time")
+    local time2Text = getglobal(btn:GetName() .. "Time2")
+    local countText = getglobal(btn:GetName() .. "Text")
+
+    if horizontal then
+        btn:SetWidth(30)
+        btn:SetHeight(90)
+
+        if classIcon then
+            classIcon:SetWidth(24); classIcon:SetHeight(24)
+            classIcon:ClearAllPoints()
+            classIcon:SetPoint("TOP", btn, "TOP", 0, -3)
+        end
+        if buffIcon then
+            buffIcon:SetWidth(24); buffIcon:SetHeight(24)
+            buffIcon:ClearAllPoints()
+            buffIcon:SetPoint("TOP", btn, "TOP", 0, -33)
+        end
+
+        -- Bottom 30px is the metadata/count block.
+        if timeText then
+            timeText:SetWidth(28); timeText:SetHeight(10)
+            timeText:ClearAllPoints()
+            timeText:SetPoint("TOP", btn, "TOP", 0, -61)
+            timeText:SetJustifyH("CENTER")
+        end
+        if time2Text then
+            time2Text:SetWidth(28); time2Text:SetHeight(10)
+            time2Text:ClearAllPoints()
+            time2Text:SetPoint("TOP", btn, "TOP", 0, -70)
+            time2Text:SetJustifyH("CENTER")
+        end
+        if countText then
+            countText:SetWidth(28); countText:SetHeight(10)
+            countText:ClearAllPoints()
+            countText:SetPoint("BOTTOM", btn, "BOTTOM", 0, 1)
+            countText:SetJustifyH("CENTER")
+        end
+    else
+        btn:SetWidth(90)
+        btn:SetHeight(30)
+
+        if classIcon then
+            classIcon:SetWidth(24); classIcon:SetHeight(24)
+            classIcon:ClearAllPoints()
+            classIcon:SetPoint("LEFT", btn, "LEFT", 3, 0)
+        end
+        if buffIcon then
+            buffIcon:SetWidth(24); buffIcon:SetHeight(24)
+            buffIcon:ClearAllPoints()
+            buffIcon:SetPoint("LEFT", btn, "LEFT", 33, 0)
+        end
+
+        -- Right-most 30px is the metadata/count block.
+        if timeText then
+            timeText:SetWidth(28); timeText:SetHeight(10)
+            timeText:ClearAllPoints()
+            timeText:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -2, -1)
+            timeText:SetJustifyH("RIGHT")
+        end
+        if time2Text then
+            time2Text:SetWidth(28); time2Text:SetHeight(10)
+            time2Text:ClearAllPoints()
+            time2Text:SetPoint("RIGHT", btn, "RIGHT", -2, 0)
+            time2Text:SetJustifyH("RIGHT")
+        end
+        if countText then
+            countText:SetWidth(28); countText:SetHeight(10)
+            countText:ClearAllPoints()
+            countText:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 1)
+            countText:SetJustifyH("RIGHT")
+        end
+    end
+end
+
+local function PallyPower_ApplySpecialButtonGeometry(btn, horizontal)
+    if not btn then return end
+
+    if horizontal then
+        btn:SetWidth(30)
+        btn:SetHeight(90)
+    else
+        btn:SetWidth(90)
+        btn:SetHeight(30)
+    end
+
+    local icon = getglobal(btn:GetName() .. "BuffIcon")
+    if icon then
+        icon:SetWidth(24)
+        icon:SetHeight(24)
+        icon:ClearAllPoints()
+        icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
+    end
+end
+
 function PallyPower_UpdateLayout()
-    local addAura = 0
-    local addHeight = 0
-    local hasAura = false
-    local hasSeal = false
     local namePlayer = UnitName("player")
+    local horizontal = (PP_PerUser.horizontal == true)
 
-    if PallyPower_AuraAssignments[namePlayer] and PallyPower_AuraAssignments[namePlayer] ~= -1 then
-        hasAura = true
-    end
+    local hasAura = PallyPower_AuraAssignments[namePlayer] and PallyPower_AuraAssignments[namePlayer] ~= -1
+    local hasSeal = PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1
 
-    if PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1 then
-        hasSeal = true
-    end
-
-    -- Calculate which buttons should be shown
     local showRF = (PP_PerUser.showrfbutton == true and
         PallyPower_RFAssignments[namePlayer] == true and
         hasRighteousFury == true) and (IsPally == 1)
     local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (IsPally == 1)
     local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (IsPally == 1)
-    
-    -- Hide all buttons initially
-    PallyPowerBuffBarRF:Hide()
-    PallyPowerBuffBarAura:Hide()
-    PallyPowerBuffBarSeal:Hide()
-    
-    -- Count visible buttons and set up positioning
+
+    local specialButtons = {
+        PallyPowerBuffBarRF,
+        PallyPowerBuffBarAura,
+        PallyPowerBuffBarSeal
+    }
+    for _, button in specialButtons do
+        button:Hide()
+        PallyPower_ApplySpecialButtonGeometry(button, horizontal)
+    end
+
+    for i = 1, 10 do
+        PallyPower_ApplyBlessingButtonGeometry(
+            getglobal("PallyPowerBuffBarBuff" .. i),
+            horizontal
+        )
+    end
+
     local visibleButtons = {}
-    if showRF then table.insert(visibleButtons, "PallyPowerBuffBarRF") end
-    if showAura then table.insert(visibleButtons, "PallyPowerBuffBarAura") end
-    if showSeal then table.insert(visibleButtons, "PallyPowerBuffBarSeal") end
-    
-    local numVisible = table.getn(visibleButtons)
-    
-    if numVisible == 0 then
-        -- No special buttons visible
-        addAura = 0
-        addHeight = 0
-        getglobal("PallyPowerBuffBarBuff1"):ClearAllPoints()
-        getglobal("PallyPowerBuffBarBuff1"):SetPoint("TOPLEFT",5,-56)
+    if showRF then table.insert(visibleButtons, PallyPowerBuffBarRF) end
+    if showAura then table.insert(visibleButtons, PallyPowerBuffBarAura) end
+    if showSeal then table.insert(visibleButtons, PallyPowerBuffBarSeal) end
+
+    local lastButton = PallyPowerBuffBarTitle
+
+    for _, button in visibleButtons do
+        button:Show()
+        button:ClearAllPoints()
+
+        if horizontal then
+            button:SetPoint("TOPLEFT", lastButton, "TOPRIGHT", 0, 0)
+        else
+            button:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, 0)
+        end
+
+        lastButton = button
+    end
+
+    local firstBlessing = PallyPowerBuffBarBuff1
+    firstBlessing:ClearAllPoints()
+    if horizontal then
+        firstBlessing:SetPoint("TOPLEFT", lastButton, "TOPRIGHT", 0, 0)
     else
-        -- Calculate dimensions based on layout
-        if PP_PerUser.horizontal == false then
-            addAura = 36 * numVisible
-            addHeight = 0
-        else
-            addAura = 100 * numVisible
-            addHeight = 0
-        end
-        
-        -- Show and position buttons
-        local lastButton = nil
-        for i = 1, numVisible do
-            local buttonName = visibleButtons[i]
-            local button = getglobal(buttonName)
-            button:Show()
-            button:ClearAllPoints()
-            
-            if i == 1 then
-                -- First button
-                button:SetPoint("TOPLEFT", 5, -56)
-                lastButton = buttonName
-            else
-                -- Subsequent buttons
-                if PP_PerUser.horizontal == false then
-                    button:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, 0)
-                else
-                    button:SetPoint("TOPLEFT", lastButton, "TOPRIGHT", 0, 0)
-                end
-                lastButton = buttonName
-            end
-        end
-        
-        -- Position first blessing button after the last special button
-        getglobal("PallyPowerBuffBarBuff1"):ClearAllPoints()
-        if PP_PerUser.horizontal == false then
-            getglobal("PallyPowerBuffBarBuff1"):SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, 0)
-        else
-            getglobal("PallyPowerBuffBarBuff1"):SetPoint("TOPLEFT", lastButton, "TOPRIGHT", 0, 0)
-        end
+        firstBlessing:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, 0)
     end
 
-    for rest = 2, 10 do
-        local btn = getglobal("PallyPowerBuffBarBuff" .. rest)
-        btn:ClearAllPoints()
+    for i = 2, 10 do
+        local button = getglobal("PallyPowerBuffBarBuff" .. i)
+        local previous = getglobal("PallyPowerBuffBarBuff" .. (i - 1))
+        button:ClearAllPoints()
 
-        if PP_PerUser.horizontal == false then
-            btn:SetPoint("TOPLEFT","PallyPowerBuffBarBuff"..rest - 1,"BOTTOMLEFT",0,0)
+        if horizontal then
+            button:SetPoint("TOPLEFT", previous, "TOPRIGHT", 0, 0)
         else
-            btn:SetPoint("TOPLEFT","PallyPowerBuffBarBuff"..rest - 1,"TOPRIGHT",0,0)
+            button:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, 0)
         end
-        btn:Hide()
+
+        button:Hide()
     end
 
-    return addHeight, addAura
+    return table.getn(visibleButtons)
 end
 
 function PallyPower_UpdateUI()
@@ -1950,8 +2022,7 @@ function PallyPower_UpdateUI()
         IsPally = 1
     end
 
-    local addAura = 0
-    local addHeight = 0
+    local specialButtonCount = 0
 
     if ((IsPally == 1) or (GetNumRaidMembers() > 0 and GetNumPartyMembers() > 0)) then
         if PP_PerUser.frameslocked == true then
@@ -1960,7 +2031,7 @@ function PallyPower_UpdateUI()
             PallyPowerBuffBarResizeButton:Show()
         end
 
-        addHeight, addAura = PallyPower_UpdateLayout()
+        specialButtonCount = PallyPower_UpdateLayout()
 
         local icons_prefix
         if PP_PerUser.usehdicons == true then
@@ -2196,12 +2267,13 @@ function PallyPower_UpdateUI()
             btn.dead = {}
             btn:Hide()
         end
+        local totalVisibleButtons = specialButtonCount + (BuffNum - 1)
         if PP_PerUser.horizontal == false then
-            PallyPowerBuffBar:SetHeight(60 + (36 * (BuffNum - 1)) + addHeight + addAura)
-            PallyPowerBuffBar:SetWidth(110)
+            PallyPowerBuffBar:SetWidth(90)
+            PallyPowerBuffBar:SetHeight(90 + (30 * totalVisibleButtons))
         else
-            PallyPowerBuffBar:SetWidth((100 * (BuffNum - 1)) + addHeight + addAura + 10)
-            PallyPowerBuffBar:SetHeight(96)
+            PallyPowerBuffBar:SetWidth(90 + (30 * totalVisibleButtons))
+            PallyPowerBuffBar:SetHeight(90)
         end
     else
         PallyPowerBuffBar:Hide()
@@ -4055,7 +4127,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     if not PallyPower_HasEnoughMana(btn.buffID, blessingType) then
         SpellStopTargeting()
         PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-        PallyPower_ShowFeedback("Not enough mana to cast blessing", 1, 0, 0)
+        PallyPower_ShowBuffFeedback("Not enough mana to cast blessing", 1, 0, 0)
         return
     end
     
@@ -4119,7 +4191,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     if missingReagent then
         SpellStopTargeting()
         PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-        PallyPower_ShowFeedback("Out of " .. missingReagent, 1, 0, 0) -- Red color
+        PallyPower_ShowBuffFeedback("Out of " .. missingReagent, 1, 0, 0) -- Red color
         return
     end
     
@@ -4153,7 +4225,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                 if PallyPower_Assignments[player][0] ~= PallyPower_Assignments[player][9] then
                     SpellStopTargeting()
                     PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-                    PallyPower_ShowFeedback(
+                    PallyPower_ShowBuffFeedback(
                         format(PallyPower_BlessingsDiffer),
                         1, 1, 0 -- Yellow color for feedback
                     )
@@ -4290,7 +4362,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                 end
 
                 if blessing ~= -1 and mousebtn == "RightButton" then
-                    PallyPower_ShowFeedback(
+                    PallyPower_ShowBuffFeedback(
                         format(
                             PallyPower_Casting,
                             PallyPower_BlessingID[blessing],
@@ -4299,7 +4371,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                         ), 0, 1, 0 -- Green color for feedback
                     )
                 else
-                    PallyPower_ShowFeedback(
+                    PallyPower_ShowBuffFeedback(
                         format(
                             PallyPower_Casting,
                             PallyPower_BlessingID[btn.buffID],
@@ -4340,7 +4412,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
         errorMsg = format(PallyPower_CouldntFind, PallyPower_BlessingID[btn.buffID], PallyPower_ClassID[btn.classID])
     end
     
-    PallyPower_ShowFeedback(errorMsg, 1, 1, 0)
+    PallyPower_ShowBuffFeedback(errorMsg, 1, 1, 0)
 end
 
 function PallyPower_CastingSalvationOnTank(punit, castspell, overridespell)
@@ -4455,7 +4527,7 @@ function PallyPower_AutoBless(mousebutton)
                         if PallyPower_Assignments[player][0] ~= PallyPower_Assignments[player][9] then
                             SpellStopTargeting()
                             PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-                            PallyPower_ShowFeedback(
+                            PallyPower_ShowBuffFeedback(
                                 format(PallyPower_BlessingsDiffer),
                                 1, 1, 0 -- Yellow color for feedback
                             )
@@ -4538,7 +4610,7 @@ function PallyPower_AutoBless(mousebutton)
                             tinsert(LastCastOn[btn.classID], unit)
                         end
                         if blessing ~= -1 and mousebutton == "Hotkey1" then
-                            PallyPower_ShowFeedback(
+                            PallyPower_ShowBuffFeedback(
                                 format(
                                     PallyPower_Casting,
                                     PallyPower_BlessingID[blessing],
@@ -4547,7 +4619,7 @@ function PallyPower_AutoBless(mousebutton)
                                 ), 0, 1, 0 --Green feedback for casting
                             )
                         else
-                            PallyPower_ShowFeedback(
+                            PallyPower_ShowBuffFeedback(
                                 format(
                                     PallyPower_Casting,
                                     PallyPower_BlessingID[btn.buffID],
@@ -4565,7 +4637,7 @@ function PallyPower_AutoBless(mousebutton)
         end
         SpellStopTargeting()
         PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-        PallyPower_ShowFeedback(
+        PallyPower_ShowBuffFeedback(
             format(PallyPower_CouldntFind, PallyPower_BlessingID[btn.buffID], PallyPower_ClassID[btn.classID]),
             1, 1, 0 --Yellow feedback for not finding a target
         )
@@ -4692,6 +4764,12 @@ function PallyPower_ShowFeedback(msg, r, g, b, a)
         DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_PREFIX .. msg, r, g, b, a)
     else
         UIErrorsFrame:AddMessage(msg, r, g, b, a)
+    end
+end
+
+function PallyPower_ShowBuffFeedback(msg, r, g, b, a)
+    if PP_PerUser.verbosebuffs then
+        PallyPower_ShowFeedback(msg, r, g, b, a)
     end
 end
 
