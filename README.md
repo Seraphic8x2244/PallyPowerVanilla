@@ -13,9 +13,10 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 
 ## Fork Changes
 
-- **Dynamic Blessing data** — Blessing durations and mana costs are determined from the player's learned spells rather than hardcoded values.
-- **Dynamic talent detection** — relevant Paladin talents are detected from the client rather than relying on hardcoded talent positions.
+- **Dynamic Blessing data** — Blessing durations, mana costs, ranks and improvement talents are determined from the player's learned spells rather than hardcoded values.
 - **UI overhaul** — the Buff Bar, Blessing Management and options have been reorganised to make common controls more visual and intuitive.
+- **Self Buffs** - now also highlight red when missing, and update on event rather than the internal scan frequency.
+- **Righteous Fury** - is now assignable per-paladin, still hidable.
 - **Optional client enhancements** — functionality such as UnitXP_SP3 is used when available without being required.
 
 ![Advanced Options](github-images/pp150-3.png)
