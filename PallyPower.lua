@@ -345,6 +345,448 @@ function PallyPower_SortUnitsByProximity(unitsTable, maxRange)
     return unitsArray
 end
 
+
+-- ---------------------------------------------------------------------------
+-- PallyPowerVanilla UI reorganisation
+-- UI only: existing settings, assignment logic and PLPWR communication remain
+-- unchanged. New controls manipulate the same PP_PerUser settings that were
+-- previously exposed in the Options frame.
+-- ---------------------------------------------------------------------------
+
+local PP_UI_READY = false
+
+local function PP_UI_SetTooltip(owner, title, body)
+    GameTooltip:SetOwner(owner, "ANCHOR_TOP")
+    GameTooltip:SetText(title, 1, 1, 1)
+    if body then GameTooltip:AddLine(body, 0.8, 0.8, 0.8, 1) end
+    GameTooltip:Show()
+end
+
+local function PP_UI_CreateIconButton(name, parent, texturePath, tooltip, x)
+    local btn = CreateFrame("Button", name, parent)
+    btn:SetWidth(22)
+    btn:SetHeight(22)
+    btn:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -27)
+    if PallyPowerBuffBarTitle then
+        btn:SetFrameLevel(PallyPowerBuffBarTitle:GetFrameLevel() + 2)
+    end
+    local tex = btn:CreateTexture(name .. "Icon", "ARTWORK")
+    tex:SetWidth(16); tex:SetHeight(16); tex:SetPoint("CENTER")
+    tex:SetTexture(texturePath)
+    btn.icon = tex
+    btn:SetScript("OnEnter", function() PP_UI_SetTooltip(this, tooltip) end)
+    btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    return btn
+end
+
+local function PP_UI_CreateEyeButton(name, anchorFrame, tooltip)
+    local btn = CreateFrame("Button", name, PallyPowerFrame)
+    btn:SetWidth(18); btn:SetHeight(18)
+    btn:SetFrameLevel(PallyPowerFrame:GetFrameLevel() + 3)
+    btn:SetPoint("BOTTOMRIGHT", anchorFrame, "BOTTOMRIGHT", 1, -1)
+
+    local eye = btn:CreateTexture(name .. "Eye", "ARTWORK")
+    eye:SetWidth(18); eye:SetHeight(18); eye:SetPoint("CENTER")
+    btn.eye = eye
+
+    btn:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, tooltip, "Click to show or hide this button on the Buff Bar.")
+    end)
+    btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    return btn
+end
+
+local function PP_UI_MoveOption(frame, label, y)
+    if label then
+        label:ClearAllPoints(); label:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 7, y); label:Show()
+    end
+    if frame then
+        frame:ClearAllPoints(); frame:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, y); frame:Show()
+    end
+end
+
+local function PP_UI_UpdateState()
+    if not PP_UI_READY then return end
+
+    if PP_UI_LockButton then
+        if PP_PerUser.frameslocked then
+            PP_UI_LockButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Lock-Locked")
+        else
+            PP_UI_LockButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Lock-Unlocked")
+        end
+        PP_UI_LockButton.icon:SetVertexColor(1, 1, 1)
+    end
+
+    if PP_UI_FeedbackButton then
+        PP_UI_FeedbackButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Print-Assignments")
+        -- Momentary action button: never visually represents a toggle state.
+        PP_UI_FeedbackButton.icon:SetVertexColor(1, 1, 1)
+    end
+
+    if PP_UI_SoundButton then
+        if PP_PerUser.playsoundwhen0 then
+            PP_UI_SoundButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Sound-On")
+        else
+            PP_UI_SoundButton.icon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Sound-Off")
+        end
+        PP_UI_SoundButton.icon:SetVertexColor(1, 1, 1)
+    end
+
+    if PP_UI_OrientationIcon then
+        PP_UI_OrientationIcon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Orientation")
+        if PP_PerUser.horizontal then
+            -- Currently horizontal: show DOWN, meaning "switch to vertical".
+            PP_UI_OrientationIcon:SetTexCoord(1, 1, 1, 0, 0, 1, 0, 0)
+        else
+            -- Currently vertical: show RIGHT, meaning "switch to horizontal".
+            PP_UI_OrientationIcon:SetTexCoord(0, 1, 1, 1, 0, 0, 1, 0)
+        end
+    end
+
+    if PP_UI_AuraEye then
+        if PP_PerUser.showaurabutton then
+            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-On")
+        else
+            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-Off")
+        end
+    end
+    if PP_UI_SealEye then
+        if PP_PerUser.showsealbutton then
+            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-On")
+        else
+            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-Off")
+        end
+    end
+
+    if PP_UI_UnitXPState then
+        if PP_UnitXPDllLoaded and PP_PerUser.useunitxp_sp3 then
+            PP_UI_UnitXPState:SetText("|cff00ff00OK|r")
+        else
+            PP_UI_UnitXPState:SetText("|cffff3030X|r")
+        end
+    end
+
+    if PP_UI_SmartButton then
+        PP_UI_SmartButton:SetChecked(PP_PerUser.smartbuffs)
+    end
+end
+
+function PallyPower_UI_Init()
+    if PP_UI_READY then PP_UI_UpdateState(); return end
+    if not PallyPowerBuffBar or not PallyPowerFrame or not PallyPower_OptionsFrame then return end
+
+    -- Buff Bar header/title. Existing title click/drag scripts are untouched.
+    PallyPowerBuffBarTitleText:SetText("PallyPower")
+    PallyPowerBuffBarTitleText:ClearAllPoints()
+    PallyPowerBuffBarTitleText:SetPoint("TOP", PallyPowerBuffBarTitle, "TOP", 0, -7)
+    PallyPowerBuffBarTitleText:SetTextColor(0.96, 0.55, 0.73)
+    PallyPowerBuffBarTitleText:SetFontObject(GameFontNormalLarge)
+    PallyPowerBuffBarTitle:SetWidth(100); PallyPowerBuffBarTitle:SetHeight(50)
+    PallyPowerBuffBarTitle:ClearAllPoints()
+    PallyPowerBuffBarTitle:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 5, -4)
+    PallyPowerBuffBarTitle:SetBackdrop({
+        bgFile="Interface\\Tooltips\\UI-Tooltip-Background",
+        edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",
+        tile=true, tileSize=8, edgeSize=8,
+        insets={left=2,right=2,top=3,bottom=2}
+    })
+    PallyPowerBuffBarTitle:SetBackdropColor(0,0,0,PP_PerUser.transparency)
+
+    PP_UI_LockButton = PP_UI_CreateIconButton("PP_UI_LockButton", PallyPowerBuffBar,
+        "Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Lock-Unlocked", "Lock / Unlock Frames", 6)
+    PP_UI_FeedbackButton = PP_UI_CreateIconButton("PP_UI_FeedbackButton", PallyPowerBuffBar,
+        "Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Print-Assignments", "Print Assignments to Chat", 30)
+    PP_UI_SoundButton = PP_UI_CreateIconButton("PP_UI_SoundButton", PallyPowerBuffBar,
+        "Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Sound-On", "Blessing Expiry Sound", 54)
+
+    PP_UI_OrientationButton = CreateFrame("Button", "PP_UI_OrientationButton", PallyPowerBuffBar)
+    PP_UI_OrientationButton:SetWidth(22); PP_UI_OrientationButton:SetHeight(22)
+    PP_UI_OrientationButton:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 78, -27)
+    PP_UI_OrientationButton:SetFrameLevel(PallyPowerBuffBarTitle:GetFrameLevel() + 2)
+    PP_UI_OrientationIcon = PP_UI_OrientationButton:CreateTexture("PP_UI_OrientationIcon", "ARTWORK")
+    PP_UI_OrientationIcon:SetWidth(18)
+    PP_UI_OrientationIcon:SetHeight(18)
+    PP_UI_OrientationIcon:SetPoint("CENTER")
+    PP_UI_OrientationIcon:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Orientation")
+    PP_UI_OrientationButton:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this,"Buff Bar Orientation","Click to switch between vertical and horizontal.")
+    end)
+    PP_UI_OrientationButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    PP_UI_LockButton:SetScript("OnClick", function()
+        FramesLockedOptionChk:SetChecked(not PP_PerUser.frameslocked)
+        PallyPower_FramesLockedOption(); PP_UI_UpdateState()
+    end)
+    PP_UI_FeedbackButton:SetScript("OnClick", function()
+        -- Report the current assignments once to party/raid chat.
+        PallyPower_Report()
+    end)
+    PP_UI_SoundButton:SetScript("OnClick", function()
+        PlaySoundOptionChk:SetChecked(not PP_PerUser.playsoundwhen0)
+        PallyPower_PlaySoundOption(); PP_UI_UpdateState()
+    end)
+    PP_UI_OrientationButton:SetScript("OnClick", function()
+        HorizontalLayoutOptionChk:SetChecked(not PP_PerUser.horizontal)
+        PallyPower_HorizontalLayoutOption(); PP_UI_UpdateState()
+    end)
+
+    -- Blessing Management header and top-left technical area.
+    if PallyPowerFrameTitleText then
+        PallyPowerFrameTitleText:SetText("PallyPower - Blessing Management")
+        PallyPowerFrameTitleText:SetTextColor(0.96, 0.55, 0.73)
+    end
+
+    -- Smart Buffs and Free Assignment are positioned/created by XML.
+    if PP_UI_SmartButton then
+        PP_UI_SmartButton:SetChecked(PP_PerUser.smartbuffs)
+    end
+    if PallyPowerFrameTitleFreeAssignText then
+        PallyPowerFrameTitleFreeAssignText:SetText("Free Assignment")
+    end
+
+    PP_UI_AuraEye = PP_UI_CreateEyeButton("PP_UI_AuraEye",PallyPowerFrameClassA,"Aura on Buff Bar")
+    PP_UI_AuraEye:SetScript("OnClick",function()
+        AuraOptionChk:SetChecked(not PP_PerUser.showaurabutton); PallyPower_AuraOption(); PP_UI_UpdateState()
+    end)
+    PP_UI_SealEye = PP_UI_CreateEyeButton("PP_UI_SealEye",PallyPowerFrameClassS,"Seal on Buff Bar")
+    PP_UI_SealEye:SetScript("OnClick",function()
+        SealOptionChk:SetChecked(not PP_PerUser.showsealbutton); PallyPower_SealOption(); PP_UI_UpdateState()
+    end)
+
+    if PallyPowerFrameOptions then PallyPowerFrameOptions:SetText("Advanced") end
+    if PallyPowerFrameOptionButton then PallyPowerFrameOptionButton:SetText("Advanced") end
+
+    -- Options: hide moved controls, retain them internally, compact what remains.
+    local movedLabels={PallyPower_OptionsFrameOption3,
+        PallyPower_OptionsFrameOption4,
+        PallyPower_OptionsFrameOption5,PallyPower_OptionsFrameOption7,PallyPower_OptionsFrameOption7a,
+        PallyPower_OptionsFrameOption10,PallyPower_OptionsFrameOption11,PallyPower_OptionsFrameOption13}
+    for _,f in movedLabels do if f then f:Hide() end end
+    local movedControls={PallyPower_OptionsFrameFeedback,PallyPower_OptionsFrameSmart,FramesLockedOptionChk,AuraOptionChk,SealOptionChk,
+        PlaySoundOptionChk,HorizontalLayoutOptionChk,UseUnitXPSP3OptionChk}
+    for _,f in movedControls do if f then f:Hide() end end
+
+    PallyPower_OptionsFrame:SetHeight(385)
+
+    -- Correct XML global is PallyPower_OptionsFrameTitle (not ...TitleText).
+    if PallyPower_OptionsFrameTitle then
+        PallyPower_OptionsFrameTitle:SetText("PallyPower - Advanced Options")
+        PallyPower_OptionsFrameTitle:SetTextColor(0.96, 0.55, 0.73)
+        PallyPower_OptionsFrameTitle:SetFontObject(GameFontNormalLarge)
+        PallyPower_OptionsFrameTitle:SetWidth(300)
+    end
+
+    PallyPower_OptionsFrame:SetMovable(true)
+    PallyPower_OptionsFrame:EnableMouse(true)
+    PallyPower_OptionsFrame:RegisterForDrag("LeftButton")
+    PallyPower_OptionsFrame:SetScript("OnDragStart", function()
+        this:StartMoving()
+    end)
+    PallyPower_OptionsFrame:SetScript("OnDragStop", function()
+        this:StopMovingOrSizing()
+    end)
+
+    local function PP_UI_CreateSectionHeader(name, textValue, y)
+        local header = PallyPower_OptionsFrame:CreateFontString(
+            name, "OVERLAY", "GameFontNormal"
+        )
+        header:SetPoint(
+            "TOPLEFT",
+            PallyPower_OptionsFrame,
+            "TOPLEFT",
+            10,
+            y
+        )
+        header:SetText(textValue)
+        header:SetTextColor(0.96, 0.55, 0.73)
+        return header
+    end
+
+    -- ---------------------------------------------------------------
+    -- Minimap
+    -- ---------------------------------------------------------------
+    PP_UI_CreateSectionHeader("PP_UI_AdvancedMinimapHeader", "Minimap", -38)
+
+    PallyPower_OptionsFrameOption8:SetText("Show Button")
+    PallyPower_OptionsFrameOption8:ClearAllPoints()
+    PallyPower_OptionsFrameOption8:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -62)
+    MinimapButtonOptionChk:ClearAllPoints()
+    MinimapButtonOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -62)
+    MinimapButtonOptionChk:Show()
+    PallyPower_OptionsFrameOption8:Show()
+
+    PallyPower_OptionsFrameOption9:ClearAllPoints()
+    PallyPower_OptionsFrameOption9:SetPoint(
+        "TOPLEFT",
+        PallyPower_OptionsFrame,
+        "TOPLEFT",
+        18,
+        -87
+    )
+    PallyPower_OptionsFrameOption9:SetText("Button Position")
+
+    MinimapButtonOptionSlider:ClearAllPoints()
+    MinimapButtonOptionSlider:SetPoint(
+        "TOPRIGHT",
+        PallyPower_OptionsFrame,
+        "TOPRIGHT",
+        -5,
+        -87
+    )
+    if MinimapButtonOptionSliderLow then MinimapButtonOptionSliderLow:Hide() end
+    if MinimapButtonOptionSliderHigh then MinimapButtonOptionSliderHigh:Hide() end
+
+    -- ---------------------------------------------------------------
+    -- Visual
+    -- ---------------------------------------------------------------
+    PP_UI_CreateSectionHeader("PP_UI_AdvancedVisualHeader", "Visual", -125)
+
+    PallyPower_OptionsFrameOption14:SetText("Use HD Icons")
+    PallyPower_OptionsFrameOption14:ClearAllPoints()
+    PallyPower_OptionsFrameOption14:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -149)
+    UseHDIconsOptionChk:ClearAllPoints()
+    UseHDIconsOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -149)
+    UseHDIconsOptionChk:Show()
+    PallyPower_OptionsFrameOption14:Show()
+
+    PallyPower_OptionsFrameOption15:ClearAllPoints()
+    PallyPower_OptionsFrameOption15:SetPoint(
+        "TOPLEFT",
+        PallyPower_OptionsFrame,
+        "TOPLEFT",
+        18,
+        -174
+    )
+    PallyPower_OptionsFrameOption15:SetText("Global Transparency")
+
+    TransparencyOptionSlider:ClearAllPoints()
+    TransparencyOptionSlider:SetPoint(
+        "TOPRIGHT",
+        PallyPower_OptionsFrame,
+        "TOPRIGHT",
+        -5,
+        -174
+    )
+
+    PallyPower_OptionsFrameOption12:SetText("Hide Blizzard Aura Frame")
+    PallyPower_OptionsFrameOption12:ClearAllPoints()
+    PallyPower_OptionsFrameOption12:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -204)
+    HideBlizzardFrameOptionChk:ClearAllPoints()
+    HideBlizzardFrameOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -204)
+    HideBlizzardFrameOptionChk:Show()
+    PallyPower_OptionsFrameOption12:Show()
+
+    -- RF remains here while its management-column UI is still WIP.
+    PallyPower_OptionsFrameOption6:ClearAllPoints()
+    PallyPower_OptionsFrameOption6:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -229)
+    RighteousFuryOptionChk:ClearAllPoints()
+    RighteousFuryOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -229)
+    RighteousFuryOptionChk:Show()
+    PallyPower_OptionsFrameOption6:Show()
+
+    -- ---------------------------------------------------------------
+    -- Scanning
+    -- ---------------------------------------------------------------
+    PP_UI_CreateSectionHeader("PP_UI_AdvancedScanningHeader", "Scanning", -267)
+
+    PP_UI_UnitXPLabel = PallyPower_OptionsFrame:CreateFontString(
+        "PP_UI_UnitXPLabel",
+        "OVERLAY",
+        "GameFontHighlight"
+    )
+    PP_UI_UnitXPLabel:SetPoint(
+        "TOPLEFT",
+        PallyPower_OptionsFrame,
+        "TOPLEFT",
+        18,
+        -291
+    )
+    PP_UI_UnitXPLabel:SetText("UnitXP_SP3")
+
+    PP_UI_UnitXPState = PallyPower_OptionsFrame:CreateFontString(
+        "PP_UI_UnitXPState",
+        "OVERLAY",
+        "GameFontNormal"
+    )
+    PP_UI_UnitXPState:SetPoint(
+        "LEFT",
+        PP_UI_UnitXPLabel,
+        "RIGHT",
+        6,
+        0
+    )
+
+    PallyPower_OptionsFrameOption1:ClearAllPoints()
+    PallyPower_OptionsFrameOption1:SetPoint(
+        "TOPLEFT",
+        PallyPower_OptionsFrame,
+        "TOPLEFT",
+        18,
+        -316
+    )
+    PallyPower_OptionsFrameOption1:SetText("Scan Unitframes every")
+
+    PallyPower_OptionsFrameScan1:SetParent(PallyPower_OptionsFrame)
+    PallyPower_OptionsFrameScan1:SetAutoFocus(false)
+    PallyPower_OptionsFrameScan1:ClearFocus()
+    PallyPower_OptionsFrameScan1:ClearAllPoints()
+    PallyPower_OptionsFrameScan1:SetPoint(
+        "TOPRIGHT",
+        PallyPower_OptionsFrame,
+        "TOPRIGHT",
+        -30,
+        -314
+    )
+    PallyPower_OptionsFrameScan1:SetWidth(34)
+
+    PallyPower_OptionsFrameOption2:ClearAllPoints()
+    PallyPower_OptionsFrameOption2:SetPoint(
+        "TOPLEFT",
+        PallyPower_OptionsFrame,
+        "TOPLEFT",
+        18,
+        -341
+    )
+    PallyPower_OptionsFrameOption2:SetText("Units Scanned per Frame")
+
+    PallyPower_OptionsFrameScan2:SetParent(PallyPower_OptionsFrame)
+    PallyPower_OptionsFrameScan2:SetAutoFocus(false)
+    PallyPower_OptionsFrameScan2:ClearFocus()
+    PallyPower_OptionsFrameScan2:ClearAllPoints()
+    PallyPower_OptionsFrameScan2:SetPoint(
+        "TOPRIGHT",
+        PallyPower_OptionsFrame,
+        "TOPRIGHT",
+        -30,
+        -339
+    )
+    PallyPower_OptionsFrameScan2:SetWidth(34)
+
+    -- Active-Paladin geometry is defined in PallyPower.xml.
+    -- Lua only applies runtime colour/shadow to the counters.
+    for i = 1, 15 do
+        for id = 0, 8 do
+            local skill = getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id)
+            if skill then
+                skill:SetTextColor(1, 1, 1)
+                skill:SetShadowColor(0, 0, 0, 1)
+                skill:SetShadowOffset(1, -1)
+            end
+        end
+        for id = 0, 5 do
+            local talentText = getglobal("PallyPowerFramePlayer" .. i .. "Talent" .. id)
+            if talentText then
+                talentText:SetTextColor(1, 1, 1)
+                talentText:SetShadowColor(0, 0, 0, 1)
+                talentText:SetShadowOffset(1, -1)
+            end
+        end
+    end
+
+    PP_UI_READY=true
+    PP_UI_UpdateState()
+end
+
 function PallyPower_InitConfig()
     -- Delayed Nampower status announcement (10s so it appears after login spam)
     local announceFrame = CreateFrame("Frame")
@@ -396,7 +838,9 @@ function PallyPower_InitConfig()
         UseUnitXPSP3OptionChk:SetChecked(false)
         PP_PerUser.useunitxp_sp3 = false
         UseUnitXPSP3OptionChk:Disable()
-    end    
+    end
+
+    PallyPower_UI_Init()
 end
 
 function PallyPower_OnLoad()
@@ -947,25 +1391,48 @@ function PallyPowerGrid_Update(tdiff)
                 if (skills[id]) then
                     getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Show()
                     getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Show()
+                    -- Spell rank is a plain number.
                     txt = skills[id]["rank"]
-                    if (skills[id]["talent"] + 0 > 0) then
-                        txt = txt .. "+" .. skills[id]["talent"]
+                    getglobal(
+                        "PallyPowerFramePlayer" .. i .. "Skill" .. id
+                    ):SetText(txt)
+
+                    -- Talent improvement is a separate +N overlay.
+                    local talentText = getglobal(
+                        "PallyPowerFramePlayer" .. i .. "Talent" .. id
+                    )
+                    if talentText then
+                        if (skills[id]["talent"] + 0 > 0) then
+                            talentText:SetText("+" .. skills[id]["talent"])
+                            talentText:Show()
+                        else
+                            talentText:SetText("")
+                            talentText:Hide()
+                        end
                     end
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):SetText(txt)
                 else
                     getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Hide()
                     getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Hide()
+                    local talentText = getglobal(
+                        "PallyPowerFramePlayer" .. i .. "Talent" .. id
+                    )
+                    if talentText then talentText:Hide() end
                 end
             end
             for id = 6, 8 do -- Aura Icons and skills (Auras start from 0 and icon start at 6)
                 if AllPallysAuras[name] and AllPallysAuras[name][id-6] then
                     getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Show()
                     getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Show()
-                    txt = AllPallysAuras[name][id-6].rank
-                    if (AllPallysAuras[name][id-6].talent + 0 > 0) then
-                        txt = txt .. "+" .. AllPallysAuras[name][id-6].talent
+                    -- Aura capability value denotes talent improvement.
+                    local auraRank = AllPallysAuras[name][id-6].rank + 0
+                    if auraRank > 0 then
+                        txt = "+" .. auraRank
+                    else
+                        txt = ""
                     end
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):SetText(txt)
+                    getglobal(
+                        "PallyPowerFramePlayer" .. i .. "Skill" .. id
+                    ):SetText(txt)
                 else
                     getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Hide()
                     getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Hide()
@@ -1058,8 +1525,8 @@ function PallyPowerGrid_Update(tdiff)
 
         end           
 
-        PallyPowerFrame:SetHeight(10 + 14 + 24 + 56 + (numPallys * 76) + 22 + (13 * numMaxClass)) -- 14 from border, 24 from Title, 56 from space for class icons, 56 per paladin, 22 for Buttons at bottom
-        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", 8, -84 - 13 * numMaxClass)
+        PallyPowerFrame:SetHeight(10 + 14 + 24 + 61 + (numPallys * 76) + 22 + (13 * numMaxClass)) -- 14 from border, 24 from Title, 56 from space for class icons, 56 per paladin, 22 for Buttons at bottom
+        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", 8, -89 - 13 * numMaxClass)
 		for i = 1, PALLYPOWER_MAXCLASSES do
 			getglobal("PallyPowerFrameClassGroup" .. i .. "Line"):SetHeight( 2 + 13 * numMaxClass)
         end        
@@ -1303,7 +1770,7 @@ function PallyPower_UpdateLayout()
         addAura = 0
         addHeight = 0
         getglobal("PallyPowerBuffBarBuff1"):ClearAllPoints()
-        getglobal("PallyPowerBuffBarBuff1"):SetPoint("TOPLEFT",5,-28)
+        getglobal("PallyPowerBuffBarBuff1"):SetPoint("TOPLEFT",5,-56)
     else
         -- Calculate dimensions based on layout
         if PP_PerUser.horizontal == false then
@@ -1324,7 +1791,7 @@ function PallyPower_UpdateLayout()
             
             if i == 1 then
                 -- First button
-                button:SetPoint("TOPLEFT", 5, -28)
+                button:SetPoint("TOPLEFT", 5, -56)
                 lastButton = buttonName
             else
                 -- Subsequent buttons
@@ -1362,6 +1829,7 @@ function PallyPower_UpdateLayout()
 end
 
 function PallyPower_UpdateUI()
+    if PP_UI_READY then PP_UI_UpdateState() end
     if not initialized then
         PallyPower_ScanSpells()
     end
@@ -1506,7 +1974,7 @@ function PallyPower_UpdateUI()
         end
 
         PallyPowerBuffBar:Show()
-        PallyPowerBuffBarTitleText:SetText(format(PallyPower_BuffBarTitle, PP_Symbols))
+        PallyPowerBuffBarTitleText:SetText("PallyPower")
         BuffNum = 1
         if PallyPower_Assignments[namePlayer] then
             local assign = PallyPower_Assignments[namePlayer]
@@ -1627,11 +2095,11 @@ function PallyPower_UpdateUI()
             btn:Hide()
         end
         if PP_PerUser.horizontal == false then
-            PallyPowerBuffBar:SetHeight(32 + (36 * (BuffNum - 1)) + addHeight + addAura)
+            PallyPowerBuffBar:SetHeight(60 + (36 * (BuffNum - 1)) + addHeight + addAura)
             PallyPowerBuffBar:SetWidth(110)
         else
             PallyPowerBuffBar:SetWidth((100 * (BuffNum - 1)) + addHeight + addAura + 10)
-            PallyPowerBuffBar:SetHeight(68)
+            PallyPowerBuffBar:SetHeight(96)
         end
     else
         PallyPowerBuffBar:Hide()

@@ -435,24 +435,40 @@
 			<Layer level="OVERLAY">
 				<FontString name="$parentName" inherits="GameFontHighlightSmall" text="SomePally$parent" justifyH="LEFT">
 					<Size>
-						<AbsDimension x="1124" y="16" />
+						<AbsDimension x="72" y="16" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOP" />
-					</Anchors>
-				</FontString>
-				<FontString name="$parentSymbols" inherits="GameFontHighlightSmall" text="999" justifyH="RIGHT">
-					<Size>
-						<AbsDimension x="50" y="16" />
-					</Size>
-					<Anchors>
-						<Anchor point="TOPRIGHT" relativePoint="TOPLEFT">
+						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="128" y="0" />
+								<AbsDimension x="4" y="-1" />
 							</Offset>
 						</Anchor>
 					</Anchors>
 				</FontString>
+				<FontString name="$parentSymbols" inherits="GameFontHighlightSmall" text="999" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="28" y="16" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset>
+								<AbsDimension x="77" y="-2" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<Texture name="$parentSymbolIcon" file="Interface\Icons\INV_Misc_SymbolofKings_01">
+					<Size>
+						<AbsDimension x="16" y="16" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset>
+								<AbsDimension x="108" y="-1" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
 				<Texture name="$parentIcon0" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfWisdom">
 					<Size>
 						<AbsDimension x="16" y="16" />
@@ -460,7 +476,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="0" y="-16" />
+								<AbsDimension x="4" y="-52" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -472,7 +488,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="40" y="-16" />
+								<AbsDimension x="24" y="-52" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -484,7 +500,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="80" y="-16" />
+								<AbsDimension x="44" y="-52" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -496,7 +512,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="0" y="-36" />
+								<AbsDimension x="64" y="-52" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -508,7 +524,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="40" y="-36" />
+								<AbsDimension x="84" y="-52" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -520,7 +536,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="80" y="-36" />
+								<AbsDimension x="104" y="-52" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -532,7 +548,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="0" y="-56" />
+								<AbsDimension x="64" y="-25" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -544,7 +560,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="40" y="-56" />
+								<AbsDimension x="84" y="-25" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -556,7 +572,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="80" y="-56" />
+								<AbsDimension x="104" y="-25" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -717,76 +733,184 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<FontString name="$parentSkill0" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentSkill0" inherits="GameFontNormalSmall" text="0" justifyH="LEFT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="16" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon0" relativePoint="TOPRIGHT" />
+						<Anchor point="TOPLEFT" relativeTo="$parentIcon0" relativePoint="TOPLEFT">
+							<Offset>
+								<AbsDimension x="-1" y="1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill1" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentSkill1" inherits="GameFontNormalSmall" text="0" justifyH="LEFT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="16" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon1" relativePoint="TOPRIGHT" />
+						<Anchor point="TOPLEFT" relativeTo="$parentIcon1" relativePoint="TOPLEFT">
+							<Offset>
+								<AbsDimension x="-1" y="1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill2" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentSkill2" inherits="GameFontNormalSmall" text="0" justifyH="LEFT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="16" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon2" relativePoint="TOPRIGHT" />
+						<Anchor point="TOPLEFT" relativeTo="$parentIcon2" relativePoint="TOPLEFT">
+							<Offset>
+								<AbsDimension x="-1" y="1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill3" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentSkill3" inherits="GameFontNormalSmall" text="0" justifyH="LEFT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="16" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon3" relativePoint="TOPRIGHT" />
+						<Anchor point="TOPLEFT" relativeTo="$parentIcon3" relativePoint="TOPLEFT">
+							<Offset>
+								<AbsDimension x="-1" y="1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill4" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentSkill4" inherits="GameFontNormalSmall" text="0" justifyH="LEFT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="16" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon4" relativePoint="TOPRIGHT" />
+						<Anchor point="TOPLEFT" relativeTo="$parentIcon4" relativePoint="TOPLEFT">
+							<Offset>
+								<AbsDimension x="-1" y="1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill5" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentSkill5" inherits="GameFontNormalSmall" text="0" justifyH="LEFT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="16" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon5" relativePoint="TOPRIGHT" />
+						<Anchor point="TOPLEFT" relativeTo="$parentIcon5" relativePoint="TOPLEFT">
+							<Offset>
+								<AbsDimension x="-1" y="1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill6" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentTalent0" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="22" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon6" relativePoint="TOPRIGHT" />
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon0" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill7" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentTalent1" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="22" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon7" relativePoint="TOPRIGHT" />
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon1" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString name="$parentSkill8" inherits="GameFontNormalSmall" text="0/0" justifyH="LEFT">
+				<FontString name="$parentTalent2" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
 					<Size>
-						<AbsDimension x="30" y="16" />
+						<AbsDimension x="22" y="14" />
 					</Size>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeTo="$parentIcon8" relativePoint="TOPRIGHT" />
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon2" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentTalent3" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="22" y="14" />
+					</Size>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon3" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentTalent4" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="22" y="14" />
+					</Size>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon4" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentTalent5" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="22" y="14" />
+					</Size>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon5" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentSkill6" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="24" y="14" />
+					</Size>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon6" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentSkill7" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="24" y="14" />
+					</Size>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon7" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="$parentSkill8" inherits="GameFontNormalSmall" text="" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="24" y="14" />
+					</Size>
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parentIcon8" relativePoint="BOTTOMRIGHT">
+							<Offset>
+								<AbsDimension x="2" y="-1" />
+							</Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
 				<FontString name="$parentInGroup" inherits="GameFontNormalSmall" text="" justifyH="LEFT">
@@ -806,9 +930,9 @@
 						<AbsDimension x="16" y="16" />
 					</Size>
 					<Anchors>
-						<Anchor point="BOTTOMLEFT" relativeTo="$parentSkill8" relativePoint="BOTTOMRIGHT">
+						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="6" y="-2" />
+								<AbsDimension x="4" y="-25" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -818,9 +942,9 @@
 						<AbsDimension x="16" y="16" />
 					</Size>
 					<Anchors>
-						<Anchor point="BOTTOMLEFT" relativeTo="$parentSkill8" relativePoint="BOTTOMRIGHT">
+						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="64" y="-2" />
+								<AbsDimension x="24" y="-25" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -1168,7 +1292,7 @@
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="135" y="-24" />
+								<AbsDimension x="135" y="-29" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -1449,12 +1573,12 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-			</Layer>
+</Layer>
 		</Layers>
 		<Frames>
 			<Button name="$parentTitle">
 				<Size>
-					<AbsDimension x="200" y="20" />
+					<AbsDimension x="360" y="20" />
 				</Size>
 				<Anchors>
 					<Anchor point="TOP">
@@ -1465,28 +1589,14 @@
 				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<FontString name="$parentText" inherits="GameFontNormal" text="Pally Power">
+						<FontString name="$parentText" inherits="GameFontNormalLarge" text="PallyPower - Blessing Management">
 							<Size>
-								<AbsDimension x="200" y="12" />
+								<AbsDimension x="340" y="18" />
 							</Size>
 							<Anchors>
 								<Anchor point="LEFT">
 									<Offset>
 										<AbsDimension x="5" y="0" />
-									</Offset>
-								</Anchor>
-							</Anchors>
-						</FontString>
-					</Layer>
-					<Layer level = "OVERLAY">
-						<FontString name = "$parentFreeAssignText" inherits = "GameFontHighlightSmall" text = "PALLYPOWER_FREEASSIGN" justifyH = "LEFT">
-							<Size>
-								<AbsDimension x = "100" y = "16"/>
-							</Size>
-							<Anchors>
-								<Anchor point = "BOTTOMLEFT" relativeTo = "PallyPowerFrame" relativePoint = "BOTTOMLEFT">
-									<Offset>
-										<AbsDimension x = "33" y = "9"/>
 									</Offset>
 								</Anchor>
 							</Anchors>
@@ -1525,12 +1635,28 @@
 					<AbsDimension x="20" y="20" />
 				</Size>			
 				<Anchors>
-					<Anchor point = "BOTTOMLEFT">
+					<Anchor point = "TOPLEFT">
 						<Offset>
-							<AbsDimension x = "8" y = "6"/>
+							<AbsDimension x = "12" y = "-48"/>
 						</Offset>
 					</Anchor>
 				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="PallyPowerFrameTitleFreeAssignText" inherits="GameFontHighlightSmall" text="Free Assignment" justifyH="LEFT">
+							<Size>
+								<AbsDimension x="92" y="16" />
+							</Size>
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="FreeAssignOptionChk" relativePoint="RIGHT">
+									<Offset>
+										<AbsDimension x="2" y="0" />
+									</Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
 				<Scripts>
 					<OnShow>
 						if (PP_PerUser.freeassign) then this:SetChecked(true) else this:SetChecked(false) end
@@ -1546,6 +1672,42 @@
 					<OnLeave>
 						GameTooltip:Hide();
 					</OnLeave>								
+				</Scripts>
+			</CheckButton>
+			<CheckButton name="PP_UI_SmartButton" inherits="OptionsCheckButtonTemplate">
+				<Size>
+					<AbsDimension x="20" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset>
+							<AbsDimension x="20" y="-25" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString name="PP_UI_SmartLabel" inherits="GameFontHighlightSmall" text="Smart Buffs" justifyH="LEFT">
+							<Size>
+								<AbsDimension x="75" y="16" />
+							</Size>
+							<Anchors>
+								<Anchor point="LEFT" relativeTo="PP_UI_SmartButton" relativePoint="RIGHT">
+									<Offset>
+										<AbsDimension x="2" y="0" />
+									</Offset>
+								</Anchor>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnShow>
+						this:SetChecked(PP_PerUser.smartbuffs);
+					</OnShow>
+					<OnClick>
+						PallyPower_OptionsFrameSmart:SetChecked(this:GetChecked()); PallyPower_SmartBuffsOption();
+					</OnClick>
 				</Scripts>
 			</CheckButton>			
 			<Button name="$parentRefresh" inherits="GameMenuButtonTemplate" text="PALLYPOWER_REFRESH">
