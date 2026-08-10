@@ -544,23 +544,23 @@ local function PP_UI_UpdateState()
 
     if PP_UI_AuraEye then
         if PP_PerUser.showaurabutton then
-            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-On")
+            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On")
         else
-            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-Off")
+            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off")
         end
     end
     if PP_UI_SealEye then
         if PP_PerUser.showsealbutton then
-            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-On")
+            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On")
         else
-            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-Off")
+            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off")
         end
     end
     if PP_UI_RFEye then
         if PP_PerUser.showrfbutton then
-            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-On")
+            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On")
         else
-            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\Icons\\UI\\Visibility-Off")
+            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off")
         end
     end
 
@@ -1028,18 +1028,18 @@ end
 function PallyPower_AdjustIcons()
     local icons_prefix
     if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
     else
-        icons_prefix = "AddOns\\PallyPowerVanilla\\"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
     end
 
-    AuraIcons[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_DevotionAura"
-    AuraIcons[1] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_AuraOfLight"
-    AuraIcons[2] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_MindSooth"
-    AuraIcons[3] = "Interface\\"..icons_prefix.."Icons\\Spell_Shadow_SealOfKings"
-    AuraIcons[4] = "Interface\\"..icons_prefix.."Icons\\Spell_Frost_WizardMark"
-    AuraIcons[5] = "Interface\\"..icons_prefix.."Icons\\Spell_Fire_SealOfFire"
-    AuraIcons[6] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_MindVision"
+    AuraIcons[0] = "Interface\\"..icons_prefix.."Spell_Holy_DevotionAura"
+    AuraIcons[1] = "Interface\\"..icons_prefix.."Spell_Holy_AuraOfLight"
+    AuraIcons[2] = "Interface\\"..icons_prefix.."Spell_Holy_MindSooth"
+    AuraIcons[3] = "Interface\\"..icons_prefix.."Spell_Shadow_SealOfKings"
+    AuraIcons[4] = "Interface\\"..icons_prefix.."Spell_Frost_WizardMark"
+    AuraIcons[5] = "Interface\\"..icons_prefix.."Spell_Fire_SealOfFire"
+    AuraIcons[6] = "Interface\\"..icons_prefix.."Spell_Holy_MindVision"
     
     -- Aura spell names for Nampower matching
     AuraNames[0] = "Devotion Aura"
@@ -1050,12 +1050,12 @@ function PallyPower_AdjustIcons()
     AuraNames[5] = "Fire Resistance Aura"
     AuraNames[6] = "Sanctity Aura"
 
-    SealIcons[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_RighteousnessAura"
-    SealIcons[1] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_HolySmite"
-    SealIcons[2] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_HealingAura"
-    SealIcons[3] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfWrath"
-    SealIcons[4] = "Interface\\"..icons_prefix.."Icons\\Ability_Warrior_InnerRage"
-    SealIcons[5] = "Interface\\"..icons_prefix.."Icons\\Ability_ThunderBolt"
+    SealIcons[0] = "Interface\\"..icons_prefix.."Spell_Holy_RighteousnessAura"
+    SealIcons[1] = "Interface\\"..icons_prefix.."Spell_Holy_HolySmite"
+    SealIcons[2] = "Interface\\"..icons_prefix.."Spell_Holy_HealingAura"
+    SealIcons[3] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWrath"
+    SealIcons[4] = "Interface\\"..icons_prefix.."Ability_Warrior_InnerRage"
+    SealIcons[5] = "Interface\\"..icons_prefix.."Ability_ThunderBolt"
     
     -- Seal spell names for Nampower matching
     SealNames[0] = "Seal of Righteousness"
@@ -1067,56 +1067,56 @@ function PallyPower_AdjustIcons()
 
     if (PP_PerUser.regularblessings == true) then
         RegularBlessings = true
-        BlessingIcon[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfWisdom"
-        BlessingIcon[1] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_FistOfJustice"
-        BlessingIcon[2] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfSalvation"
-        BlessingIcon[3] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_PrayerOfHealing02"
-        BlessingIcon[4] = "Interface\\"..icons_prefix.."Icons\\Spell_Nature_LightningShield"
-        BlessingIcon[5] = "Interface\\"..icons_prefix.."Icons\\Spell_Magic_MageArmor"
-        BuffIcon[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfWisdom"
-        BuffIcon[1] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_FistOfJustice"
-        BuffIcon[2] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfSalvation"
-        BuffIcon[3] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_PrayerOfHealing02"
-        BuffIcon[4] = "Interface\\"..icons_prefix.."Icons\\Spell_Nature_LightningShield"
-        BuffIcon[5] = "Interface\\"..icons_prefix.."Icons\\Spell_Magic_MageArmor"
-        BuffIcon[9] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfFury"
+        BlessingIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWisdom"
+        BlessingIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_FistOfJustice"
+        BlessingIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfSalvation"
+        BlessingIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_PrayerOfHealing02"
+        BlessingIcon[4] = "Interface\\"..icons_prefix.."Spell_Nature_LightningShield"
+        BlessingIcon[5] = "Interface\\"..icons_prefix.."Spell_Magic_MageArmor"
+        BuffIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWisdom"
+        BuffIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_FistOfJustice"
+        BuffIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfSalvation"
+        BuffIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_PrayerOfHealing02"
+        BuffIcon[4] = "Interface\\"..icons_prefix.."Spell_Nature_LightningShield"
+        BuffIcon[5] = "Interface\\"..icons_prefix.."Spell_Magic_MageArmor"
+        BuffIcon[9] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfFury"
     else
         RegularBlessings = false
-        BlessingIcon[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofWisdom"
-        BlessingIcon[1] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofKings"
-        BlessingIcon[2] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofSalvation"
-        BlessingIcon[3] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofLight"
-        BlessingIcon[4] = "Interface\\"..icons_prefix.."Icons\\Spell_Magic_GreaterBlessingofKings"
-        BlessingIcon[5] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofSanctuary"
-        BuffIcon[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofWisdom"
-        BuffIcon[1] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofKings"
-        BuffIcon[2] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofSalvation"
-        BuffIcon[3] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofLight"
-        BuffIcon[4] = "Interface\\"..icons_prefix.."Icons\\Spell_Magic_GreaterBlessingofKings"
-        BuffIcon[5] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_GreaterBlessingofSanctuary"
-        BuffIcon[9] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfFury"
-        BuffIconSmall[0] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfWisdom"
-        BuffIconSmall[1] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_FistOfJustice"
-        BuffIconSmall[2] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfSalvation"
-        BuffIconSmall[3] = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_PrayerOfHealing02"
-        BuffIconSmall[4] = "Interface\\"..icons_prefix.."Icons\\Spell_Nature_LightningShield"
-        BuffIconSmall[5] = "Interface\\"..icons_prefix.."Icons\\Spell_Magic_MageArmor"
+        BlessingIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofWisdom"
+        BlessingIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofKings"
+        BlessingIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSalvation"
+        BlessingIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofLight"
+        BlessingIcon[4] = "Interface\\"..icons_prefix.."Spell_Magic_GreaterBlessingofKings"
+        BlessingIcon[5] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSanctuary"
+        BuffIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofWisdom"
+        BuffIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofKings"
+        BuffIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSalvation"
+        BuffIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofLight"
+        BuffIcon[4] = "Interface\\"..icons_prefix.."Spell_Magic_GreaterBlessingofKings"
+        BuffIcon[5] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSanctuary"
+        BuffIcon[9] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfFury"
+        BuffIconSmall[0] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWisdom"
+        BuffIconSmall[1] = "Interface\\"..icons_prefix.."Spell_Holy_FistOfJustice"
+        BuffIconSmall[2] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfSalvation"
+        BuffIconSmall[3] = "Interface\\"..icons_prefix.."Spell_Holy_PrayerOfHealing02"
+        BuffIconSmall[4] = "Interface\\"..icons_prefix.."Spell_Nature_LightningShield"
+        BuffIconSmall[5] = "Interface\\"..icons_prefix.."Spell_Magic_MageArmor"
     end
 
-    PallyPower_ClassTexture[0] = "Interface\\"..icons_prefix.."Icons\\Warrior"
-    PallyPower_ClassTexture[1] = "Interface\\"..icons_prefix.."Icons\\Rogue"
-    PallyPower_ClassTexture[2] = "Interface\\"..icons_prefix.."Icons\\Priest"
-    PallyPower_ClassTexture[3] = "Interface\\"..icons_prefix.."Icons\\Druid"
-    PallyPower_ClassTexture[4] = "Interface\\"..icons_prefix.."Icons\\Paladin"
-    PallyPower_ClassTexture[5] = "Interface\\"..icons_prefix.."Icons\\Hunter"
-    PallyPower_ClassTexture[6] = "Interface\\"..icons_prefix.."Icons\\Mage"
-    PallyPower_ClassTexture[7] = "Interface\\"..icons_prefix.."Icons\\Warlock"
-    PallyPower_ClassTexture[8] = "Interface\\"..icons_prefix.."Icons\\Shaman"
-    PallyPower_ClassTexture[9] = "Interface\\"..icons_prefix.."Icons\\Pet" 
+    PallyPower_ClassTexture[0] = "Interface\\"..icons_prefix.."Warrior"
+    PallyPower_ClassTexture[1] = "Interface\\"..icons_prefix.."Rogue"
+    PallyPower_ClassTexture[2] = "Interface\\"..icons_prefix.."Priest"
+    PallyPower_ClassTexture[3] = "Interface\\"..icons_prefix.."Druid"
+    PallyPower_ClassTexture[4] = "Interface\\"..icons_prefix.."Paladin"
+    PallyPower_ClassTexture[5] = "Interface\\"..icons_prefix.."Hunter"
+    PallyPower_ClassTexture[6] = "Interface\\"..icons_prefix.."Mage"
+    PallyPower_ClassTexture[7] = "Interface\\"..icons_prefix.."Warlock"
+    PallyPower_ClassTexture[8] = "Interface\\"..icons_prefix.."Shaman"
+    PallyPower_ClassTexture[9] = "Interface\\"..icons_prefix.."Pet" 
     
-    PallyPower_RighteousFury = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_SealOfFury"
-    PallyPower_AuraMastery = "Interface\\"..icons_prefix.."Icons\\Spell_Holy_AuraMastery"
-    PallyPower_AbilitySeal = "Interface\\"..icons_prefix.."Icons\\Ability_Thunderbolt"
+    PallyPower_RighteousFury = "Interface\\"..icons_prefix.."Spell_Holy_SealOfFury"
+    PallyPower_AuraMastery = "Interface\\"..icons_prefix.."Spell_Holy_AuraMastery"
+    PallyPower_AbilitySeal = "Interface\\"..icons_prefix.."Ability_Thunderbolt"
 end
 
 function PallyPower_OnEvent(event,arg1)
@@ -2035,9 +2035,9 @@ function PallyPower_UpdateUI()
 
         local icons_prefix
         if PP_PerUser.usehdicons == true then
-            icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
         else
-            icons_prefix = "AddOns\\PallyPowerVanilla\\"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
         end
         
         -- RF is only shown when assigned. Red = assigned but missing;
@@ -2462,9 +2462,9 @@ function PallyPower_ScanSpells()
 
     local icons_prefix
     if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
     else
-        icons_prefix = "AddOns\\PallyPowerVanilla\\"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
     end
 
     while true do
@@ -4026,19 +4026,19 @@ end
 function PallyPower_GetBuffTextureID(text)
     local icons_prefix
     if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
     else
-        icons_prefix = "AddOns\\PallyPowerVanilla\\"
+        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
     end
 
     for id, name in BuffIcon do
-        if (string.gsub(name,icons_prefix,"") == text) then
+        if (string.gsub(name,icons_prefix,"Interface\\Icons\\") == text) then
             return id
         end
     end
     -- Check also the small buffs
     for id, name in BuffIconSmall do
-        if (string.gsub(name,icons_prefix,"") == text) then
+        if (string.gsub(name,icons_prefix,"Interface\\Icons\\") == text) then
             return id
         end
     end
@@ -4867,9 +4867,9 @@ function PallyPower_CastSeal()
         -- Determine icon prefix (matches other checks in this file)
         local icons_prefix
         if PP_PerUser and PP_PerUser.usehdicons == true then
-            icons_prefix = "AddOns\\PallyPowerVanilla\\HD"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
         else
-            icons_prefix = "AddOns\\PallyPowerVanilla\\"
+            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
         end
 
         -- If the player already has the seal buff active, don't re-cast
@@ -4896,7 +4896,7 @@ function PallyPower_CastSeal()
                 for i = 1, 40 do
                     local testUnitBuff = UnitBuff("player", i)
                     if (testUnitBuff and SealIcons[sealId] ~= nil and
-                        testUnitBuff == string.gsub(SealIcons[sealId], icons_prefix, "")) then
+                        testUnitBuff == string.gsub(SealIcons[sealId], icons_prefix, "Interface\\Icons\\")) then
                         alreadyActive = true
                         break
                     end
@@ -5106,8 +5106,8 @@ SlashCmdList["PPDBG"] = function()
       -- Check if it matches any BuffIcon
       for idx = 0, 9 do
         if BuffIcon and BuffIcon[idx] then
-          local checkIcon = string.gsub(BuffIcon[idx], "Interface\\AddOns\\PallyPowerVanilla\\Icons\\", "Interface\\Icons\\")
-          checkIcon = string.gsub(checkIcon, "Interface\\AddOns\\PallyPowerVanilla\\HDIcons\\", "Interface\\Icons\\")
+          local checkIcon = string.gsub(BuffIcon[idx], "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\", "Interface\\Icons\\")
+          checkIcon = string.gsub(checkIcon, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\", "Interface\\Icons\\")
           if checkIcon == icon then
             log("  -> Matches BuffIcon[" .. idx .. "]")
           end
