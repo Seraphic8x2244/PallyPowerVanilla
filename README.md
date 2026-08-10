@@ -42,4 +42,4 @@ CosminPOP, Azgaardian, madScripting, ivanovlk, TheRealFayz and other contributor
 **PallyPowerVanilla:**  
 Seraphic8x2244
 
-Development of PallyPowerVanilla makes extensive use of AI-assisted coding.
+Development of PallyPowerVanilla makes use of AI-assisted coding.
