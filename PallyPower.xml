@@ -1135,7 +1135,10 @@
 							<Size>
 								<AbsDimension x="86" y="18" />
 							</Size>
-							<Anchors>
+														<FontHeight>
+								<AbsValue val="14" />
+							</FontHeight>
+<Anchors>
 								<Anchor point="CENTER" />
 							</Anchors>
 						</FontString>
@@ -1143,7 +1146,7 @@
 				</Layers>
 				<Scripts>
 					<OnEnter>
-						PallyPower_ShowCredits()
+						PallyPower_ShowVersionTooltip()
 					</OnEnter>
 					<OnLeave>
 						HideUIPanel(GameTooltip);
@@ -1253,14 +1256,38 @@
 		</Backdrop>
 		<Layers>
 			<Layer>
-				<Texture name="$parentLineA" file="Interface\Tooltips\UI-Tooltip-Background">
+								<Texture name="$parentHeaderSeparator" file="Interface\Tooltips\UI-Tooltip-Background">
+					<Size>
+						<AbsDimension x="1196" y="2" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset>
+								<AbsDimension x="7" y="-28" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
+					<Texture name="$parentFooterSeparator" file="Interface\Tooltips\UI-Tooltip-Background">
+						<Size>
+							<AbsDimension x="1196" y="2" />
+						</Size>
+						<Anchors>
+							<Anchor point="BOTTOMLEFT">
+								<Offset>
+									<AbsDimension x="7" y="28" />
+								</Offset>
+							</Anchor>
+						</Anchors>
+					</Texture>
+<Texture name="$parentLineA" file="Interface\Tooltips\UI-Tooltip-Background">
 					<Size>
 						<AbsDimension x="2" y="56" />
 					</Size>
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="135" y="-29" />
+								<AbsDimension x="135" y="-30" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -1597,7 +1624,7 @@
 				</Layers>
 				<Scripts>
 					<OnEnter>
-						PallyPower_ShowCredits()
+						PallyPower_ShowVersionTooltip()
 					</OnEnter>
 					<OnLeave>
 						HideUIPanel(GameTooltip);
@@ -1617,7 +1644,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-6" y="-3" /></Offset>
+						<Offset><AbsDimension x="-6" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_close.tga">
@@ -1713,7 +1740,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-29" y="-3" /></Offset>
+						<Offset><AbsDimension x="-29" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_rotate.tga">
@@ -1742,7 +1769,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-52" y="-3" /></Offset>
+						<Offset><AbsDimension x="-52" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_bin.tga">
@@ -1762,7 +1789,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-75" y="-3" /></Offset>
+						<Offset><AbsDimension x="-75" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_config.tga">
@@ -1782,7 +1809,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-98" y="-3" /></Offset>
+						<Offset><AbsDimension x="-98" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_position.tga">
@@ -1814,7 +1841,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-213" y="-3" /></Offset>
+						<Offset><AbsDimension x="-213" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_lock.tga">
@@ -1831,7 +1858,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-190" y="-3" /></Offset>
+						<Offset><AbsDimension x="-190" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_text.tga">
@@ -1848,7 +1875,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-167" y="-3" /></Offset>
+						<Offset><AbsDimension x="-167" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_sound.tga">
@@ -1865,7 +1892,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-144" y="-3" /></Offset>
+						<Offset><AbsDimension x="-144" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_orientation.tga">
@@ -1883,7 +1910,7 @@
 				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset><AbsDimension x="-121" y="-3" /></Offset>
+						<Offset><AbsDimension x="-121" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_announce.tga">
@@ -1902,7 +1929,7 @@
 				</Size>
 				<Anchors>
 					<Anchor point="TOPLEFT">
-						<Offset><AbsDimension x="12" y="-26" /></Offset>
+						<Offset><AbsDimension x="28" y="-47" /></Offset>
 					</Anchor>
 				</Anchors>
 				<Scripts>
@@ -1923,6 +1950,15 @@
 			<Frame name="$parentClassGroupS" inherits="PPSpecialColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassS" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="-26" y="-12" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</Frame>
+			<Frame name="$parentClassGroupR" inherits="PPSpecialColumnTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentClassR" relativePoint="BOTTOMLEFT">
 						<Offset>
 							<AbsDimension x="-26" y="-12" />
 						</Offset>

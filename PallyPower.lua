@@ -167,6 +167,7 @@ end
 -- Static repeated UI is defined through XML virtual templates.
 -- Geometry that changes at runtime has one source of truth here.
 
+
 PP_UI = {
     SCALE_MIN = 0.50,
     SCALE_MAX = 1.50,
@@ -176,7 +177,7 @@ PP_UI = {
 
     BUFF_LONG = 90,
     BUFF_SHORT = 30,
-    BUFF_ICON = 24,
+    BUFF_ICON = 22,
 
     META_WIDTH = 28,
     META_HEIGHT = 10,
@@ -1834,13 +1835,14 @@ function PallyPowerGrid_Update(tdiff)
 
         end           
 
-        PallyPowerFrame:SetHeight(10 + 14 + 24 + 61 + (numPallys * 76) + 22 + (13 * numMaxClass)) -- 14 from border, 24 from Title, 56 from space for class icons, 56 per paladin, 22 for Buttons at bottom
-        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", 8, -89 - 13 * numMaxClass)
+        PallyPowerFrame:SetHeight(10 + 14 + 34 + 52 + (numPallys * 76) + 10 + (13 * numMaxClass)) -- Reduced footer by 12px: keeps multi-Paladin growth unchanged while tightening the bottom control band
+        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", 8, -90 - 13 * numMaxClass)
 		for i = 1, PALLYPOWER_MAXCLASSES do
 			getglobal("PallyPowerFrameClassGroup" .. i .. "Line"):SetHeight( 2 + 13 * numMaxClass)
         end        
         getglobal("PallyPowerFrameClassGroupALine"):SetHeight( 2 + 13 * numMaxClass)
         getglobal("PallyPowerFrameClassGroupSLine"):SetHeight( 2 + 13 * numMaxClass)
+        getglobal("PallyPowerFrameClassGroupRLine"):SetHeight( 2 + 13 * numMaxClass)
         for i = 1, 12 do
             if i <= numPallys then
                 getglobal("PallyPowerFramePlayer" .. i):Show()
@@ -2057,7 +2059,7 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
         if classIcon then
             classIcon:SetWidth(PP_UI.BUFF_ICON); classIcon:SetHeight(PP_UI.BUFF_ICON)
             classIcon:ClearAllPoints()
-            classIcon:SetPoint("TOP", btn, "TOP", 0, -3)
+            classIcon:SetPoint("TOP", btn, "TOP", 2, -3)
         end
         if buffIcon then
             buffIcon:SetWidth(PP_UI.BUFF_ICON); buffIcon:SetHeight(PP_UI.BUFF_ICON)
@@ -2081,7 +2083,7 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
         if countText then
             countText:SetWidth(PP_UI.META_WIDTH); countText:SetHeight(PP_UI.META_HEIGHT)
             countText:ClearAllPoints()
-            countText:SetPoint("BOTTOM", btn, "BOTTOM", 0, 1)
+            countText:SetPoint("BOTTOM", btn, "BOTTOM", 0, 3)
             countText:SetJustifyH("CENTER")
         end
     else
@@ -2091,7 +2093,7 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
         if classIcon then
             classIcon:SetWidth(PP_UI.BUFF_ICON); classIcon:SetHeight(PP_UI.BUFF_ICON)
             classIcon:ClearAllPoints()
-            classIcon:SetPoint("LEFT", btn, "LEFT", 3, 0)
+            classIcon:SetPoint("LEFT", btn, "LEFT", 5, 0)
         end
         if buffIcon then
             buffIcon:SetWidth(PP_UI.BUFF_ICON); buffIcon:SetHeight(PP_UI.BUFF_ICON)
@@ -3296,6 +3298,14 @@ function PallyPower_ShowCredits()
     GameTooltip:AddLine(PallyPower_Credits4, 0, 1, 0)
     GameTooltip:AddLine(PallyPower_Credits5)
     GameTooltip:AddLine(tostring(PallyPower_ShowMemoryUsage()) .. "MB")
+    GameTooltip:Show()
+end
+
+function PallyPower_ShowVersionTooltip()
+    local version = GetAddOnMetadata("PallyPowerVanilla", "Version") or "Unknown"
+    GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
+    GameTooltip:SetText("PallyPowerVanilla", 1, 1, 1)
+    GameTooltip:AddLine("v" .. version, 1, 1, 1)
     GameTooltip:Show()
 end
 
