@@ -4,7 +4,7 @@ PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** 
 
 The aim is to preserve the familiar PallyPower experience and compatibility with existing versions while improving the addon for modern Vanilla clients and servers.
 
-![New UI](github-images/pp153.png)
+![New UI](github-images/pp_153.png)
 
 ## Project Goals
 
