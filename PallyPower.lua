@@ -44,6 +44,106 @@ PallyPower_RFAssignments = {}
 PallyPower_NormalAssignments = {}
 PallyPower_Tanks = {}
 
+-- ---------------------------------------------------------------------------
+-- Assignment storage compatibility layer (1.52)
+--
+-- Historical PallyPower versions store different assignment types in separate
+-- SavedVariables. 1.52 migrates them into the existing per-Paladin record:
+--
+--   PallyPower_Assignments[name][0..9] = class Blessings (unchanged)
+--   PallyPower_Assignments[name].aura  = Aura assignment
+--   PallyPower_Assignments[name].seal  = Seal/Judgement assignment
+--   PallyPower_Assignments[name].rf    = Righteous Fury assignment
+--   PallyPower_Assignments[name].normal = individual Blessing overrides
+--
+-- The old globals remain runtime proxies for this migration release so the
+-- inherited code path and communication behaviour remain stable.
+-- ---------------------------------------------------------------------------
+
+local PP_AssignmentStorageMigrated = false
+
+local function PP_EnsureAssignmentRecord(name)
+    if not name then return nil end
+    if not PallyPower_Assignments[name] then
+        PallyPower_Assignments[name] = {}
+    end
+    return PallyPower_Assignments[name]
+end
+
+local function PP_CreateAssignmentProxy(field)
+    return setmetatable({}, {
+        __index = function(_, name)
+            local record = PallyPower_Assignments[name]
+            if record then
+                return record[field]
+            end
+            return nil
+        end,
+        __newindex = function(_, name, value)
+            if value == nil then
+                local record = PallyPower_Assignments[name]
+                if record then
+                    record[field] = nil
+                end
+                return
+            end
+
+            local record = PP_EnsureAssignmentRecord(name)
+            if record then
+                record[field] = value
+            end
+        end
+    })
+end
+
+function PallyPower_MigrateAssignmentStorage()
+    if PP_AssignmentStorageMigrated then return end
+
+    -- SavedVariables are available when ADDON_LOADED fires.
+    local legacyAuras = PallyPower_AuraAssignments or {}
+    local legacySeals = PallyPower_SealAssignments or {}
+    local legacyRF = PallyPower_RFAssignments or {}
+    local legacyNormal = PallyPower_NormalAssignments or {}
+
+    for name, value in legacyAuras do
+        local record = PP_EnsureAssignmentRecord(name)
+        if record and record.aura == nil then
+            record.aura = value
+        end
+    end
+
+    for name, value in legacySeals do
+        local record = PP_EnsureAssignmentRecord(name)
+        if record and record.seal == nil then
+            record.seal = value
+        end
+    end
+
+    for name, value in legacyRF do
+        local record = PP_EnsureAssignmentRecord(name)
+        if record and record.rf == nil then
+            record.rf = value
+        end
+    end
+
+    for name, value in legacyNormal do
+        local record = PP_EnsureAssignmentRecord(name)
+        if record and record.normal == nil then
+            record.normal = value
+        end
+    end
+
+    -- Compatibility proxies. Reads/writes still use the familiar inherited
+    -- globals, but the data itself now lives in PallyPower_Assignments.
+    PallyPower_AuraAssignments = PP_CreateAssignmentProxy("aura")
+    PallyPower_SealAssignments = PP_CreateAssignmentProxy("seal")
+    PallyPower_RFAssignments = PP_CreateAssignmentProxy("rf")
+    PallyPower_NormalAssignments = PP_CreateAssignmentProxy("normal")
+
+    PP_AssignmentStorageMigrated = true
+end
+
+
 PallyPower = {}
 
 BlessingIcon = {}
@@ -357,6 +457,19 @@ end
 
 local PP_UI_READY = false
 
+
+local function PP_UI_RegisterEscapeFrame(frameName)
+    if not UISpecialFrames or not frameName then return end
+
+    for _, registeredName in UISpecialFrames do
+        if registeredName == frameName then
+            return
+        end
+    end
+
+    tinsert(UISpecialFrames, frameName)
+end
+
 local function PP_UI_SetTooltip(owner, title, body)
     GameTooltip:SetOwner(owner, "ANCHOR_TOP")
     GameTooltip:SetText(title, 1, 1, 1)
@@ -467,11 +580,19 @@ local function PP_UI_UpdateState()
         end
     end
 
-    if PP_UI_UnitXPState then
-        if PP_UnitXPDllLoaded and PP_PerUser.useunitxp_sp3 then
-            PP_UI_UnitXPState:SetText("|cff00ff00OK|r")
+    if PP_UI_NampowerState then
+        if PP_NampowerAPI then
+            PP_UI_NampowerState:SetText("|cff00ff00Enabled|r")
         else
-            PP_UI_UnitXPState:SetText("|cffff3030X|r")
+            PP_UI_NampowerState:SetText("|cff808080Not Detected|r")
+        end
+    end
+
+    if PP_UI_UnitXPState then
+        if PP_UnitXPDllLoaded then
+            PP_UI_UnitXPState:SetText("|cff00ff00Enabled|r")
+        else
+            PP_UI_UnitXPState:SetText("|cff808080Not Detected|r")
         end
     end
 
@@ -483,6 +604,10 @@ end
 function PallyPower_UI_Init()
     if PP_UI_READY then PP_UI_UpdateState(); return end
     if not PallyPowerBuffBar or not PallyPowerFrame or not PallyPower_OptionsFrame then return end
+
+    -- Register with Blizzard's normal Escape-window mechanism.
+    PP_UI_RegisterEscapeFrame("PallyPowerFrame")
+    PP_UI_RegisterEscapeFrame("PallyPower_OptionsFrame")
 
     -- Buff Bar header/title. Existing title click/drag scripts are untouched.
     PallyPowerBuffBarTitleText:SetText("PallyPower")
@@ -694,33 +819,6 @@ function PallyPower_UI_Init()
     -- ---------------------------------------------------------------
     PP_UI_CreateSectionHeader("PP_UI_AdvancedScanningHeader", "Scanning", -237)
 
-    PP_UI_UnitXPLabel = PallyPower_OptionsFrame:CreateFontString(
-        "PP_UI_UnitXPLabel",
-        "OVERLAY",
-        "GameFontHighlight"
-    )
-    PP_UI_UnitXPLabel:SetPoint(
-        "TOPLEFT",
-        PallyPower_OptionsFrame,
-        "TOPLEFT",
-        18,
-        -291
-    )
-    PP_UI_UnitXPLabel:SetText("UnitXP_SP3")
-
-    PP_UI_UnitXPState = PallyPower_OptionsFrame:CreateFontString(
-        "PP_UI_UnitXPState",
-        "OVERLAY",
-        "GameFontNormal"
-    )
-    PP_UI_UnitXPState:SetPoint(
-        "LEFT",
-        PP_UI_UnitXPLabel,
-        "RIGHT",
-        6,
-        0
-    )
-
     PallyPower_OptionsFrameOption1:ClearAllPoints()
     PallyPower_OptionsFrameOption1:SetPoint(
         "TOPLEFT",
@@ -793,21 +891,6 @@ function PallyPower_UI_Init()
 end
 
 function PallyPower_InitConfig()
-    -- Delayed Nampower status announcement (10s so it appears after login spam)
-    local announceFrame = CreateFrame("Frame")
-    announceFrame.elapsed = 0
-    announceFrame:SetScript("OnUpdate", function()
-        this.elapsed = this.elapsed + arg1
-        if this.elapsed >= 10 then
-            if PP_NampowerAPI then
-                DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00PallyPower:|r Nampower " .. PP_NampowerVersion .. " detected - using enhanced API", 0.5, 1, 0.5)
-            elseif PP_NampowerVersion then
-                local minVer = PP_NAMPOWER_MIN_VERSION[1] .. "." .. PP_NAMPOWER_MIN_VERSION[2] .. "." .. PP_NAMPOWER_MIN_VERSION[3]
-                DEFAULT_CHAT_FRAME:AddMessage("|cFFFF0000PallyPower:|r Nampower " .. PP_NampowerVersion .. " is too old (need " .. minVer .. "+) - using fallback", 1, 0.5, 0.5)
-            end
-            this:SetScript("OnUpdate", nil)
-        end
-    end)
     
     if PP_PerUser.scalemain == nil then PP_PerUser.scalemain = 1 end
     if PP_PerUser.scalebar == nil then PP_PerUser.scalebar = 1 end
@@ -1087,21 +1170,6 @@ function PallyPower_OnEvent(event,arg1)
                     PallyPower_Assignments[name] = nil
                 end
             end
-            for name in PallyPower_AuraAssignments do
-                if (name ~= UnitName("player")) then
-                    PallyPower_AuraAssignments[name] = nil
-                end
-            end
-            for name in PallyPower_SealAssignments do
-                if (name ~= UnitName("player")) then
-                    PallyPower_SealAssignments[name] = nil
-                end
-            end
-            for name in PallyPower_RFAssignments do
-                if (name ~= UnitName("player")) then
-                    PallyPower_RFAssignments[name] = nil
-                end
-            end
         end
         local _, class = UnitClass("player")
         if class == "PALADIN" or PP_TestMode then
@@ -1114,6 +1182,7 @@ function PallyPower_OnEvent(event,arg1)
     end
 
     if event == "ADDON_LOADED" and arg1 == "PallyPowerVanilla" then
+        PallyPower_MigrateAssignmentStorage()
         PallyPower_AdjustIcons()
         PallyPower_MinimapButton_Init();
         PallyPower_InitConfig();   
@@ -1121,7 +1190,7 @@ function PallyPower_OnEvent(event,arg1)
     end
 
     if event == "PLAYER_AURAS_CHANGED" then
-        if PallyPower_CheckRigteousFurry() then
+        if PallyPower_CheckRighteousFury() then
             PallyPower_CancelSalvationBuff()
         end
 
@@ -1129,9 +1198,10 @@ function PallyPower_OnEvent(event,arg1)
         -- This updates Aura/RF red/green state without waiting for the normal scan.
         PallyPower_UpdateUI()
     end
+
 end
 
-function PallyPower_CheckRigteousFurry()
+function PallyPower_CheckRighteousFury()
     local buff = "Spell_Holy_SealOfFury"
     
     -- Use Nampower API if available for better performance
@@ -2521,12 +2591,13 @@ function PallyPower_Clear(fromupdate, who)
     end
     for name, skills in PallyPower_Assignments do
         if (PallyPower_CheckRaidLeader(who) or PP_PerUser.freeassign or name == who) then
-            for class, id in PallyPower_Assignments[name] do
+            for class = 0, 9 do
                 PallyPower_Assignments[name][class] = -1
             end
-            PallyPower_NormalAssignments = {}
-            PallyPower_AuraAssignments = {}
-            PallyPower_RFAssignments = {}
+            PallyPower_Assignments[name].normal = {}
+            PallyPower_Assignments[name].aura = -1
+            PallyPower_Assignments[name].seal = -1
+            PallyPower_Assignments[name].rf = false
             PallyPower_Tanks = {}
         end
     end
@@ -3461,8 +3532,8 @@ function PallyPower_AuraNeedsBuff(test)
         return true
     end
 
-    for name, skills in PallyPower_AuraAssignments do
-        if (AllPallysAuras[name]) and (skills == test) then
+    for name, record in PallyPower_Assignments do
+        if (AllPallysAuras[name]) and (record.aura == test) then
             return false
         end
     end
@@ -3487,8 +3558,8 @@ function PallyPower_SealNeedsBuff(test)
         return true
     end
 
-    for name, skills in PallyPower_SealAssignments do
-        if (AllPallysSeals[name]) and (skills == test) then
+    for name, record in PallyPower_Assignments do
+        if (AllPallysSeals[name]) and (record.seal == test) then
             return false
         end
     end
@@ -3902,6 +3973,24 @@ function PallyPower_GetBuffTextureID(text)
     return -2
 end
 
+
+-- PallyPower already disables Auto Self Cast temporarily before Blessing casts.
+-- Hostile targets can remain selected safely; only a friendly target must be
+-- cleared so it cannot consume the helpful spell before SpellTargetUnit().
+local function PallyPower_SaveFriendlyTarget()
+    if UnitExists("target") and UnitIsFriend("player", "target") then
+        ClearTarget()
+        return true
+    end
+    return false
+end
+
+local function PallyPower_RestoreFriendlyTarget(wasCleared)
+    if wasCleared then
+        TargetLastTarget()
+    end
+end
+
 function PallyPowerBuffButton_OnLoad(btn)
     this:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
 end
@@ -3945,11 +4034,14 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
 
     DoEmote("STAND") -- Force player stand
 
-    ClearTarget()
+    local ppFriendlyTargetCleared = PallyPower_SaveFriendlyTarget()
     local castspellid = -1
     local castspelloverride = -1    
 
-    if AllPallys[UnitName("player")][btn.buffID] == nil then return end
+    if AllPallys[UnitName("player")][btn.buffID] == nil then
+        PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
+        return
+    end
     PP_Debug("Casting " .. btn.buffID .. " on " .. btn.classID)
     
     -- Check mana before attempting to cast
@@ -3962,7 +4054,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     
     if not PallyPower_HasEnoughMana(btn.buffID, blessingType) then
         SpellStopTargeting()
-        TargetLastTarget()
+        PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
         PallyPower_ShowFeedback("Not enough mana to cast blessing", 1, 0, 0)
         return
     end
@@ -3972,6 +4064,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
             CastSpell(AllPallys[UnitName("player")][btn.buffID]["idsmall"], BOOKTYPE_SPELL)
             castspellid = btn.buffID
         else
+            PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
             return
         end
     elseif (mousebtn == "LeftButton") then
@@ -3979,6 +4072,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
             CastSpell(AllPallys[UnitName("player")][btn.buffID]["id"], BOOKTYPE_SPELL)
             castspellid = btn.buffID
         else
+            PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
             return
         end
     end
@@ -4024,7 +4118,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     
     if missingReagent then
         SpellStopTargeting()
-        TargetLastTarget()
+        PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
         PallyPower_ShowFeedback("Out of " .. missingReagent, 1, 0, 0) -- Red color
         return
     end
@@ -4058,7 +4152,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                 local player = UnitName("player")
                 if PallyPower_Assignments[player][0] ~= PallyPower_Assignments[player][9] then
                     SpellStopTargeting()
-                    TargetLastTarget()
+                    PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                     PallyPower_ShowFeedback(
                         format(PallyPower_BlessingsDiffer),
                         1, 1, 0 -- Yellow color for feedback
@@ -4140,6 +4234,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                     if GetSpellCooldown(AllPallys[UnitName("player")][blessing]["idsmall"], BOOKTYPE_SPELL) < 1 then
                         CastSpell(AllPallys[UnitName("player")][blessing]["idsmall"], BOOKTYPE_SPELL)
                     else
+                        PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                         return
                     end
                 end    
@@ -4214,13 +4309,13 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                     )
                 end
                 PP_NextScan = 1 --PallyPower_UpdateUI()
-                TargetLastTarget()
+                PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                 return
             end
         end
     end
     SpellStopTargeting()
-    TargetLastTarget()
+    PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
     
     -- Build helpful error message based on failure reasons
     local errorMsg = ""
@@ -4280,7 +4375,7 @@ function PallyPower_AutoBless(mousebutton)
         PallyPower_Assignments[UnitName("player")][btn.classID] and 
         PallyPower_Assignments[UnitName("player")][btn.classID] ~= -1) then
     
-        ClearTarget()
+        local ppFriendlyTargetCleared = PallyPower_SaveFriendlyTarget()
         local castspellid = -1
         local castspelloverride = -1
         
@@ -4297,6 +4392,7 @@ function PallyPower_AutoBless(mousebutton)
                 CastSpell(AllPallys[UnitName("player")][btn.buffID]["idsmall"], BOOKTYPE_SPELL)
                 castspellid = btn.buffID
             else
+                PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                 return
             end
         elseif (mousebutton == "Hotkey2") then
@@ -4304,6 +4400,7 @@ function PallyPower_AutoBless(mousebutton)
                 CastSpell(AllPallys[UnitName("player")][btn.buffID]["id"], BOOKTYPE_SPELL)
                 castspellid = btn.buffID
             else
+                PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                 return
             end
         end
@@ -4357,7 +4454,7 @@ function PallyPower_AutoBless(mousebutton)
                         local player = UnitName("player")
                         if PallyPower_Assignments[player][0] ~= PallyPower_Assignments[player][9] then
                             SpellStopTargeting()
-                            TargetLastTarget()
+                            PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                             PallyPower_ShowFeedback(
                                 format(PallyPower_BlessingsDiffer),
                                 1, 1, 0 -- Yellow color for feedback
@@ -4460,14 +4557,14 @@ function PallyPower_AutoBless(mousebutton)
                             )
                         end         
                         PP_NextScan = 1 --PallyPower_UpdateUI()
-                        TargetLastTarget()
+                        PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                         return
                     end
                 end
             end
         end
         SpellStopTargeting()
-        TargetLastTarget()
+        PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
         PallyPower_ShowFeedback(
             format(PallyPower_CouldntFind, PallyPower_BlessingID[btn.buffID], PallyPower_ClassID[btn.classID]),
             1, 1, 0 --Yellow feedback for not finding a target

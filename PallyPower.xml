@@ -429,7 +429,7 @@
 	</Button>
 	<Frame name="UserTemplate" virtual="true">
 		<Size>
-			<AbsDimension x="1124" y="76" />
+			<AbsDimension x="1206" y="76" />
 		</Size>
 		<Layers>
 			<Layer level="OVERLAY">
@@ -579,7 +579,7 @@
 				</Texture>
 				<Texture name="$parentLine" file="Interface\Tooltips\UI-Tooltip-Background">
 					<Size>
-						<AbsDimension x="1112" y="2" />
+						<AbsDimension x="1194" y="2" />
 					</Size>
 					<Anchors>
 						<Anchor point="TOPLEFT">
@@ -986,9 +986,18 @@
 					</OnLeave>
 				</Scripts>
 			</Button>
-			<Button name="$parentClass0" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClassR" inherits="BuffGridButtonTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassS" relativePoint="TOPRIGHT">
+						<Offset>
+							<AbsDimension x="2" y="0" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</Button>
+			<Button name="$parentClass0" inherits="BuffGridButtonTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentClassR" relativePoint="TOPRIGHT">
 						<Offset>
 							<AbsDimension x="2" y="0" />
 						</Offset>
@@ -1263,7 +1272,7 @@
 	</Frame>
 	<Frame name="PallyPowerFrame" hidden="true" parent="UIParent" toplevel="true" movable="true" enableMouse="true"> <!--frameStrata="LOW"-->
 		<Size>
-			<AbsDimension x="1128" y="980" />
+			<AbsDimension x="1210" y="980" />
 		</Size>
 		<Anchors>
 			<Anchor point="TOPLEFT" relativeTo="UIParent" relativePoint="BOTTOMLEFT">
@@ -1453,12 +1462,24 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
-				<Texture name="$parentClass0" file="Interface\AddOns\PallyPowerVanilla\Icons\Warrior">
+				<Texture name="$parentClassR" file="Interface\AddOns\PallyPowerVanilla\Icons\Spell_Holy_SealOfFury">
 					<Size>
 						<AbsDimension x="32" y="32" />
 					</Size>
 					<Anchors>
 						<Anchor point="TOPLEFT" relativeTo="$parentLine2">
+							<Offset>
+								<AbsDimension x="26" y="-12" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
+				<Texture name="$parentClass0" file="Interface\AddOns\PallyPowerVanilla\Icons\Warrior">
+					<Size>
+						<AbsDimension x="32" y="32" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentLine3">
 							<Offset>
 								<AbsDimension x="26" y="-12" />
 							</Offset>
@@ -2034,6 +2055,54 @@
 						<Anchor point="TOP">
 							<Offset>
 								<AbsDimension x="0" y="-10" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="PP_UI_NampowerLabel" inherits="GameFontHighlight" text="Nampower" justifyH="LEFT">
+					<Size>
+						<AbsDimension x="180" y="16" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset>
+								<AbsDimension x="18" y="-266" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="PP_UI_NampowerState" inherits="GameFontNormal" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="100" y="16" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPRIGHT">
+							<Offset>
+								<AbsDimension x="-30" y="-266" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="PP_UI_UnitXPLabel" inherits="GameFontHighlight" text="UnitXP_SP3" justifyH="LEFT">
+					<Size>
+						<AbsDimension x="180" y="16" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset>
+								<AbsDimension x="18" y="-291" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString name="PP_UI_UnitXPState" inherits="GameFontNormal" justifyH="RIGHT">
+					<Size>
+						<AbsDimension x="100" y="16" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPRIGHT">
+							<Offset>
+								<AbsDimension x="-30" y="-291" />
 							</Offset>
 						</Anchor>
 					</Anchors>
