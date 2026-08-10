@@ -1,3 +1,217 @@
+-- ============================================================================
+-- BLESSING SPELL DATA / MANA COSTS
+-- Folded from PallyPowerManaCost.lua
+-- ============================================================================
+
+PALLYPOWER_SMALLBLESSING = 0
+PALLYPOWER_GREATERBLESSING = 1
+
+-- Existing hardcoded values are retained only as a fallback if tooltip parsing fails.
+PallyPower_ManaCostTable = {
+    [0] = { -- Wisdom
+        [0] = { [14] = 30, [24] = 45, [34] = 65, [44] = 90, [54] = 115, [60] = 125 },
+        [1] = { [54] = 230, [60] = 250 },
+    },
+    [1] = { -- Might
+        [0] = { [4] = 20, [12] = 30, [22] = 45, [32] = 60, [42] = 85, [52] = 110, [60] = 130 },
+        [1] = { [52] = 220, [60] = 260 },
+    },
+    [2] = { -- Salvation
+        [0] = { [26] = 120 },
+        [1] = { [60] = 241 },
+    },
+    [3] = { -- Light
+        [0] = { [40] = 85, [50] = 110, [60] = 135 },
+        [1] = { [60] = 260 },
+    },
+    [4] = { -- Kings
+        [0] = { [20] = 120 },
+        [1] = { [60] = 226 },
+    },
+    [5] = { -- Sanctuary
+        [0] = { [20] = 60, [40] = 85, [50] = 110, [60] = 135 },
+        [1] = { [60] = 241 },
+    },
+}
+
+PallyPower_DynamicManaCostTable = {}
+
+-- Hidden tooltip used to read the spell data presented by the current client.
+local PallyPowerSpellScanTooltip = CreateFrame(
+    "GameTooltip",
+    "PallyPowerSpellScanTooltip",
+    UIParent,
+    "GameTooltipTemplate"
+)
+PallyPowerSpellScanTooltip:SetOwner(UIParent, "ANCHOR_NONE")
+
+local function PallyPower_FirstNumber(text)
+    if not text then return nil end
+    local _, _, value = string.find(text, "(%d+)")
+    if value then return tonumber(value) end
+    return nil
+end
+
+local function PallyPower_LastNumber(text)
+    if not text then return nil end
+    local value = nil
+    for number in string.gfind(text, "(%d+)") do
+        value = tonumber(number)
+    end
+    return value
+end
+
+function PallyPower_ReadBlessingTooltip(spellIndex)
+    if not spellIndex then return nil, nil end
+
+    PallyPowerSpellScanTooltip:ClearLines()
+    PallyPowerSpellScanTooltip:SetSpell(spellIndex, BOOKTYPE_SPELL)
+
+    local manaLine = getglobal("PallyPowerSpellScanTooltipTextLeft2")
+    local descriptionLine = getglobal("PallyPowerSpellScanTooltipTextLeft4")
+
+    local mana = nil
+    local durationMinutes = nil
+
+    if manaLine then
+        mana = PallyPower_FirstNumber(manaLine:GetText())
+    end
+    if descriptionLine then
+        durationMinutes = PallyPower_LastNumber(descriptionLine:GetText())
+    end
+
+    if durationMinutes then
+        return mana, durationMinutes * 60
+    end
+    return mana, nil
+end
+
+-- RankInfo["idsmall"] and ["id"] have already been resolved by PallyPower_ScanSpells
+-- to the highest learned normal and Greater Blessing spellbook entries.
+function PallyPower_UpdateBlessingSpellData(RankInfo)
+    if not RankInfo then return end
+
+    PallyPower_DynamicManaCostTable = {}
+
+    local normalDuration = nil
+    local greaterDuration = nil
+
+    for blessing = 0, 5 do
+        local info = RankInfo[blessing]
+        if info then
+            PallyPower_DynamicManaCostTable[blessing] = {}
+
+            if info["idsmall"] then
+                local mana, duration = PallyPower_ReadBlessingTooltip(info["idsmall"])
+                if mana then
+                    PallyPower_DynamicManaCostTable[blessing][PALLYPOWER_SMALLBLESSING] = mana
+                end
+                if duration and not normalDuration then
+                    normalDuration = duration
+                end
+            end
+
+            -- Until a Greater Blessing is found, id == idsmall.
+            if info["id"] and info["idsmall"] and info["id"] ~= info["idsmall"] then
+                local mana, duration = PallyPower_ReadBlessingTooltip(info["id"])
+                if mana then
+                    PallyPower_DynamicManaCostTable[blessing][PALLYPOWER_GREATERBLESSING] = mana
+                end
+                if duration and not greaterDuration then
+                    greaterDuration = duration
+                end
+            end
+        end
+    end
+
+    if normalDuration then
+        PALLYPOWER_NORMALBLESSINGDURATION = normalDuration
+    end
+    if greaterDuration then
+        PALLYPOWER_GREATERBLESSINGDURATION = greaterDuration
+    end
+end
+
+-- Prefer live spellbook data. Fall back to the existing hardcoded table if parsing fails.
+function PallyPower_HasEnoughMana(blessing, type)
+    local currentMana = UnitMana("player")
+
+    local dynamicTypes = PallyPower_DynamicManaCostTable[blessing]
+    local dynamicCost = dynamicTypes and dynamicTypes[type]
+    if dynamicCost then
+        return not currentMana or dynamicCost <= currentMana
+    end
+
+    local level = UnitLevel("player")
+    local types = PallyPower_ManaCostTable[blessing]
+    if not types or not types[type] then return true end
+
+    local costTable = types[type]
+    local manaCost = 0
+    for lvl, cost in pairs(costTable) do
+        if level >= lvl and cost > manaCost then
+            manaCost = cost
+        end
+    end
+
+    if currentMana and manaCost > currentMana then
+        return false
+    else
+        return true
+    end
+end
+
+-- ============================================================================
+-- UI FOUNDATION (1.6.0)
+-- ============================================================================
+-- Static repeated UI is defined through XML virtual templates.
+-- Geometry that changes at runtime has one source of truth here.
+
+PP_UI = {
+    SCALE_MIN = 0.50,
+    SCALE_MAX = 1.50,
+
+    CONTROL_BUTTON = 30,
+    CONTROL_ICON = 18,
+
+    BUFF_LONG = 90,
+    BUFF_SHORT = 30,
+    BUFF_ICON = 24,
+
+    META_WIDTH = 28,
+    META_HEIGHT = 10,
+
+    MANAGEMENT_ROW = 76,
+    ASSIGNMENT_COLUMN = 82,
+    EYE_BUTTON = 18,
+}
+
+local function PallyPower_ClampUIScale(value)
+    value = tonumber(value) or 1
+    if value < PP_UI.SCALE_MIN then value = PP_UI.SCALE_MIN end
+    if value > PP_UI.SCALE_MAX then value = PP_UI.SCALE_MAX end
+    return value
+end
+
+function PallyPower_ApplyOverallScale()
+    if not PP_PerUser then return end
+    PP_PerUser.uiscale = PallyPower_ClampUIScale(PP_PerUser.uiscale)
+
+    if PallyPowerFrame then
+        PallyPowerFrame:SetScale(PP_PerUser.uiscale * (PP_PerUser.scalemain or 1))
+    end
+    if PallyPowerBuffBar then
+        PallyPowerBuffBar:SetScale(PP_PerUser.uiscale * (PP_PerUser.scalebar or 1))
+    end
+    if PallyPower_OptionsFrame then
+        PallyPower_OptionsFrame:SetScale(PP_PerUser.uiscale)
+    end
+end
+
+-- ============================================================================
+-- PALLYPOWER CORE
+-- ============================================================================
+
 local initialized = false
 
 -- SuperWoW detection
@@ -162,6 +376,7 @@ PallyPower_DivineItervention = "Interface\\Icons\\Spell_Nature_TimeStop"
 PP_PerUser = {
     scalemain = 1, -- corner of main window docked to
     scalebar = 1, -- corner menu window is docked from
+    uiscale = 1, -- overall addon UI scale multiplier
     scanfreq = 10,
     scanperframe = 1,
     smartbuffs = 1,
@@ -477,31 +692,14 @@ local function PP_UI_SetTooltip(owner, title, body)
     GameTooltip:Show()
 end
 
-local function PP_UI_CreateIconButton(name, parent, texturePath, tooltip, x)
-    local btn = CreateFrame("Button", name, parent)
-    btn:SetWidth(22)
-    btn:SetHeight(22)
-    btn:SetPoint("TOPLEFT", parent, "TOPLEFT", x, -27)
-    if PallyPowerBuffBarTitle then
-        btn:SetFrameLevel(PallyPowerBuffBarTitle:GetFrameLevel() + 2)
-    end
-    local tex = btn:CreateTexture(name .. "Icon", "ARTWORK")
-    tex:SetWidth(16); tex:SetHeight(16); tex:SetPoint("CENTER")
-    tex:SetTexture(texturePath)
-    btn.icon = tex
-    btn:SetScript("OnEnter", function() PP_UI_SetTooltip(this, tooltip) end)
-    btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    return btn
-end
-
 local function PP_UI_CreateEyeButton(name, anchorFrame, tooltip)
     local btn = CreateFrame("Button", name, PallyPowerFrame)
-    btn:SetWidth(18); btn:SetHeight(18)
+    btn:SetWidth(PP_UI.EYE_BUTTON); btn:SetHeight(PP_UI.EYE_BUTTON)
     btn:SetFrameLevel(PallyPowerFrame:GetFrameLevel() + 3)
     btn:SetPoint("BOTTOMRIGHT", anchorFrame, "BOTTOMRIGHT", 1, -1)
 
     local eye = btn:CreateTexture(name .. "Eye", "ARTWORK")
-    eye:SetWidth(18); eye:SetHeight(18); eye:SetPoint("CENTER")
+    eye:SetWidth(PP_UI.EYE_BUTTON); eye:SetHeight(PP_UI.EYE_BUTTON); eye:SetPoint("CENTER")
     btn.eye = eye
 
     btn:SetScript("OnEnter", function()
@@ -509,15 +707,6 @@ local function PP_UI_CreateEyeButton(name, anchorFrame, tooltip)
     end)
     btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
     return btn
-end
-
-local function PP_UI_MoveOption(frame, label, y)
-    if label then
-        label:ClearAllPoints(); label:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 7, y); label:Show()
-    end
-    if frame then
-        frame:ClearAllPoints(); frame:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, y); frame:Show()
-    end
 end
 
 local function PP_UI_SetControlEnabled(button, enabled)
@@ -539,8 +728,16 @@ local function PP_UI_UpdateState()
 
     -- Momentary/action controls remain bright.
     PP_UI_SetControlEnabled(PP_UI_OrientationButton, true)
+    if PP_UI_OrientationButton and PP_UI_OrientationButton:GetNormalTexture() then
+        if PP_PerUser.horizontal == true then
+            -- Horizontal layout: show vertical arrows as the available switch.
+            PP_UI_OrientationButton:GetNormalTexture():SetTexCoord(1, 1, 0, 1, 1, 0, 0, 0)
+        else
+            -- Vertical layout: show the native horizontal-arrow artwork.
+            PP_UI_OrientationButton:GetNormalTexture():SetTexCoord(0, 1, 0, 1)
+        end
+    end
     PP_UI_SetControlEnabled(PP_UI_FeedbackButton, true)
-    PP_UI_SetControlEnabled(PP_UI_SpareButton, true)
 
     if PP_UI_AuraEye then
         if PP_PerUser.showaurabutton then
@@ -593,19 +790,20 @@ function PallyPower_UI_Init()
     PP_UI_RegisterEscapeFrame("PallyPowerFrame")
     PP_UI_RegisterEscapeFrame("PallyPower_OptionsFrame")
 
-    -- Buff Bar header/title and controls are defined in XML.
+    -- Buff Bar title and Management header controls are defined in XML.
     PallyPowerBuffBarTitleText:SetText("PallyPower")
     PallyPowerBuffBarTitleText:SetTextColor(0.96, 0.55, 0.73)
     PallyPowerBuffBarTitle:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
 
-    -- Keep the six XML control cells above the title's drag surface.
+    -- Keep the Management header control strip above the drag surface.
     local headerControls = {
         PP_UI_LockButton, PP_UI_VerboseButton, PP_UI_SoundButton,
-        PP_UI_OrientationButton, PP_UI_SpareButton, PP_UI_FeedbackButton
+        PP_UI_OrientationButton, PP_UI_FeedbackButton
     }
     for _, control in headerControls do
         if control then
-            control:SetFrameLevel(PallyPowerBuffBarTitle:GetFrameLevel() + 2)
+            control:SetFrameLevel(PallyPowerFrameTitle:GetFrameLevel() + 4)
+            control:Show()
         end
     end
 
@@ -625,11 +823,29 @@ function PallyPower_UI_Init()
         PP_UI_SetTooltip(this, "Announce Assignments", "Print current assignments to party or raid chat.")
     end)
 
+    PallyPowerFrameRefresh:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Refresh", "Refresh PallyPower assignment data.")
+    end)
+    PallyPowerFrameClear:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Clear Assignments", "Wipe all assignments.")
+    end)
+    PallyPowerFrameOptions:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Advanced", "Open Advanced Options.")
+    end)
+    PallyPowerFrameResetPosition:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, "Reset Position", "Reset PallyPower frame positions.")
+    end)
+
+
     PP_UI_LockButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_VerboseButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_SoundButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_OrientationButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_FeedbackButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PallyPowerFrameRefresh:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PallyPowerFrameClear:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PallyPowerFrameOptions:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PallyPowerFrameResetPosition:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     PP_UI_LockButton:SetScript("OnClick", function()
         FramesLockedOptionChk:SetChecked(not PP_PerUser.frameslocked)
@@ -881,12 +1097,14 @@ function PallyPower_UI_Init()
     end
 
     PP_UI_READY=true
+    PallyPower_ApplyOverallScale()
     PP_UI_UpdateState()
 end
 
 function PallyPower_InitConfig()
     
     if PP_PerUser.scalemain == nil then PP_PerUser.scalemain = 1 end
+    if PP_PerUser.uiscale == nil then PP_PerUser.uiscale = 1 end
     if PP_PerUser.scalebar == nil then PP_PerUser.scalebar = 1 end
     if PP_PerUser.scanfreq == nil then PP_PerUser.scanfreq = 10 end
     if PP_PerUser.scanperframe == nil then PP_PerUser.scanperframe = 1 end
@@ -1443,7 +1661,7 @@ function PallyPowerGrid_Update(tdiff)
     local numPallys = 0
     local name, skills
     if PallyPowerFrame:IsVisible() then
-        PallyPowerFrame:SetScale(PP_PerUser.scalemain)
+        PallyPowerFrame:SetScale((PP_PerUser.uiscale or 1) * PP_PerUser.scalemain)
         for name, skills in AllPallys do
             getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetText(name)
             getglobal("PallyPowerFramePlayer" .. i .. "InGroup"):SetText(PallyPower_GetPlayerGroupID(name))
@@ -1833,69 +2051,69 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
     local countText = getglobal(btn:GetName() .. "Text")
 
     if horizontal then
-        btn:SetWidth(30)
-        btn:SetHeight(90)
+        btn:SetWidth(PP_UI.BUFF_SHORT)
+        btn:SetHeight(PP_UI.BUFF_LONG)
 
         if classIcon then
-            classIcon:SetWidth(24); classIcon:SetHeight(24)
+            classIcon:SetWidth(PP_UI.BUFF_ICON); classIcon:SetHeight(PP_UI.BUFF_ICON)
             classIcon:ClearAllPoints()
             classIcon:SetPoint("TOP", btn, "TOP", 0, -3)
         end
         if buffIcon then
-            buffIcon:SetWidth(24); buffIcon:SetHeight(24)
+            buffIcon:SetWidth(PP_UI.BUFF_ICON); buffIcon:SetHeight(PP_UI.BUFF_ICON)
             buffIcon:ClearAllPoints()
             buffIcon:SetPoint("TOP", btn, "TOP", 0, -33)
         end
 
         -- Bottom 30px is the metadata/count block.
         if timeText then
-            timeText:SetWidth(28); timeText:SetHeight(10)
+            timeText:SetWidth(PP_UI.META_WIDTH); timeText:SetHeight(PP_UI.META_HEIGHT)
             timeText:ClearAllPoints()
             timeText:SetPoint("TOP", btn, "TOP", 0, -61)
             timeText:SetJustifyH("CENTER")
         end
         if time2Text then
-            time2Text:SetWidth(28); time2Text:SetHeight(10)
+            time2Text:SetWidth(PP_UI.META_WIDTH); time2Text:SetHeight(PP_UI.META_HEIGHT)
             time2Text:ClearAllPoints()
             time2Text:SetPoint("TOP", btn, "TOP", 0, -70)
             time2Text:SetJustifyH("CENTER")
         end
         if countText then
-            countText:SetWidth(28); countText:SetHeight(10)
+            countText:SetWidth(PP_UI.META_WIDTH); countText:SetHeight(PP_UI.META_HEIGHT)
             countText:ClearAllPoints()
             countText:SetPoint("BOTTOM", btn, "BOTTOM", 0, 1)
             countText:SetJustifyH("CENTER")
         end
     else
-        btn:SetWidth(90)
-        btn:SetHeight(30)
+        btn:SetWidth(PP_UI.BUFF_LONG)
+        btn:SetHeight(PP_UI.BUFF_SHORT)
 
         if classIcon then
-            classIcon:SetWidth(24); classIcon:SetHeight(24)
+            classIcon:SetWidth(PP_UI.BUFF_ICON); classIcon:SetHeight(PP_UI.BUFF_ICON)
             classIcon:ClearAllPoints()
             classIcon:SetPoint("LEFT", btn, "LEFT", 3, 0)
         end
         if buffIcon then
-            buffIcon:SetWidth(24); buffIcon:SetHeight(24)
+            buffIcon:SetWidth(PP_UI.BUFF_ICON); buffIcon:SetHeight(PP_UI.BUFF_ICON)
             buffIcon:ClearAllPoints()
             buffIcon:SetPoint("LEFT", btn, "LEFT", 33, 0)
         end
 
         -- Right-most 30px is the metadata/count block.
         if timeText then
-            timeText:SetWidth(28); timeText:SetHeight(10)
+            timeText:SetWidth(PP_UI.META_WIDTH); timeText:SetHeight(PP_UI.META_HEIGHT)
             timeText:ClearAllPoints()
             timeText:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -2, -1)
             timeText:SetJustifyH("RIGHT")
         end
         if time2Text then
-            time2Text:SetWidth(28); time2Text:SetHeight(10)
+            time2Text:SetWidth(PP_UI.META_WIDTH); time2Text:SetHeight(PP_UI.META_HEIGHT)
             time2Text:ClearAllPoints()
             time2Text:SetPoint("RIGHT", btn, "RIGHT", -2, 0)
             time2Text:SetJustifyH("RIGHT")
         end
         if countText then
-            countText:SetWidth(28); countText:SetHeight(10)
+            countText:SetWidth(PP_UI.META_WIDTH); countText:SetHeight(PP_UI.META_HEIGHT)
             countText:ClearAllPoints()
             countText:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 1)
             countText:SetJustifyH("RIGHT")
@@ -1907,17 +2125,17 @@ local function PallyPower_ApplySpecialButtonGeometry(btn, horizontal)
     if not btn then return end
 
     if horizontal then
-        btn:SetWidth(30)
-        btn:SetHeight(90)
+        btn:SetWidth(PP_UI.BUFF_SHORT)
+        btn:SetHeight(PP_UI.BUFF_LONG)
     else
-        btn:SetWidth(90)
-        btn:SetHeight(30)
+        btn:SetWidth(PP_UI.BUFF_LONG)
+        btn:SetHeight(PP_UI.BUFF_SHORT)
     end
 
     local icon = getglobal(btn:GetName() .. "BuffIcon")
     if icon then
-        icon:SetWidth(24)
-        icon:SetHeight(24)
+        icon:SetWidth(PP_UI.BUFF_ICON)
+        icon:SetHeight(PP_UI.BUFF_ICON)
         icon:ClearAllPoints()
         icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
     end
@@ -1926,6 +2144,21 @@ end
 function PallyPower_UpdateLayout()
     local namePlayer = UnitName("player")
     local horizontal = (PP_PerUser.horizontal == true)
+
+    PallyPowerBuffBarTitle:ClearAllPoints()
+    PallyPowerBuffBarTitle:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 0, 0)
+
+    if horizontal then
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT)
+        PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG)
+        PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2)
+        PallyPowerBuffBarTitleText:SetText("PP")
+    else
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG)
+        PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT)
+        PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4)
+        PallyPowerBuffBarTitleText:SetText("PallyPower")
+    end
 
     local hasAura = PallyPower_AuraAssignments[namePlayer] and PallyPower_AuraAssignments[namePlayer] ~= -1
     local hasSeal = PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1
@@ -2011,7 +2244,7 @@ function PallyPower_UpdateUI()
     end 
 	
     -- Buff Bar
-    PallyPowerBuffBar:SetScale(PP_PerUser.scalebar)
+    PallyPowerBuffBar:SetScale((PP_PerUser.uiscale or 1) * PP_PerUser.scalebar)
     getglobal("PallyPowerBuffBarRFBuffIcon"):SetTexture(PallyPower_RighteousFury)
 
 
@@ -2269,11 +2502,11 @@ function PallyPower_UpdateUI()
         end
         local totalVisibleButtons = specialButtonCount + (BuffNum - 1)
         if PP_PerUser.horizontal == false then
-            PallyPowerBuffBar:SetWidth(90)
-            PallyPowerBuffBar:SetHeight(90 + (30 * totalVisibleButtons))
+            PallyPowerBuffBar:SetWidth(PP_UI.BUFF_LONG)
+            PallyPowerBuffBar:SetHeight(PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons))
         else
-            PallyPowerBuffBar:SetWidth(90 + (30 * totalVisibleButtons))
-            PallyPowerBuffBar:SetHeight(90)
+            PallyPowerBuffBar:SetWidth(PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons))
+            PallyPowerBuffBar:SetHeight(PP_UI.BUFF_LONG)
         end
     else
         PallyPowerBuffBar:Hide()
@@ -2655,6 +2888,13 @@ function PallyPower_Refresh()
     PallyPower_SendVersion()
     PallyPower_RequestSend()
     PP_NextScan = 0 --PallyPower_UpdateUI()
+end
+
+function PallyPower_ConfirmClear()
+    PallyPowerWarningFrameText:SetText("Wipe all assignments?")
+    PallyPowerWarningFrame.func = PallyPower_Clear
+    PallyPowerWarningFrame.value = nil
+    ShowUIPanel(PallyPowerWarningFrame)
 end
 
 function PallyPower_Clear(fromupdate, who)
@@ -4714,11 +4954,11 @@ function PallyPower_ScaleFrame(scale)
     frame:SetScale(scale)
     if frame:GetName() == "PallyPowerFrame" then
         really_setpoint(PallyPowerFrame, "TOPLEFT", "UIParent", "BOTTOMLEFT", framex / scale, framey / scale)
-        PP_PerUser.scalemain = scale
+        PP_PerUser.scalemain = scale / (PP_PerUser.uiscale or 1)
     end
     if frame:GetName() == "PallyPowerBuffBar" then
         really_setpoint(PallyPowerBuffBar, "TOPLEFT", "UIParent", "BOTTOMLEFT", framex / scale, framey / scale)
-        PP_PerUser.scalebar = scale
+        PP_PerUser.scalebar = scale / (PP_PerUser.uiscale or 1)
     end
 end
 
@@ -5214,4 +5454,261 @@ SlashCmdList["PPDBG"] = function()
   else
     DEFAULT_CHAT_FRAME:AddMessage("|cffff9900PallyPower debug output (install _OGAALogger for copy/paste)|r")
   end
+end
+
+-- ============================================================================
+-- MINIMAP / PRESETS
+-- Folded from MinimapButton.lua
+-- ============================================================================
+
+PP_Presets = {}
+
+function PallyPower_MinimapButton_OnClick(mouseBtn)
+	PallyPowerMinimapPresetsDropDown:Hide();
+	if mouseBtn == "LeftButton" then
+		PallyPower_SlashCommandHandler("");
+	else
+		PallyPower_Options();
+	end
+end
+
+function PallyPower_MinimapButton_Init()
+	if(PP_PerUser.minimapbuttonshow == false) then
+		PallyPowerMinimapButtonFrame:Hide();
+	else
+		PallyPowerMinimapButtonFrame:Show();
+		PallyPower_MinimapButton_UpdatePosition()
+	end
+end
+
+function PallyPower_MinimapButton_UpdatePosition()
+	PallyPowerMinimapButtonFrame:SetPoint(
+		"TOPLEFT",
+		"Minimap",
+		"TOPLEFT",
+		52 - (80 * cos(PP_PerUser.minimapbuttonpos)),
+		(80 * sin(PP_PerUser.minimapbuttonpos)) - 52
+	);
+end
+
+function PallyPower_PresetsClick()
+	PallyPowerMinimapPresetsDropDown.point = "TOPRIGHT";
+	PallyPowerMinimapPresetsDropDown.relativePoint = "BOTTOMLEFT";
+	ToggleDropDownMenu(1, nil, PallyPowerMinimapPresetsDropDown, "PallyPowerFramePresets", 0, 0);
+end
+
+function PallyPower_Minimap_PresetsDropDown_OnLoad()
+	UIDropDownMenu_Initialize(this, PallyPower_Minimap_PresetsDropDown_Initialize, "MENU");
+end
+
+function PallyPower_Minimap_PresetsDropDown_Initialize()
+	-- Setup the minimap dropdown menu
+	local info = {};
+	local hasSets;
+
+	info.text = PALLYPOWER_TEXT_DROPDOWN_SAVENEW;
+	info.notCheckable = 1;
+	info.func = PallyPower_Minimap_PresetsDropDown_OnClick;
+	UIDropDownMenu_AddButton(info);
+
+	info = {};
+	info.text = PALLYPOWER_TEXT_DROPDOWN_SAVECURRENT;
+	info.notCheckable = 1;
+	if (not PallyPower_GetCurrentSet()) then
+		info.disabled = 1;
+	end
+	info.func = PallyPower_Minimap_PresetsDropDown_OnClick;
+	UIDropDownMenu_AddButton(info);
+
+	info = {};
+	info.text = PALLYPOWER_TEXT_DROPDOWN_DELETE;
+	info.notCheckable = 1;
+	if (not PallyPower_GetCurrentSet()) then
+		info.disabled = 1;
+	end
+	info.func = PallyPower_Minimap_PresetsDropDown_OnClick;
+	UIDropDownMenu_AddButton(info);
+
+	info = {};
+	info.text = PALLYPOWER_TEXT_DROPDOWN_SETS;
+	info.isTitle = 1;
+	info.justifyH = "CENTER";
+	info.notCheckable = 1;
+	UIDropDownMenu_AddButton(info);
+	
+	if (PP_Presets and PP_Presets[UnitName("player")] and PP_Presets[UnitName("player")]["s"]) then
+		local list = {};
+		for k, v in PP_Presets[UnitName("player")]["s"] do
+			tinsert(list, k);
+		end
+		table.sort(list);
+		for k, v in list do
+			info = {};
+			info.text = v;
+			info.isTitle = nil;
+			if (PallyPower_GetCurrentSet() == v) then
+				info.checked = 1;
+			end
+			info.func = PallyPower_Minimap_PresetsDropDown_OnClick;
+			UIDropDownMenu_AddButton(info);
+			hasSets = 1;
+		end
+	end
+	if (not hasSets) then
+		info = { };
+		info.text = PALLYPOWER_TEXT_DROPDOWN_NONE;
+		info.disabled = 1;
+		UIDropDownMenu_AddButton(info);
+	end
+end
+
+function PallyPower_Minimap_PresetsDropDown_OnClick()
+	-- minimap dropdown menu handler
+	local id = this:GetID();
+	if (id == 1) then
+		PallyPower_Actions_SaveNew();
+	elseif (id == 2) then
+		PallyPower_Warning("SAVE", PallyPower_SaveSet, PallyPower_GetCurrentSet());
+	elseif (id == 3) then
+		PallyPower_Warning("DELETE", PallyPower_Delete, PallyPower_GetCurrentSet());
+	elseif (id > 4) then
+		PallyPower_SwapSet(this:GetText());
+
+	end
+end
+
+function PallyPower_SwapSet(set)
+	local player = UnitName("player");
+	-- Swap a set
+	if (set) then
+		if (PP_Presets and PP_Presets[player] and PP_Presets[player]["s"] and PP_Presets[player]["s"][set]) then
+			for id = 0, 9 do
+				PallyPower_Assignments[player][id] = PP_Presets[player]["s"][set][id];
+				if PP_Presets[player]["s"][set]["A"] then
+					PallyPower_AuraAssignments[player] = PP_Presets[player]["s"][set]["A"]
+				end
+				if PP_Presets[player]["s"][set]["S"] then
+					PallyPower_SealAssignments[player] = PP_Presets[player]["s"][set]["S"]
+				end
+				PP_Presets[UnitName("player")]["CurrentSet"] = set;
+			end
+		    PP_NextScan = 0 --PallyPower_UpdateUI()
+	        PallyPower_SendSelf()
+		end
+	end
+end
+
+function PallyPower_Warning(type, func, value)
+	if (value) then
+		PallyPowerWarningFrameText:SetText(string.gsub(getglobal("PALLYPOWER_TEXT_WARNING_" .. type), "%%s", value));
+	else
+		PallyPowerWarningFrameText:SetText(getglobal("PALLYPOWER_TEXT_WARNING_" .. type));
+	end
+	PallyPowerWarningFrame.func = func;
+	PallyPowerWarningFrame.value = value
+	ShowUIPanel(PallyPowerWarningFrame);
+end
+
+function PallyPower_Warning_Okay()
+	PallyPowerWarningFrame.func(PallyPowerWarningFrame.value)
+	PallyPowerWarningFrame.func = nil;
+	PallyPowerWarningFrame.value = nil;
+	HideUIPanel(this:GetParent());
+end
+
+function PallyPower_GetCurrentSet()
+	local player = UnitName("player");
+	if (PP_Presets) and PP_Presets[player] and PP_Presets[player]["CurrentSet"] then
+		return PP_Presets[player]["CurrentSet"];
+	end
+end
+
+function PallyPower_Actions_SaveNew(set)
+	PallyPowerSaveMenuNameEB:SetText("");
+	ShowUIPanel(PallyPowerSaveMenu);
+	if (set) then
+		PallyPowerSaveMenuNameEB:SetText(set);
+		PallyPower_SaveMenu_Save(set);
+	end
+end
+
+function PallyPower_SaveMenu_Save(set)
+	PallyPowerSaveMenuHelp.warned = nil
+	PallyPowerSaveMenuHelp:Hide();
+	PallyPower_SaveSet(set);
+	HideUIPanel(PallyPowerSaveMenu);
+end
+
+function PallyPower_Delete(set)
+	-- Delete a set
+	local player = UnitName("player");
+	print(PALLYPOWER_TEXT_DELETE .. set);
+	PP_Presets[player]["s"][set] = nil;
+	if (PallyPower_GetCurrentSet() == set) then
+		PP_Presets[player]["CurrentSet"] = nil;
+	end
+end
+
+function PallyPower_SaveSet(set)
+	-- Save a set
+	local player = UnitName("player");
+	if (not set) then
+		if (PallyPower_GetCurrentSet()) then
+			set = PallyPower_GetCurrentSet();
+		else
+			return ;
+		end
+	end
+	print(PALLYPOWER_TEXT_SAVING .. set);
+	if PP_Presets[player] == nil then
+		PP_Presets[player] = {};
+		PP_Presets[player]["s"] = {};
+	end
+	if PallyPower_Assignments[player] then 
+		PP_Presets[player]["s"][set] = PallyPower_CopyTable(PallyPower_Assignments[player]);
+		if PallyPower_AuraAssignments[player] then
+			PP_Presets[player]["s"][set]["A"] = PallyPower_AuraAssignments[player];
+		end
+		if PallyPower_SealAssignments[player] then
+			PP_Presets[player]["s"][set]["S"] = PallyPower_SealAssignments[player];
+		end
+		PP_Presets[player]["CurrentSet"] = set;
+	end
+end
+
+function PallyPower_CopyTable(copyTable)
+	-- properly copies a table instead of referencing the same table, thanks Sallust.
+	if (not copyTable) then
+		return ;
+	end
+	local returnTable = {};
+	for k, v in copyTable do
+		if type(v) == "table" then
+			returnTable[k] = PallyPower_CopyTable(v);
+		else
+			returnTable[k] = v;
+		end
+	end
+	return returnTable;
+end
+
+function PallyPower_SetExists(set)
+	-- Check to see if the set already exists
+	if PP_Presets[UnitName("player")] and PP_Presets[UnitName("player")]["s"] and PP_Presets[UnitName("player")]["s"][set] then
+		return true;
+	end
+end
+
+-- Print the contents of a table (including nested tables)
+function PallyPower_PrintTable(tbl, indent)
+    if not indent then indent = 0 end
+    local formatting = string.rep("  ", indent)
+    for k, v in pairs(tbl) do
+        if type(v) == "table" then
+            print(formatting .. tostring(k) .. ":")
+            PallyPower_PrintTable(v, indent + 1)
+        else
+            print(formatting .. tostring(k) .. " = " .. tostring(v))
+        end
+    end
 end

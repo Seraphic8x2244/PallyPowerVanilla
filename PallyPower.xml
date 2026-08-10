@@ -1,6 +1,8 @@
 <Ui xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd" xmlns="http://www.blizzard.com/wow/ui/">
-	<Script file="PallyPower.lua" />
-	<Button name="PallyPowerResizeTemplate" virtual="true">
+	<!-- ================================================================== -->
+	<!-- SHARED VIRTUAL TEMPLATES                                         -->
+	<!-- ================================================================== -->
+	<Button name="PPResizeGripTemplate" virtual="true">
 		<Size>
 			<AbsDimension x="16" y="16" />
 		</Size>
@@ -15,7 +17,7 @@
 		<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\PallyPower-ResizeGrip" />
 		<HighlightTexture file="Interface\AddOns\PallyPowerVanilla\artwork\PallyPower-ResizeGrip" alphaMode="ADD" />
 	</Button>
-	<Button name="BuffGridButtonTemplate" virtual="true">
+	<Button name="PPAssignmentCellTemplate" virtual="true">
 		<Size>
 			<AbsDimension x="80" y="54" />
 		</Size>
@@ -55,7 +57,7 @@
 			</OnMouseWheel>
 		</Scripts>
 	</Button>
-	<Button name="PlayerButtonTemplate" hidden = "false" virtual="true" enableMouse ="true"> <!--frameStrata="DIALOG"-->
+	<Button name="PPPlayerOverrideTemplate" hidden = "false" virtual="true" enableMouse ="true"> <!--frameStrata="DIALOG"-->
 		<Size>
 			<AbsDimension x="84" y="13" />
 		</Size>
@@ -106,7 +108,7 @@
 			</OnMouseWheel>
 		</Scripts>
 	</Button>
-	<Frame name="ClassGroupTemplate" virtual="true" enableMouse="true">
+	<Frame name="PPClassColumnTemplate" virtual="true" enableMouse="true">
 		<Size>
 			<AbsDimension x="84" y="26" />
 		</Size>
@@ -127,7 +129,7 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<Button name="$parentPlayerButton1" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton1" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -136,7 +138,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton2" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton2" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -145,7 +147,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton3" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton3" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -154,7 +156,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton4" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton4" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -163,7 +165,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton5" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton5" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -172,7 +174,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton6" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton6" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -181,7 +183,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton7" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton7" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -190,7 +192,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton8" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton8" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -199,7 +201,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton9" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton9" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -208,7 +210,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton10" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton10" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -217,7 +219,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton11" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton11" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -226,7 +228,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton12" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton12" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -235,7 +237,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton13" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton13" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -244,7 +246,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton14" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton14" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -253,7 +255,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentPlayerButton15" inherits="PlayerButtonTemplate">
+			<Button name="$parentPlayerButton15" inherits="PPPlayerOverrideTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -264,7 +266,7 @@
 			</Button>
 		</Frames>
 	</Frame>
-	<Frame name="ClassGroupAuraTemplate" virtual="true">
+	<Frame name="PPSpecialColumnTemplate" virtual="true">
 		<Size>
 			<AbsDimension x="84" y="26" />
 		</Size>
@@ -285,7 +287,7 @@
 			</Layer>
 		</Layers>
 	</Frame>
-	<Button name="PallyPowerBuffButtonTemplate" virtual="true">
+	<Button name="PPBuffBarBlessingTemplate" virtual="true">
 		<Size>
 			<AbsDimension x="90" y="30" />
 		</Size>
@@ -383,7 +385,7 @@
 			</OnMouseWheel>			
 		</Scripts>
 	</Button>
-	<Button name="PallyPowerAuraButtonTemplate" virtual="true">
+	<Button name="PPBuffBarSpecialTemplate" virtual="true">
 		<Size>
 			<AbsDimension x="90" y="30" />
 		</Size>
@@ -423,10 +425,11 @@
 			</OnMouseWheel>
 		</Scripts>
 	</Button>
-	<Frame name="UserTemplate" virtual="true">
+	<Frame name="PPPaladinRowTemplate" virtual="true">
 		<Size>
 			<AbsDimension x="1206" y="76" />
 		</Size>
+		<!-- PALADIN SUMMARY CELL: name, Symbols, LoH/DI, talent/rank summary -->
 		<Layers>
 			<Layer level="OVERLAY">
 				<FontString name="$parentName" inherits="GameFontHighlightSmall" text="SomePally$parent" justifyH="LEFT">
@@ -729,6 +732,18 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
+<Texture name="$parentLine13" file="Interface\Tooltips\UI-Tooltip-Background">
+					<Size>
+						<AbsDimension x="2" y="76" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentLine12">
+							<Offset>
+								<AbsDimension x="82" y="0" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
 				<FontString name="$parentSkill0" inherits="GameFontNormalSmall" text="0" justifyH="LEFT">
 					<Size>
 						<AbsDimension x="16" y="14" />
@@ -947,8 +962,9 @@
 				</Texture>			
 			</Layer>
 		</Layers>
+		<!-- ASSIGNMENT CELLS: Aura | Seal/Judgement | RF | class Blessings -->
 		<Frames> 
-			<Button name="$parentClassA" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClassA" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -965,7 +981,7 @@
 					</OnLeave>
 				</Scripts>
 			</Button>
-			<Button name="$parentClassS" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClassS" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassA" relativePoint="TOPRIGHT">
 						<Offset>
@@ -982,7 +998,7 @@
 					</OnLeave>
 				</Scripts>
 			</Button>
-			<Button name="$parentClassR" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClassR" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassS" relativePoint="TOPRIGHT">
 						<Offset>
@@ -991,7 +1007,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass0" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass0" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassR" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1000,7 +1016,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass1" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass1" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass0" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1009,7 +1025,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass2" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass2" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass1" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1018,7 +1034,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass3" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass3" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass2" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1027,7 +1043,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass4" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass4" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass3" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1036,7 +1052,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass5" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass5" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass4" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1045,7 +1061,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass6" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass6" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass5" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1054,7 +1070,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass7" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass7" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass6" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1063,7 +1079,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass8" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass8" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass7" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1072,7 +1088,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClass9" inherits="BuffGridButtonTemplate">
+			<Button name="$parentClass9" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass8" relativePoint="TOPRIGHT">
 						<Offset>
@@ -1081,8 +1097,12 @@
 					</Anchor>
 				</Anchors>
 			</Button>
+			
 		</Frames>
 	</Frame>
+	<!-- ================================================================== -->
+	<!-- BUFF BAR                                                         -->
+	<!-- ================================================================== -->
 	<Frame name="PallyPowerBuffBar" parent="UIParent" toplevel="true" movable="true" frameStrata="LOW" enableMouse="true">
 		<Size>
 			<AbsDimension x="90" y="390" />
@@ -1093,7 +1113,7 @@
 		<Frames>
 			<Button name="$parentTitle">
 				<Size>
-					<AbsDimension x="90" y="90" />
+					<AbsDimension x="90" y="30" />
 				</Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" />
@@ -1111,16 +1131,12 @@
 				</Backdrop>
 				<Layers>
 					<Layer level="OVERLAY">
-						<FontString name="$parentText" inherits="GameFontNormal" text="PallyPower">
+						<FontString name="$parentText" inherits="GameFontNormal" text="PallyPower" justifyH="CENTER">
 							<Size>
-								<AbsDimension x="86" y="24" />
+								<AbsDimension x="86" y="18" />
 							</Size>
 							<Anchors>
-								<Anchor point="TOP">
-									<Offset>
-										<AbsDimension x="0" y="-4" />
-									</Offset>
-								</Anchor>
+								<Anchor point="CENTER" />
 							</Anchors>
 						</FontString>
 					</Layer>
@@ -1142,141 +1158,61 @@
 			</Button>
 
 			<!-- 2 x 3 control grid, each cell 30 x 30 -->
-			<Button name="PP_UI_LockButton">
-				<Size><AbsDimension x="30" y="30" /></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="TOPLEFT">
-						<Offset><AbsDimension x="0" y="-30" /></Offset>
-					</Anchor>
-				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_lock.tga">
-	<Size>
-		<AbsDimension x="18" y="18" />
-	</Size>
-	<Anchors>
-		<Anchor point="CENTER" />
-	</Anchors>
-</NormalTexture>
-			</Button>
-			<Button name="PP_UI_VerboseButton">
-				<Size><AbsDimension x="30" y="30" /></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="PP_UI_LockButton" relativePoint="TOPRIGHT" />
-				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_text.tga">
-	<Size>
-		<AbsDimension x="18" y="18" />
-	</Size>
-	<Anchors>
-		<Anchor point="CENTER" />
-	</Anchors>
-</NormalTexture>
-			</Button>
-			<Button name="PP_UI_SoundButton">
-				<Size><AbsDimension x="30" y="30" /></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="PP_UI_VerboseButton" relativePoint="TOPRIGHT" />
-				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_sound.tga">
-	<Size>
-		<AbsDimension x="18" y="18" />
-	</Size>
-	<Anchors>
-		<Anchor point="CENTER" />
-	</Anchors>
-</NormalTexture>
-			</Button>
-			<Button name="PP_UI_OrientationButton">
-				<Size><AbsDimension x="30" y="30" /></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="PP_UI_LockButton" relativePoint="BOTTOMLEFT" />
-				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_rotate.tga">
-	<Size>
-		<AbsDimension x="18" y="18" />
-	</Size>
-	<Anchors>
-		<Anchor point="CENTER" />
-	</Anchors>
-</NormalTexture>
-			</Button>
-			<Button name="PP_UI_SpareButton" enableMouse="false">
-				<Size><AbsDimension x="30" y="30" /></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="PP_UI_OrientationButton" relativePoint="TOPRIGHT" />
-				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_blank.tga">
-	<Size>
-		<AbsDimension x="18" y="18" />
-	</Size>
-	<Anchors>
-		<Anchor point="CENTER" />
-	</Anchors>
-</NormalTexture>
-			</Button>
-			<Button name="PP_UI_FeedbackButton">
-				<Size><AbsDimension x="30" y="30" /></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="PP_UI_SpareButton" relativePoint="TOPRIGHT" />
-				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_announce.tga">
-	<Size>
-		<AbsDimension x="18" y="18" />
-	</Size>
-	<Anchors>
-		<Anchor point="CENTER" />
-	</Anchors>
-</NormalTexture>
-			</Button>
+			
+			
+			
+			
+			
+			
 
-			<Button name="$parentRF" inherits="PallyPowerAuraButtonTemplate">
+			<Button name="$parentRF" inherits="PPBuffBarSpecialTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
-			<Button name="$parentAura" inherits="PallyPowerAuraButtonTemplate">
+			<Button name="$parentAura" inherits="PPBuffBarSpecialTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentRF" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
-			<Button name="$parentSeal" inherits="PallyPowerAuraButtonTemplate">
+			<Button name="$parentSeal" inherits="PPBuffBarSpecialTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentAura" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
-			<Button name="$parentBuff1" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff1" inherits="PPBuffBarBlessingTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Button>
-			<Button name="$parentBuff2" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff2" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff1" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff3" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff3" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff2" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff4" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff4" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff3" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff5" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff5" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff4" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff6" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff6" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff5" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff7" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff7" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff6" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff8" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff8" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff7" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff9" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff9" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff8" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentBuff10" inherits="PallyPowerBuffButtonTemplate">
+			<Button name="$parentBuff10" inherits="PPBuffBarBlessingTemplate">
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentBuff9" relativePoint="BOTTOMLEFT" /></Anchors>
 			</Button>
-			<Button name="$parentResizeButton" inherits="PallyPowerResizeTemplate">
+			<Button name="$parentResizeButton" inherits="PPResizeGripTemplate">
 				<Anchors>
 					<Anchor point="BOTTOMRIGHT">
 						<Offset><AbsDimension x="1" y="-1" /></Offset>
@@ -1290,6 +1226,9 @@
 			</OnUpdate>
 		</Scripts>
 	</Frame>
+	<!-- ================================================================== -->
+	<!-- BLESSING MANAGEMENT                                              -->
+	<!-- ================================================================== -->
 	<Frame name="PallyPowerFrame" hidden="true" parent="UIParent" toplevel="true" movable="true" enableMouse="true"> <!--frameStrata="LOW"-->
 		<Size>
 			<AbsDimension x="1210" y="980" />
@@ -1458,6 +1397,18 @@
 						</Anchor>
 					</Anchors>
 				</Texture>
+<Texture name="$parentLine12" file="Interface\Tooltips\UI-Tooltip-Background">
+					<Size>
+						<AbsDimension x="2" y="56" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentLine11">
+							<Offset>
+								<AbsDimension x="82" y="0" />
+							</Offset>
+						</Anchor>
+					</Anchors>
+				</Texture>
 				<Texture name="$parentClassA" file="Interface\AddOns\PallyPowerVanilla\artwork\Icons\Spell_Holy_AuraMastery">
 					<Size>
 						<AbsDimension x="32" y="32" />
@@ -1619,25 +1570,25 @@
 		<Frames>
 			<Button name="$parentTitle">
 				<Size>
-					<AbsDimension x="360" y="20" />
+					<AbsDimension x="640" y="20" />
 				</Size>
 				<Anchors>
-					<Anchor point="TOP">
+					<Anchor point="TOPLEFT">
 						<Offset>
-							<AbsDimension x="0" y="-7" />
+							<AbsDimension x="8" y="-7" />
 						</Offset>
 					</Anchor>
 				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<FontString name="$parentText" inherits="GameFontNormalLarge" text="PallyPower - Blessing Management">
+						<FontString name="$parentText" inherits="GameFontNormalLarge" text="PallyPower - Blessing Management" justifyH="LEFT">
 							<Size>
-								<AbsDimension x="340" y="18" />
+								<AbsDimension x="420" y="18" />
 							</Size>
 							<Anchors>
 								<Anchor point="LEFT">
 									<Offset>
-										<AbsDimension x="5" y="0" />
+										<AbsDimension x="8" y="0" />
 									</Offset>
 								</Anchor>
 							</Anchors>
@@ -1662,24 +1613,33 @@
 					</OnUpdate>
 				</Scripts>
 			</Button>
-			<Button name="$parentCloseButton" inherits="UIPanelCloseButton">
+			<Button name="$parentCloseButton">
+				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
 					<Anchor point="TOPRIGHT">
-						<Offset>
-							<AbsDimension x="2" y="2" />
-						</Offset>
+						<Offset><AbsDimension x="-6" y="-3" /></Offset>
 					</Anchor>
 				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_close.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
+				<Scripts>
+					<OnClick>HideUIPanel(this:GetParent());</OnClick>
+				</Scripts>
 			</Button>
 			<CheckButton name = "FreeAssignOptionChk" inherits = "OptionsCheckButtonTemplate">
 				<Size>
 					<AbsDimension x="20" y="20" />
-				</Size>			
+				</Size>
 				<Anchors>
-					<Anchor point = "TOPLEFT">
-						<Offset>
-							<AbsDimension x = "12" y = "-48"/>
-						</Offset>
+					<Anchor point="BOTTOMRIGHT">
+						<Offset><AbsDimension x="-104" y="6" /></Offset>
 					</Anchor>
 				</Anchors>
 				<Layers>
@@ -1720,10 +1680,8 @@
 					<AbsDimension x="20" y="20" />
 				</Size>
 				<Anchors>
-					<Anchor point="TOPLEFT">
-						<Offset>
-							<AbsDimension x="20" y="-25" />
-						</Offset>
+					<Anchor point="BOTTOMRIGHT" relativeTo="FreeAssignOptionChk" relativePoint="BOTTOMLEFT">
+						<Offset><AbsDimension x="-118" y="0" /></Offset>
 					</Anchor>
 				</Anchors>
 				<Layers>
@@ -1751,24 +1709,27 @@
 					</OnClick>
 				</Scripts>
 			</CheckButton>			
-			<Button name="$parentRefresh" inherits="GameMenuButtonTemplate" text="PALLYPOWER_REFRESH">
-				<Size>
-					<AbsDimension x="100" y="20" />
-				</Size>
+			<Button name="$parentRefresh">
+				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
-					<Anchor point="BOTTOMRIGHT">
-						<Offset>
-							<AbsDimension x="-7" y="7" />
-						</Offset>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-29" y="-3" /></Offset>
 					</Anchor>
 				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_rotate.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
 				<Scripts>
-					<OnClick>
-						PallyPower_Refresh()
-					</OnClick>
+					<OnClick>PallyPower_Refresh()</OnClick>
 				</Scripts>
 			</Button>
-			<Button name="$parentResizeButton" inherits="PallyPowerResizeTemplate">
+			<Button name="$parentResizeButton" inherits="PPResizeGripTemplate">
 				<Anchors>
 					<Anchor point="BOTTOMRIGHT">
 						<Offset>
@@ -1777,66 +1738,171 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-			<Button name="$parentClear" inherits="GameMenuButtonTemplate" text="PALLYPOWER_CLEAR">
-				<Size>
-					<AbsDimension x="100" y="20" />
-				</Size>
+			<Button name="$parentClear">
+				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
-					<Anchor point="BOTTOMRIGHT" relativeTo="$parentRefresh" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="-7" y="0" />
-						</Offset>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-52" y="-3" /></Offset>
 					</Anchor>
 				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_bin.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
 				<Scripts>
-					<OnClick>
-						PallyPower_Clear()
-					</OnClick>
+					<OnClick>PallyPower_ConfirmClear()</OnClick>
 				</Scripts>
 			</Button>
-			<Button name="$parentOptions" inherits="GameMenuButtonTemplate" text="PALLYPOWER_OPTIONS">
-				<Size>
-					<AbsDimension x="100" y="20" />
-				</Size>
+			<Button name="$parentOptions">
+				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
-					<Anchor point="BOTTOMRIGHT" relativeTo="$parentClear" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="-7" y="0" />
-						</Offset>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-75" y="-3" /></Offset>
 					</Anchor>
 				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_config.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
 				<Scripts>
-					<OnClick>
-						PallyPower_Options()
-					</OnClick>
+					<OnClick>PallyPower_Options()</OnClick>
 				</Scripts>
 			</Button>
-			<Button name="$parentResetPosition" inherits="GameMenuButtonTemplate" text="PALLYPOWER_RESETPOSITION">
-				<Size>
-					<AbsDimension x="100" y="20" />
-				</Size>
+			<Button name="$parentResetPosition">
+				<Size><AbsDimension x="20" y="20" /></Size>
 				<Anchors>
-					<Anchor point="BOTTOMRIGHT" relativeTo="$parentOptions" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="-7" y="0" />
-						</Offset>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-98" y="-3" /></Offset>
 					</Anchor>
 				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_position.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
 				<Scripts>
-					<OnClick>
-						PallyPower_ResetPosition()
-					</OnClick>
+					<OnClick>PallyPower_ResetPosition()</OnClick>
 				</Scripts>
 			</Button>
-			<Button name="$parentPresets" inherits="GameMenuButtonTemplate" text="PALLYPOWER_PRESETS">
+						
+
+			
+
+			
+
+			
+
+			
+
+			
+
+<Button name="PP_UI_LockButton">
+				<Size><AbsDimension x="20" y="20" /></Size>
+				<Anchors>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-213" y="-3" /></Offset>
+					</Anchor>
+				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_lock.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
+			</Button>
+<Button name="PP_UI_VerboseButton">
+				<Size><AbsDimension x="20" y="20" /></Size>
+				<Anchors>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-190" y="-3" /></Offset>
+					</Anchor>
+				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_text.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
+			</Button>
+<Button name="PP_UI_SoundButton">
+				<Size><AbsDimension x="20" y="20" /></Size>
+				<Anchors>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-167" y="-3" /></Offset>
+					</Anchor>
+				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_sound.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
+			</Button>
+<Button name="PP_UI_OrientationButton">
+				<Size><AbsDimension x="20" y="20" /></Size>
+				<Anchors>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-144" y="-3" /></Offset>
+					</Anchor>
+				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_orientation.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
+			</Button>
+
+<Button name="PP_UI_FeedbackButton">
+				<Size><AbsDimension x="20" y="20" /></Size>
+				<Anchors>
+					<Anchor point="TOPRIGHT">
+						<Offset><AbsDimension x="-121" y="-3" /></Offset>
+					</Anchor>
+				</Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_announce.tga">
+					<Size>
+						<AbsDimension x="18" y="18" />
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+				</NormalTexture>
+				<HighlightTexture alphaMode="ADD" file="Interface\Buttons\ButtonHilight-Square" />
+			</Button>
+<Button name="$parentPresets" inherits="GameMenuButtonTemplate" text="PALLYPOWER_PRESETS">
 				<Size>
-					<AbsDimension x="100" y="20" />
+					<AbsDimension x="86" y="22" />
 				</Size>
 				<Anchors>
-					<Anchor point="BOTTOMRIGHT" relativeTo="$parentResetPosition" relativePoint="BOTTOMLEFT">
-						<Offset>
-							<AbsDimension x="-7" y="0" />
-						</Offset>
+					<Anchor point="TOPLEFT">
+						<Offset><AbsDimension x="12" y="-26" /></Offset>
 					</Anchor>
 				</Anchors>
 				<Scripts>
@@ -1845,7 +1911,7 @@
 					</OnClick>
 				</Scripts>
 			</Button>			
-			<Frame name="$parentClassGroupA" inherits="ClassGroupAuraTemplate">
+			<Frame name="$parentClassGroupA" inherits="PPSpecialColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassA" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1854,7 +1920,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroupS" inherits="ClassGroupAuraTemplate">
+			<Frame name="$parentClassGroupS" inherits="PPSpecialColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassS" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1863,7 +1929,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup1" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup1" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass0" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1872,7 +1938,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup2" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup2" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass1" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1881,7 +1947,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup3" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup3" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass2" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1890,7 +1956,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup4" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup4" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass3" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1899,7 +1965,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup5" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup5" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass4" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1908,7 +1974,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup6" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup6" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass5" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1917,7 +1983,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup7" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup7" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass6" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1926,7 +1992,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup8" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup8" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass7" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1935,7 +2001,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup9" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup9" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass8" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1944,7 +2010,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentClassGroup10" inherits="ClassGroupTemplate">
+			<Frame name="$parentClassGroup10" inherits="PPClassColumnTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClass9" relativePoint="BOTTOMLEFT">
 						<Offset>
@@ -1953,7 +2019,7 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer1" inherits="UserTemplate">
+			<Frame name="$parentPlayer1" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="PallyPowerFrameClassGroup1" relativePoint="BOTTOM">
 						<Offset>
@@ -1962,57 +2028,57 @@
 					</Anchor>
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer2" inherits="UserTemplate">
+			<Frame name="$parentPlayer2" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer1" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer3" inherits="UserTemplate">
+			<Frame name="$parentPlayer3" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer2" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer4" inherits="UserTemplate">
+			<Frame name="$parentPlayer4" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer3" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer5" inherits="UserTemplate">
+			<Frame name="$parentPlayer5" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer4" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer6" inherits="UserTemplate">
+			<Frame name="$parentPlayer6" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer5" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer7" inherits="UserTemplate">
+			<Frame name="$parentPlayer7" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer6" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer8" inherits="UserTemplate">
+			<Frame name="$parentPlayer8" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer7" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer9" inherits="UserTemplate">
+			<Frame name="$parentPlayer9" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer8" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer10" inherits="UserTemplate">
+			<Frame name="$parentPlayer10" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer9" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer11" inherits="UserTemplate">
+			<Frame name="$parentPlayer11" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer10" relativePoint="BOTTOMLEFT" />
 				</Anchors>
 			</Frame>
-			<Frame name="$parentPlayer12" inherits="UserTemplate">
+			<Frame name="$parentPlayer12" inherits="PPPaladinRowTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentPlayer11" relativePoint="BOTTOMLEFT" />
 				</Anchors>
@@ -2043,6 +2109,9 @@
 			</OnUpdate>
 		</Scripts>
 	</Frame>
+	<!-- ================================================================== -->
+	<!-- ADVANCED OPTIONS                                                 -->
+	<!-- ================================================================== -->
 	<Frame name="PallyPower_OptionsFrame" hidden="true" parent="UIParent" toplevel="true" movable="true" enableMouse="true" frameStrata="DIALOG"> 
 		<Size>
 			<AbsDimension x="400" y="425" />
@@ -2762,4 +2831,93 @@
 			</OnLoad>
 		</Scripts>
 	</Frame>
+
+	<!-- ================================================================== -->
+	<!-- MINIMAP / PRESET DIALOGS                                         -->
+	<!-- ================================================================== -->
+	<Frame name="PallyPowerMinimapButtonFrame" parent="Minimap" enableMouse="true" hidden="true" frameStrata="LOW">
+		<Size><AbsDimension x="32" y="32"/></Size>
+		<Anchors><Anchor point="TOPLEFT" relativeTo="Minimap" relativePoint="RIGHT"><Offset><AbsDimension x="2" y="0"/></Offset></Anchor></Anchors>
+		<Frames>
+			<Button name="PallyPowerMinimapButton">
+				<Size><AbsDimension x="32" y="32"/></Size>
+				<Anchors><Anchor point="TOPLEFT"/></Anchors>
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\Icons\Minimap"/>
+				<PushedTexture file="Interface\AddOns\PallyPowerVanilla\artwork\Icons\Minimap_Down"/>
+				<HighlightTexture alphaMode="ADD" file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight"/>
+				<Scripts>
+					<OnLoad>this:RegisterForClicks("LeftButtonUp", "RightButtonUp");</OnLoad>
+					<OnClick>PallyPower_MinimapButton_OnClick(arg1);</OnClick>
+					<OnEnter>PallyPower_ShowCredits()</OnEnter>
+					<OnLeave>HideUIPanel(GameTooltip);</OnLeave>
+				</Scripts>
+			</Button>
+			<Frame name="PallyPowerMinimapPresetsDropDown" inherits="UIDropDownMenuTemplate" hidden="true">
+				<Scripts><OnLoad>PallyPower_Minimap_PresetsDropDown_OnLoad();</OnLoad></Scripts>
+			</Frame>
+		</Frames>
+		<Scripts><OnEvent>PallyPower_MinimapButton_UpdatePosition();</OnEvent></Scripts>
+	</Frame>
+
+	<Frame name="PallyPowerWarningFrame" toplevel="true" frameStrata="DIALOG" movable="true" enableMouse="true" hidden="true" parent="UIParent">
+		<Size><AbsDimension x="350" y="135"/></Size>
+		<Anchors><Anchor point="CENTER"/></Anchors>
+		<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<BackgroundInsets><AbsInset left="11" right="12" top="12" bottom="11"/></BackgroundInsets>
+			<TileSize><AbsValue val="32"/></TileSize><EdgeSize><AbsValue val="32"/></EdgeSize>
+		</Backdrop>
+		<Layers><Layer level="ARTWORK">
+			<Texture name="$parentHeaderTexture" file="Interface\DialogFrame\UI-DialogBox-Header"><Size><AbsDimension x="256" y="64"/></Size><Anchors><Anchor point="TOP"><Offset><AbsDimension x="0" y="12"/></Offset></Anchor></Anchors></Texture>
+			<FontString name="$parentTitle" inherits="GameFontNormal" text="PALLYPOWER_TEXT_WARNING"><Anchors><Anchor point="TOP" relativeTo="$parentHeaderTexture"><Offset><AbsDimension x="0" y="-14"/></Offset></Anchor></Anchors></FontString>
+			<FontString name="$parentText" inherits="GameFontNormal" text="" justifyH="CENTER" justifyV="CENTER"><Size><AbsDimension x="300" y="64"/></Size><Anchors><Anchor point="CENTER"><Offset><AbsDimension x="0" y="10"/></Offset></Anchor></Anchors></FontString>
+		</Layer></Layers>
+		<Frames>
+			<Button name="$parentOkayButton" inherits="GameMenuButtonTemplate" text="PALLYPOWER_TEXT_OK"><Size><AbsDimension x="70" y="21"/></Size><Anchors><Anchor point="BOTTOM"><Offset><AbsDimension x="-42" y="20"/></Offset></Anchor></Anchors><Scripts><OnClick>PallyPower_Warning_Okay();</OnClick></Scripts></Button>
+			<Button name="$parentCancelButton" inherits="GameMenuButtonTemplate" text="PALLYPOWER_TEXT_CANCEL"><Size><AbsDimension x="70" y="21"/></Size><Anchors><Anchor point="BOTTOM"><Offset><AbsDimension x="42" y="20"/></Offset></Anchor></Anchors><Scripts><OnClick>HideUIPanel(this:GetParent());</OnClick></Scripts></Button>
+		</Frames>
+		<Scripts><OnShow>PlaySound("UChatScrollButton");</OnShow><OnHide>PlaySound("UChatScrollButton");</OnHide></Scripts>
+	</Frame>
+
+	<Frame name="PallyPowerSaveMenu" toplevel="true" frameStrata="DIALOG" movable="true" enableMouse="true" hidden="true" parent="UIParent">
+		<Size><AbsDimension x="350" y="135"/></Size><Anchors><Anchor point="CENTER"/></Anchors>
+		<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<BackgroundInsets><AbsInset left="11" right="12" top="12" bottom="11"/></BackgroundInsets><TileSize><AbsValue val="32"/></TileSize><EdgeSize><AbsValue val="32"/></EdgeSize>
+		</Backdrop>
+		<Layers><Layer level="ARTWORK">
+			<Texture name="$parentHeaderTexture" file="Interface\DialogFrame\UI-DialogBox-Header"><Size><AbsDimension x="256" y="64"/></Size><Anchors><Anchor point="TOP"><Offset><AbsDimension x="0" y="12"/></Offset></Anchor></Anchors></Texture>
+			<FontString name="$parentTitle" inherits="GameFontNormal" text="PALLYPOWER_TEXT_SAVENEW"><Anchors><Anchor point="TOP" relativeTo="$parentHeaderTexture"><Offset><AbsDimension x="0" y="-14"/></Offset></Anchor></Anchors></FontString>
+			<FontString name="$parentEditing" inherits="GameFontNormal" text="PALLYPOWER_TEXT_NEWNAME"><Anchors><Anchor point="TOP"><Offset><AbsDimension x="0" y="-25"/></Offset></Anchor></Anchors></FontString>
+			<FontString name="$parentHelp" inherits="GameFontNormal" text="PALLYPOWER_TEXT_ALREADYEXISTS" hidden="true"><Anchors><Anchor point="TOP"><Offset><AbsDimension x="0" y="-75"/></Offset></Anchor></Anchors></FontString>
+		</Layer></Layers>
+		<Frames>
+			<EditBox name="$parentNameEB" historyLines="0" letters="250">
+				<Size><AbsDimension x="250" y="32"/></Size><Anchors><Anchor point="TOP"><Offset><AbsDimension x="0" y="-40"/></Offset></Anchor></Anchors>
+				<Layers><Layer level="BACKGROUND">
+					<Texture name="$parentLeft" file="Interface\ChatFrame\UI-ChatInputBorder-Left"><Size><AbsDimension x="65" y="32"/></Size><Anchors><Anchor point="LEFT"><Offset><AbsDimension x="-10" y="0"/></Offset></Anchor></Anchors><TexCoords left="0" right="0.2539" top="0" bottom="1.0"/></Texture>
+					<Texture name="$parentRight" file="Interface\ChatFrame\UI-ChatInputBorder-Right"><Size><AbsDimension x="25" y="32"/></Size><Anchors><Anchor point="RIGHT"><Offset><AbsDimension x="10" y="0"/></Offset></Anchor></Anchors><TexCoords left="0.9" right="1.0" top="0" bottom="1.0"/></Texture>
+					<Texture file="Interface\ChatFrame\UI-ChatInputBorder-Left"><Size><AbsDimension x="5" y="32"/></Size><Anchors><Anchor point="LEFT" relativeTo="$parentLeft" relativePoint="RIGHT"/><Anchor point="RIGHT" relativeTo="$parentRight" relativePoint="LEFT"/></Anchors><TexCoords left="0.29296875" right="1.0" top="0" bottom="1.0"/></Texture>
+				</Layer></Layers>
+				<Scripts>
+					<OnShow>this:SetFocus();</OnShow>
+					<OnEnterPressed>PallyPower_SaveMenu_Save(PallyPowerSaveMenuNameEB:GetText());</OnEnterPressed>
+					<OnTextChanged>
+						if ( this:GetText() == "" ) then
+							getglobal(this:GetParent():GetName() .. "OkayButton"):Disable();
+							PallyPowerSaveMenuHelp:SetText(PALLYPOWER_TEXT_MUSTENTER); PallyPowerSaveMenuHelp:Show();
+						elseif ( PallyPower_SetExists(this:GetText()) ) then
+							getglobal(this:GetParent():GetName() .. "OkayButton"):Enable();
+							PallyPowerSaveMenuHelp:SetText(PALLYPOWER_TEXT_OVERWRITE); PallyPowerSaveMenuHelp:Show();
+						else
+							getglobal(this:GetParent():GetName() .. "OkayButton"):Enable(); PallyPowerSaveMenuHelp:Hide();
+						end
+					</OnTextChanged>
+					<OnEscapePressed>HideUIPanel(this:GetParent());</OnEscapePressed>
+				</Scripts><FontString inherits="ChatFontNormal"/>
+			</EditBox>
+			<Button name="$parentOkayButton" inherits="GameMenuButtonTemplate" text="PALLYPOWER_TEXT_OK"><Size><AbsDimension x="70" y="21"/></Size><Anchors><Anchor point="BOTTOM"><Offset><AbsDimension x="-42" y="20"/></Offset></Anchor></Anchors><Scripts><OnClick>PallyPower_SaveMenu_Save(PallyPowerSaveMenuNameEB:GetText());</OnClick></Scripts></Button>
+			<Button name="$parentCancelButton" inherits="GameMenuButtonTemplate" text="PALLYPOWER_TEXT_CANCEL"><Size><AbsDimension x="70" y="21"/></Size><Anchors><Anchor point="BOTTOM"><Offset><AbsDimension x="42" y="20"/></Offset></Anchor></Anchors><Scripts><OnClick>HideUIPanel(this:GetParent());</OnClick></Scripts></Button>
+		</Frames>
+		<Scripts><OnShow>PlaySound("UChatScrollButton");</OnShow><OnHide>PlaySound("UChatScrollButton");</OnHide></Scripts>
+	</Frame>
+
 </Ui>

@@ -1,15 +1,12 @@
 ## Interface: 11200
 ## Title: PallyPowerVanilla
 ## Author: Seraphic8x2244
-## Version: 1.54
+## Version: 1.6.0-test8
 ## Notes: PallyPower for World of Warcraft 1.12.1-based clients
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariablesPerCharacter: PallyPower_Assignments, PallyPower_AuraAssignments, PallyPower_SealAssignments, PallyPower_RFAssignments, PallyPower_NormalAssignments, PP_PerUser, PP_Presets
 
 Locale\localization-enUS.lua
-PallyPowerManaCost.lua
 PallyPower.lua
 PallyPower.xml
-MinimapButton.lua
-MinimapButton.xml
