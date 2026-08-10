@@ -14,7 +14,7 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 ## Fork Changes
 
 
-- **BuffBar UI** — Updated with cleaner buttons, horizontal layout now rotates blessing buttons so it fits on screen, new button artwork, verbose toggle added.
+- **BuffBar UI** — Updated with cleaner buttons, horizontal layout now rotates blessing buttons so it fits on screen, new button artwork, verbose toggle added. Using PallyPower no longer cancels autoattack.
 - **Blessing Management UI** - Reorganised blessing/aura/symbol layout
 - **Dynamic Blessing data** — Blessing durations, mana costs, ranks and improvement talents are determined from the player's learned spells rather than hardcoded values.
 - **Self Buffs** - now also highlight red when missing, and update on event rather than the internal scan frequency.
