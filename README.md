@@ -1,4 +1,4 @@
-# PallyPowerVanilla v1.54
+# PallyPowerVanilla v1.6.0
 
 PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** for World of Warcraft 1.12.1.
 
@@ -13,7 +13,7 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 
 ## Fork Changes
 
-
+- **Refactor** - Refactoring decades of development into (hopefully) a more logical, easy to use structure. XML rewritten, LUA brought into one file.
 - **BuffBar UI** — Updated with cleaner buttons, horizontal layout now rotates blessing buttons so it fits on screen, new button artwork, verbose toggle added. Using PallyPower no longer cancels autoattack.
 - **Blessing Management UI** - Reorganised blessing/aura/symbol layout
 - **Dynamic Blessing data** — Blessing durations, mana costs, ranks and improvement talents are determined from the player's learned spells rather than hardcoded values.
