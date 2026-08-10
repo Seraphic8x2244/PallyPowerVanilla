@@ -4,8 +4,7 @@ PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** 
 
 The aim is to preserve the familiar PallyPower experience and compatibility with existing versions while improving the addon for modern Vanilla clients and servers.
 
-
-![Buff Bar](github-images/150-1.png) ![Blessing Management](github-images/150-2.png)
+|![Buff Bar](github-images/pp150-1.png) ![Blessing Management](github-images/pp150-2.png)
 
 ## Project Goals
 
@@ -19,7 +18,7 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 - **UI overhaul** — the Buff Bar, Blessing Management and options have been reorganised to make common controls more visual and intuitive.
 - **Optional client enhancements** — functionality such as UnitXP_SP3 is used when available without being required.
 
-![Advanced Options](github-images/150-3.png)
+![Advanced Options](github-images/pp150-3.png)
 
 ## How to Use
 
