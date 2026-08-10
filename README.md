@@ -1,4 +1,4 @@
-# PallyPowerVanilla v1.52
+# PallyPowerVanilla v1.53
 
 PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** for World of Warcraft 1.12.1.
 
@@ -13,13 +13,13 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 
 ## Fork Changes
 
+
+- **BuffBar UI** — Updated with cleaner buttons, horizontal layout now rotates blessing buttons so it fits on screen, new button artwork, verbose toggle added.
+- **Blessing Management UI** - Reorganised blessing/aura/symbol layout
 - **Dynamic Blessing data** — Blessing durations, mana costs, ranks and improvement talents are determined from the player's learned spells rather than hardcoded values.
-- **UI overhaul** — the Buff Bar, Blessing Management and options have been reorganised to make common controls more visual and intuitive.
 - **Self Buffs** - now also highlight red when missing, and update on event rather than the internal scan frequency.
 - **Righteous Fury** - is now assignable per-paladin, still hidable.
 - **Optional .dll enhancements** — nampower and unitxp_sp3 are supported optionally, enabled if found and report detection success/failure in advanced settings
-
-![Advanced Options](github-images/pp150-3.png)
 
 ## How to Use
 
