@@ -1,0 +1,8 @@
+## Interface: 11200
+## Title: Cooline
+## Notes: Cooline 1.9.6
+## Version: 1.9.6
+## SavedVariables: CoolineDB
+## SavedVariablesPerCharacter: CoolineCharDB
+
+cooline.lua
