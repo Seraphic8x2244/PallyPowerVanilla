@@ -35,6 +35,8 @@ PallyPower_ManaCostTable = {
 }
 
 PallyPower_DynamicManaCostTable = {}
+PallyPower_DynamicRangeTable = {}
+PALLYPOWER_DEFAULTBLESSINGRANGE = 30
 
 -- Hidden tooltip used to read the spell data presented by the current client.
 local PallyPowerSpellScanTooltip = CreateFrame(
@@ -62,28 +64,35 @@ local function PallyPower_LastNumber(text)
 end
 
 function PallyPower_ReadBlessingTooltip(spellIndex)
-    if not spellIndex then return nil, nil end
+    if not spellIndex then return nil, nil, nil end
 
     PallyPowerSpellScanTooltip:ClearLines()
     PallyPowerSpellScanTooltip:SetSpell(spellIndex, BOOKTYPE_SPELL)
 
     local manaLine = getglobal("PallyPowerSpellScanTooltipTextLeft2")
+    local rangeLine = getglobal("PallyPowerSpellScanTooltipTextRight2")
     local descriptionLine = getglobal("PallyPowerSpellScanTooltipTextLeft4")
 
     local mana = nil
+    local range = nil
     local durationMinutes = nil
 
     if manaLine then
         mana = PallyPower_FirstNumber(manaLine:GetText())
     end
+    if rangeLine then
+        range = PallyPower_FirstNumber(rangeLine:GetText())
+    end
     if descriptionLine then
         durationMinutes = PallyPower_LastNumber(descriptionLine:GetText())
     end
 
+    local duration = nil
     if durationMinutes then
-        return mana, durationMinutes * 60
+        duration = durationMinutes * 60
     end
-    return mana, nil
+
+    return mana, duration, range
 end
 
 -- RankInfo["idsmall"] and ["id"] have already been resolved by PallyPower_ScanSpells
@@ -92,6 +101,7 @@ function PallyPower_UpdateBlessingSpellData(RankInfo)
     if not RankInfo then return end
 
     PallyPower_DynamicManaCostTable = {}
+    PallyPower_DynamicRangeTable = {}
 
     local normalDuration = nil
     local greaterDuration = nil
@@ -100,11 +110,15 @@ function PallyPower_UpdateBlessingSpellData(RankInfo)
         local info = RankInfo[blessing]
         if info then
             PallyPower_DynamicManaCostTable[blessing] = {}
+            PallyPower_DynamicRangeTable[blessing] = {}
 
             if info["idsmall"] then
-                local mana, duration = PallyPower_ReadBlessingTooltip(info["idsmall"])
+                local mana, duration, range = PallyPower_ReadBlessingTooltip(info["idsmall"])
                 if mana then
                     PallyPower_DynamicManaCostTable[blessing][PALLYPOWER_SMALLBLESSING] = mana
+                end
+                if range then
+                    PallyPower_DynamicRangeTable[blessing][PALLYPOWER_SMALLBLESSING] = range
                 end
                 if duration and not normalDuration then
                     normalDuration = duration
@@ -113,9 +127,12 @@ function PallyPower_UpdateBlessingSpellData(RankInfo)
 
             -- Until a Greater Blessing is found, id == idsmall.
             if info["id"] and info["idsmall"] and info["id"] ~= info["idsmall"] then
-                local mana, duration = PallyPower_ReadBlessingTooltip(info["id"])
+                local mana, duration, range = PallyPower_ReadBlessingTooltip(info["id"])
                 if mana then
                     PallyPower_DynamicManaCostTable[blessing][PALLYPOWER_GREATERBLESSING] = mana
+                end
+                if range then
+                    PallyPower_DynamicRangeTable[blessing][PALLYPOWER_GREATERBLESSING] = range
                 end
                 if duration and not greaterDuration then
                     greaterDuration = duration
@@ -130,6 +147,17 @@ function PallyPower_UpdateBlessingSpellData(RankInfo)
     if greaterDuration then
         PALLYPOWER_GREATERBLESSINGDURATION = greaterDuration
     end
+end
+
+function PallyPower_GetBlessingRange(blessing, type)
+    local ranges = PallyPower_DynamicRangeTable[blessing]
+    local range = ranges and ranges[type]
+
+    if not range and ranges then
+        range = ranges[PALLYPOWER_SMALLBLESSING]
+    end
+
+    return range or PALLYPOWER_DEFAULTBLESSINGRANGE
 end
 
 -- Prefer live spellbook data. Fall back to the existing hardcoded table if parsing fails.
@@ -553,7 +581,7 @@ end
 function PallyPower_CheckTargetLoS(target, maxRange)
     if not PP_PerUser or PP_PerUser.useunitxp_sp3 == false then return true end -- If we are not using UnitXP.dll, we assume we are in LoS
     if not target then target = "target" end
-    if not maxRange then maxRange = 40 end -- Default blessing range is 40 yards
+    if not maxRange then maxRange = PALLYPOWER_DEFAULTBLESSINGRANGE end -- Fallback only; cast paths pass the resolved spell range
     
     local function debugLog(msg)
         if OGAALogger and OGAALogger.AddMessage and type(OGAALogger.AddMessage) == "function" then
@@ -636,7 +664,7 @@ end
 -- Sort units by distance (closest first), prioritizing those in range and LOS
 function PallyPower_SortUnitsByProximity(unitsTable, maxRange)
     if not unitsTable then return {} end
-    if not maxRange then maxRange = 40 end
+    if not maxRange then maxRange = PALLYPOWER_DEFAULTBLESSINGRANGE end
     
     -- Convert the units table to an array with distance info
     local unitsArray = {}
@@ -4448,7 +4476,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     -- Sort units by proximity if UnitXP is available, otherwise use original iteration
     local sortedUnits
     if PP_PerUser and PP_UnitXPDllLoaded and PP_PerUser.useunitxp_sp3 then
-        sortedUnits = PallyPower_SortUnitsByProximity(CurrentBuffs[btn.classID], 40)
+        sortedUnits = PallyPower_SortUnitsByProximity(CurrentBuffs[btn.classID], PallyPower_GetBlessingRange(btn.buffID, blessingType))
     else
         -- Fallback: convert to simple array for consistent iteration
         sortedUnits = {}
@@ -4499,10 +4527,14 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                                  AllPallys[UnitName("player")][btn.buffID] and
                                  AllPallys[UnitName("player")][btn.buffID]["id"] ~= AllPallys[UnitName("player")][btn.buffID]["idsmall"]) 
                                  and PALLYPOWER_GREATERBLESSING or PALLYPOWER_SMALLBLESSING
+            local rangeBlessing = (castspelloverride ~= -1) and castspelloverride or btn.buffID
+            local rangeType = (castspelloverride ~= -1) and PALLYPOWER_SMALLBLESSING or blessingType
+            local blessingRange = PallyPower_GetBlessingRange(rangeBlessing, rangeType)
+
             local hasMana = PallyPower_HasEnoughMana(btn.buffID, blessingType)
             local canTarget = SpellCanTargetUnit(unit)
             local notDead = not UnitIsDeadOrGhost(unit)
-            local hasLoS = PallyPower_CheckTargetLoS(unit)
+            local hasLoS = PallyPower_CheckTargetLoS(unit, blessingRange)
             local lastCastString = LastCastOn[btn.classID] and table.concat(LastCastOn[btn.classID], " ") or ""
             local foundInRecent = lastCastString ~= "" and string.find(lastCastString, unit) ~= nil
             local notRecent = not (RecentCast and foundInRecent)
@@ -4747,10 +4779,21 @@ function PallyPower_AutoBless(mousebutton)
         local LastRecentCast = RecentCast
         if (btn.classID ~= nil and CurrentBuffs[btn.classID]) then
             
-            -- Sort units by proximity if UnitXP is available, otherwise use original iteration
+            -- Sort units by proximity using the range of the spell this hotkey
+            -- intends to cast. Hotkey1 = normal; Hotkey2 = Greater when learned.
+            local blessingType = PALLYPOWER_SMALLBLESSING
+            if mousebutton == "Hotkey2" and not RegularBlessings and
+               AllPallys[UnitName("player")][btn.buffID]["id"] ~=
+               AllPallys[UnitName("player")][btn.buffID]["idsmall"] then
+                blessingType = PALLYPOWER_GREATERBLESSING
+            end
+
             local sortedUnits
             if PP_PerUser and PP_UnitXPDllLoaded and PP_PerUser.useunitxp_sp3 then
-                sortedUnits = PallyPower_SortUnitsByProximity(CurrentBuffs[btn.classID], 40)
+                sortedUnits = PallyPower_SortUnitsByProximity(
+                    CurrentBuffs[btn.classID],
+                    PallyPower_GetBlessingRange(btn.buffID, blessingType)
+                )
             else
                 -- Fallback: convert to simple array for consistent iteration
                 sortedUnits = {}
@@ -4795,8 +4838,12 @@ function PallyPower_AutoBless(mousebutton)
                         end
                     end
                         
+                    local rangeBlessing = (castspelloverride ~= -1) and castspelloverride or btn.buffID
+                    local rangeType = (castspelloverride ~= -1) and PALLYPOWER_SMALLBLESSING or blessingType
+                    local blessingRange = PallyPower_GetBlessingRange(rangeBlessing, rangeType)
+
                     if
-                            SpellCanTargetUnit(unit) and (not UnitIsDeadOrGhost(unit)) and PallyPower_CheckTargetLoS(unit) and
+                            SpellCanTargetUnit(unit) and (not UnitIsDeadOrGhost(unit)) and PallyPower_CheckTargetLoS(unit, blessingRange) and
                                 not (RecentCast and string.find(table.concat(LastCastOn[btn.classID], " "), unit)) and 
                                 (not PallyPower_CastingSalvationOnTank(unit, castspellid, castspelloverride))
                     then
