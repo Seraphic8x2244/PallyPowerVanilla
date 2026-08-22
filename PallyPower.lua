@@ -402,7 +402,7 @@ SealNames = {}
 PallyPower_LayOnHandsIcon = "Interface\\Icons\\Spell_Holy_LayOnHands"
 PallyPower_DivineItervention = "Interface\\Icons\\Spell_Nature_TimeStop"
 
-PP_PerUser = {
+local PP_PerUserDefaults = {
     scalemain = 1, -- corner of main window docked to
     scalebar = 1, -- corner menu window is docked from
     uiscale = 1, -- overall addon UI scale multiplier
@@ -416,6 +416,7 @@ PP_PerUser = {
     showsealbutton = true,
     minimapbuttonshow = true,
     playsoundwhen0 = true,
+    verbosebuffs = true,
     minimapbuttonpos = 30,
     freeassign = true,
     horizontal = false,
@@ -424,6 +425,16 @@ PP_PerUser = {
     usehdicons = false,
     transparency = 0.5
 }
+
+local function PP_CreatePerUserDefaults()
+    local defaults = {}
+    for key, value in pairs(PP_PerUserDefaults) do
+        defaults[key] = value
+    end
+    return defaults
+end
+
+PP_PerUser = PP_CreatePerUserDefaults()
 PP_NextScan = PP_PerUser.scanfreq
 PP_UnitXPDllLoaded = false
 
@@ -456,9 +467,37 @@ PP_ScanInfo = nil
 local RestorSelfAutoCastTimeOut = 1
 local RestorSelfAutoCast = false
 
--- Fix Shagu Tweaks displays error when trying to display boolean values
-print = function(msg)
-  DEFAULT_CHAT_FRAME:AddMessage("|cffffff00" .. ( tostring(msg) or "nil" ))
+-- Standard PallyPower chat colour (Paladin pink).
+-- Keep this local so PallyPower never modifies WoW's global print() function.
+local PP_CHAT_COLOR = "|cfff48cba"
+local PP_CHAT_R, PP_CHAT_G, PP_CHAT_B = 0.96, 0.55, 0.73
+
+local function PallyPower_ChatMessage(msg)
+    DEFAULT_CHAT_FRAME:AddMessage(PP_CHAT_COLOR .. tostring(msg or "nil") .. "|r")
+end
+
+-- Compare dotted numeric versions without changing the legacy VERSION wire format.
+local function PallyPower_IsNewerVersion(candidate, current)
+    if type(candidate) ~= "string" or type(current) ~= "string" then return false end
+
+    local function parts(version)
+        local result = {}
+        for number in string.gfind(version, "(%d+)") do
+            table.insert(result, tonumber(number) or 0)
+        end
+        return result
+    end
+
+    local a = parts(candidate)
+    local b = parts(current)
+    local count = math.max(table.getn(a), table.getn(b))
+    for i = 1, count do
+        local av = a[i] or 0
+        local bv = b[i] or 0
+        if av > bv then return true end
+        if av < bv then return false end
+    end
+    return false
 end
 
 function PallyPower_FramesLockedOption()
@@ -1131,28 +1170,17 @@ function PallyPower_UI_Init()
 end
 
 function PallyPower_InitConfig()
-    
-    if PP_PerUser.scalemain == nil then PP_PerUser.scalemain = 1 end
-    if PP_PerUser.uiscale == nil then PP_PerUser.uiscale = 1 end
-    if PP_PerUser.scalebar == nil then PP_PerUser.scalebar = 1 end
-    if PP_PerUser.scanfreq == nil then PP_PerUser.scanfreq = 10 end
-    if PP_PerUser.scanperframe == nil then PP_PerUser.scanperframe = 1 end
-    if PP_PerUser.smartbuffs == nil then PP_PerUser.smartbuffs = 1 end
-    if PP_PerUser.frameslocked == nil then PP_PerUser.frameslocked = false end
-    if PP_PerUser.regularblessings == nil then PP_PerUser.regularblessings = false end
-    if PP_PerUser.showrfbutton == nil then PP_PerUser.showrfbutton = true end
-    if PP_PerUser.showaurabutton == nil then PP_PerUser.showaurabutton = true end
-    if PP_PerUser.showsealbutton == nil then PP_PerUser.showsealbutton = true end
-    if PP_PerUser.minimapbuttonshow == nil then PP_PerUser.minimapbuttonshow = true end
-    if PP_PerUser.playsoundwhen0 == nil then PP_PerUser.playsoundwhen0 = true end
-    if PP_PerUser.verbosebuffs == nil then PP_PerUser.verbosebuffs = true end
-    if PP_PerUser.minimapbuttonpos == nil then PP_PerUser.minimapbuttonpos = 30 end
-    if PP_PerUser.freeassign == nil then PP_PerUser.freeassign = true end
-    if PP_PerUser.horizontal == nil then PP_PerUser.horizontal = false end
-    if PP_PerUser.hideblizzaura == nil then PP_PerUser.hideblizzaura = false end
-    if PP_PerUser.useunitxp_sp3 == nil then PP_PerUser.useunitxp_sp3 = false end
-    if PP_PerUser.usehdicons == nil then PP_PerUser.usehdicons = false end
-    if PP_PerUser.transparency == nil then PP_PerUser.transparency = 0.5 end
+    -- SavedVariablesPerCharacter may be nil on a character that has never
+    -- loaded PallyPower before. Recreate the table before applying defaults.
+    if type(PP_PerUser) ~= "table" then
+        PP_PerUser = PP_CreatePerUserDefaults()
+    else
+        for key, value in pairs(PP_PerUserDefaults) do
+            if PP_PerUser[key] == nil then
+                PP_PerUser[key] = value
+            end
+        end
+    end
     
     -- UnitXP SP3 detection (using Puppeteer's safer method)
     if UnitXP and pcall(UnitXP, "inSight", "player", "player") then
@@ -1425,10 +1453,11 @@ function PallyPower_OnEvent(event,arg1)
 
     if event == "ADDON_LOADED" and arg1 == "PallyPowerVanilla" then
         PallyPower_MigrateAssignmentStorage()
+        -- Initialise per-character settings before any startup function reads them.
+        PallyPower_InitConfig()
         PallyPower_AdjustIcons()
-        PallyPower_MinimapButton_Init();
-        PallyPower_InitConfig();   
-        PallyPower_AdjustTransparency();
+        PallyPower_MinimapButton_Init()
+        PallyPower_AdjustTransparency()
     end
 
     if event == "PLAYER_AURAS_CHANGED" then
@@ -3079,83 +3108,95 @@ function PallyPower_ParseMessage(sender, msg)
             PallyPower_SendSelf()
         end
         if string.find(msg, "^SELF") then
-            PallyPower_Assignments[sender] = {}
-            PallyPower_RFAssignments[sender] = false
-            AllPallys[sender] = {}
             local _, _, numbers, assign = string.find(msg, "SELF ([0-9n]*)@?([0-9n]*)")
-            for id = 0, 5 do
-                rank = string.sub(numbers, id * 2 + 1, id * 2 + 1)
-                talent = string.sub(numbers, id * 2 + 2, id * 2 + 2)
-                if not (rank == "n") then
-                    AllPallys[sender][id] = {}
-                    AllPallys[sender][id]["rank"] = rank
-                    AllPallys[sender][id]["talent"] = talent
-                end
-            end
-            if assign then
-                for id = 0, 9 do
-                    tmp = string.sub(assign, id + 1, id + 1)
-                    if (tmp == "n" or tmp == "") then
-                        tmp = -1
+            if numbers then
+                local newPally = {}
+                local newAssignments = {}
+                for id = 0, 5 do
+                    local rank = string.sub(numbers, id * 2 + 1, id * 2 + 1)
+                    local talent = string.sub(numbers, id * 2 + 2, id * 2 + 2)
+                    if rank ~= "" and rank ~= "n" then
+                        newPally[id] = {}
+                        newPally[id]["rank"] = rank
+                        newPally[id]["talent"] = talent
                     end
-                    PallyPower_Assignments[sender][id] = tmp + 0
                 end
+                if assign then
+                    for id = 0, 9 do
+                        local tmp = string.sub(assign, id + 1, id + 1)
+                        if tmp == "n" or tmp == "" then
+                            tmp = -1
+                        else
+                            tmp = tonumber(tmp)
+                        end
+                        if tmp ~= nil then
+                            newAssignments[id] = tmp
+                        end
+                    end
+                end
+                AllPallys[sender] = newPally
+                PallyPower_Assignments[sender] = newAssignments
+                PallyPower_RFAssignments[sender] = false
+                PP_NextScan = 0.1 --PallyPower_UpdateUI()
             end
-            PP_NextScan = 0.1 --PallyPower_UpdateUI()
         end
         if string.find(msg, "^ASELF") then
-            PallyPower_AuraAssignments[sender] = {}
-            AllPallysAuras[sender] = {}
             local _, _, numbers, assign = string.find(msg, "ASELF ([0-9n]*)@?([0-9n]*)")
-            for id = 0, 6 do
-                rank = string.sub(numbers, id * 2 + 1, id * 2 + 1)
-                talent = string.sub(numbers, id * 2 + 2, id * 2 + 2)
-                if not (rank == "n") then
-                    AllPallysAuras[sender][id] = {}
-                    if PallyPower_AuraID[id] then
-                        AllPallysAuras[sender][id]["name"] = PallyPower_AuraID[id]
-                        AllPallysAuras[sender][id]["rank"] = rank
-                        AllPallysAuras[sender][id]["talent"] = talent
+            if numbers then
+                local newAuras = {}
+                for id = 0, 6 do
+                    local rank = string.sub(numbers, id * 2 + 1, id * 2 + 1)
+                    local talent = string.sub(numbers, id * 2 + 2, id * 2 + 2)
+                    if rank ~= "" and rank ~= "n" and PallyPower_AuraID[id] then
+                        newAuras[id] = {}
+                        newAuras[id]["name"] = PallyPower_AuraID[id]
+                        newAuras[id]["rank"] = rank
+                        newAuras[id]["talent"] = talent
                     end
                 end
-            end
-            if assign then
-                tmp = string.sub(assign, 1, 1)
-                if (tmp == "n" or tmp == "") then
-                    tmp = -1
+                local auraAssignment = -1
+                if assign then
+                    local tmp = string.sub(assign, 1, 1)
+                    if tmp ~= "n" and tmp ~= "" then
+                        auraAssignment = tonumber(tmp) or -1
+                    end
                 end
-                PallyPower_AuraAssignments[sender] = tmp + 0
+                AllPallysAuras[sender] = newAuras
+                PallyPower_AuraAssignments[sender] = auraAssignment
+                PP_NextScan = 0 --PallyPower_UpdateUI()
             end
-            PP_NextScan = 0 --PallyPower_UpdateUI()
         end
         if string.find(msg, "^SSELF") then
-            PallyPower_SealAssignments[sender] = -1
-            AllPallysSeals[sender] = {}
             local _, _, numbers, assign = string.find(msg, "SSELF ([0-9n]*)@?([0-9n]*)")
-            for id = 0, 5 do
-                rank = string.sub(numbers, id * 2 + 1, id * 2 + 1)
-                talent = string.sub(numbers, id * 2 + 2, id * 2 + 2)
-                if not (rank == "n") then
-                    AllPallysSeals[sender][id] = {}
-                    if PallyPower_SealID[id] then
-                        AllPallysSeals[sender][id]["name"] = PallyPower_SealID[id]
-                        AllPallysSeals[sender][id]["rank"] = rank
-                        AllPallysSeals[sender][id]["talent"] = talent
+            if numbers then
+                local newSeals = {}
+                for id = 0, 5 do
+                    local rank = string.sub(numbers, id * 2 + 1, id * 2 + 1)
+                    local talent = string.sub(numbers, id * 2 + 2, id * 2 + 2)
+                    if rank ~= "" and rank ~= "n" and PallyPower_SealID[id] then
+                        newSeals[id] = {}
+                        newSeals[id]["name"] = PallyPower_SealID[id]
+                        newSeals[id]["rank"] = rank
+                        newSeals[id]["talent"] = talent
                     end
                 end
-            end
-            if assign then
-                tmp = string.sub(assign, 1, 1)
-                if (tmp == "n" or tmp == "") then
-                    tmp = -1
+                local sealAssignment = -1
+                if assign then
+                    local tmp = string.sub(assign, 1, 1)
+                    if tmp ~= "n" and tmp ~= "" then
+                        sealAssignment = tonumber(tmp) or -1
+                    end
                 end
-                PallyPower_SealAssignments[sender] = tmp + 0
+                AllPallysSeals[sender] = newSeals
+                PallyPower_SealAssignments[sender] = sealAssignment
+                PP_NextScan = 0 --PallyPower_UpdateUI()
             end
-            PP_NextScan = 0 --PallyPower_UpdateUI()
         end
         if string.find(msg, "^RFSELF") then
             local _, _, assigned = string.find(msg, "^RFSELF ([01])")
-            PallyPower_RFAssignments[sender] = (assigned == "1")
+            if assigned then
+                PallyPower_RFAssignments[sender] = (assigned == "1")
+            end
             PP_NextScan = 0 --PallyPower_UpdateUI()
         end
         if string.find(msg, "^ASSIGN") then
@@ -3166,8 +3207,9 @@ function PallyPower_ParseMessage(sender, msg)
             if (not PallyPower_Assignments[name]) then
                 PallyPower_Assignments[name] = {}
             end
-            class = class + 0
-            skill = skill + 0
+            class = tonumber(class)
+            skill = tonumber(skill)
+            if not name or class == nil or skill == nil then return false end
             PallyPower_Assignments[name][class] = skill
             if name == nameplayer then
                 if (PallyPower_NormalAssignments[nameplayer] and PallyPower_NormalAssignments[nameplayer][class]) then
@@ -3188,7 +3230,8 @@ function PallyPower_ParseMessage(sender, msg)
             if (not PallyPower_AuraAssignments[name]) then
                 PallyPower_AuraAssignments[name] = {}
             end
-            skill = skill + 0
+            skill = tonumber(skill)
+            if not name or skill == nil then return false end
             PallyPower_AuraAssignments[name] = skill
             PP_NextScan = 0 --PallyPower_UpdateUI()
         end
@@ -3200,7 +3243,8 @@ function PallyPower_ParseMessage(sender, msg)
             if (not PallyPower_SealAssignments[name]) then
                 PallyPower_SealAssignments[name] = -1
             end
-            skill = skill + 0
+            skill = tonumber(skill)
+            if not name or skill == nil then return false end
             PallyPower_SealAssignments[name] = skill
             PP_NextScan = 0 --PallyPower_UpdateUI()
         end
@@ -3209,6 +3253,7 @@ function PallyPower_ParseMessage(sender, msg)
             if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
                 return false
             end
+            if not name or not assigned then return false end
             PallyPower_RFAssignments[name] = (assigned == "1")
             PP_NextScan = 0 --PallyPower_UpdateUI()
         end
@@ -3220,7 +3265,8 @@ function PallyPower_ParseMessage(sender, msg)
             if (not PallyPower_Assignments[name]) then
                 PallyPower_Assignments[name] = {}
             end
-            skill = skill + 0
+            skill = tonumber(skill)
+            if not name or skill == nil then return false end
             for class = 0, 9 do
                 PallyPower_Assignments[name][class] = skill
                 if name == nameplayer then
@@ -3249,10 +3295,16 @@ function PallyPower_ParseMessage(sender, msg)
         end
 	    if strfind(msg, "^COOLDOWNS ([0-9]*)") then
             local _, _, cooldowns = string.find(msg, "^COOLDOWNS ([0-9]*)")
-            local diAvailable = string.sub(cooldowns, 1, 1)
-            local lhAvailable = string.sub(cooldowns, 2, 2)
-            AllPallys[sender]["DivineIntervention"] = (diAvailable == "1")
-            AllPallys[sender]["LayOnHands"] = (lhAvailable == "1")
+            if AllPallys[sender] and cooldowns then
+                local diAvailable = string.sub(cooldowns, 1, 1)
+                local lhAvailable = string.sub(cooldowns, 2, 2)
+                AllPallys[sender]["DivineIntervention"] = (diAvailable == "1")
+                AllPallys[sender]["LayOnHands"] = (lhAvailable == "1")
+            else
+                -- Legacy clients may send packets in a different order; request
+                -- their normal SELF state instead of assuming it already exists.
+                PallyPower_SendMessage("REQ")
+            end
         end
         if string.find(msg, "FREEASSIGN YES") then
             if AllPallys[sender] then
@@ -3273,6 +3325,7 @@ function PallyPower_ParseMessage(sender, msg)
             if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
                 return false
             end
+            if not name or name == "" then return false end
             PallyPower_Tanks[name] = true
             if pfUI ~= nil and pfUI.uf ~= nil and pfUI.uf.raid ~= nil and pfUI.uf.raid.tankrole ~= nil then
                 pfUI.uf.raid.tankrole[name] = true
@@ -3284,6 +3337,7 @@ function PallyPower_ParseMessage(sender, msg)
             if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
                 return false
             end
+            if not name or name == "" then return false end
             if PallyPower_Tanks[name] then
                 PallyPower_Tanks[name] = nil
                 if pfUI ~= nil and pfUI.uf ~= nil and pfUI.uf.raid ~= nil and pfUI.uf.raid.tankrole ~= nil then
@@ -3297,9 +3351,9 @@ function PallyPower_ParseMessage(sender, msg)
         end
         if string.find(msg, "^VERSION") then
             local  _, _, msgVer = string.find(msg, "^VERSION (.*)")
-            if msgVer > PallyPower_Version and not(versionBumpDisplayed) then
+            if msgVer and PallyPower_IsNewerVersion(msgVer, PallyPower_Version) and not(versionBumpDisplayed) then
                 versionBumpDisplayed = true
-                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MESSAGE_NEWVERSION.." ("..msgVer..")")
+                PallyPower_ChatMessage(PALLYPOWER_MESSAGE_NEWVERSION.." ("..msgVer..")")
             end
         end
     end
@@ -3311,9 +3365,9 @@ function PallyPower_ResetPosition()
         if frame then
             frame:ClearAllPoints()
             frame:SetPoint("CENTER", 0, 0)
-            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MESSAGE_BB_CENTERED)
+            PallyPower_ChatMessage(PALLYPOWER_MESSAGE_BB_CENTERED)
         else
-            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MESSAGE_BB_NOTFOUND)
+            PallyPower_ChatMessage(PALLYPOWER_MESSAGE_BB_NOTFOUND)
         end
     end
 end
@@ -4869,7 +4923,7 @@ function PallyPower_AutoBless(mousebutton)
                             else
                                 if LastCast[btn.buffID .. btn.classID] == nil or LastCast[btn.buffID .. btn.classID] < PALLYPOWER_NORMALBLESSINGDURATION then 
                                     LastCast[btn.buffID .. btn.classID] = PALLYPOWER_NORMALBLESSINGDURATION
-                                elseif LastCast[btn.buffID .. btn.classID] ~= nil and LastCast[btn.buffID .. btn.classID] > PALLYPOWER_NORMALBLESSINGDURATION and mousebtn == "Hotkey1" then 
+                                elseif LastCast[btn.buffID .. btn.classID] ~= nil and LastCast[btn.buffID .. btn.classID] > PALLYPOWER_NORMALBLESSINGDURATION and mousebutton == "Hotkey1" then 
                                     LastCastPlayer[stats.name] = PALLYPOWER_NORMALBLESSINGDURATION
                                 end
                                 if blessing ~= -1 and mousebutton == "Hotkey1" then
@@ -5058,7 +5112,7 @@ end
 
 function PallyPower_ShowFeedback(msg, r, g, b, a)
     if PP_PerUser.chatfeedback then
-        DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_PREFIX .. msg, r, g, b, a)
+        DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_PREFIX .. msg, PP_CHAT_R, PP_CHAT_G, PP_CHAT_B, a or 1)
     else
         UIErrorsFrame:AddMessage(msg, r, g, b, a)
     end
@@ -5130,13 +5184,13 @@ end
 
 function PallyPower_AutoBuffAll() --Test
     if not PP_IsPally then
-        DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_NOTPALLY)
+        PallyPower_ChatMessage(PALLYPOWER_MSG_NOTPALLY)
         return
     end
 
     local nameplayer = UnitName("player")
     if not PallyPower_Assignments[nameplayer] then
-        DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_NOASSIGNMENTS)
+        PallyPower_ChatMessage(PALLYPOWER_MSG_NOASSIGNMENTS)
         return
     end
 
@@ -5699,7 +5753,7 @@ end
 function PallyPower_Delete(set)
 	-- Delete a set
 	local player = UnitName("player");
-	print(PALLYPOWER_TEXT_DELETE .. set);
+	PallyPower_ChatMessage(PALLYPOWER_TEXT_DELETE .. set);
 	PP_Presets[player]["s"][set] = nil;
 	if (PallyPower_GetCurrentSet() == set) then
 		PP_Presets[player]["CurrentSet"] = nil;
@@ -5716,7 +5770,7 @@ function PallyPower_SaveSet(set)
 			return ;
 		end
 	end
-	print(PALLYPOWER_TEXT_SAVING .. set);
+	PallyPower_ChatMessage(PALLYPOWER_TEXT_SAVING .. set);
 	if PP_Presets[player] == nil then
 		PP_Presets[player] = {};
 		PP_Presets[player]["s"] = {};
@@ -5762,10 +5816,10 @@ function PallyPower_PrintTable(tbl, indent)
     local formatting = string.rep("  ", indent)
     for k, v in pairs(tbl) do
         if type(v) == "table" then
-            print(formatting .. tostring(k) .. ":")
+            PallyPower_ChatMessage(formatting .. tostring(k) .. ":")
             PallyPower_PrintTable(v, indent + 1)
         else
-            print(formatting .. tostring(k) .. " = " .. tostring(v))
+            PallyPower_ChatMessage(formatting .. tostring(k) .. " = " .. tostring(v))
         end
     end
 end
