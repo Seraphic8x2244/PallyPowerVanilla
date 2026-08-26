@@ -1,3 +1,4 @@
+-- PallyPowerVanilla 1.8.6 - Judgement support / capability presentation
 -- ============================================================================
 -- BLESSING SPELL DATA / MANA COSTS
 -- Folded from PallyPowerManaCost.lua
@@ -190,6 +191,736 @@ function PallyPower_HasEnoughMana(blessing, type)
 end
 
 -- ============================================================================
+-- JUDGEMENT CAPABILITY / TRACKING (1.8.0)
+-- ============================================================================
+
+local function PallyPower_GetImprovedCrusaderTalentRank()
+    if not GetNumTalentTabs or not GetNumTalents or not GetTalentInfo then return 0 end
+    for tab = 1, (GetNumTalentTabs() or 0) do
+        for talent = 1, (GetNumTalents(tab) or 0) do
+            local talentName, _, _, _, currRank = GetTalentInfo(tab, talent)
+            if talentName == "Improved Seal of the Crusader" then
+                return tonumber(currRank) or 0
+            end
+        end
+    end
+    return 0
+end
+
+local function PallyPower_BuildJudgementCapability(SealRankInfo)
+    local info = {}
+    for judgementID = 0, 2 do
+        local sealID = PallyPower_JudgementSealID[judgementID]
+        local seal = SealRankInfo and SealRankInfo[sealID]
+        info[judgementID] = {
+            rank = seal and (tonumber(seal.rank) or 0) or 0,
+            talent = 0
+        }
+    end
+    info[2].talent = PallyPower_GetImprovedCrusaderTalentRank()
+    return info
+end
+
+function PallyPower_JudgementCanAssign(name, judgementID)
+    if judgementID == nil or judgementID < 0 then return true end
+    local capability = AllPallysJudgements[name]
+    if capability == nil then
+        -- No JSELF means legacy/unknown client. Stay permissive for backwards compatibility.
+        return true
+    end
+    local entry = capability[judgementID]
+    return entry ~= nil and (tonumber(entry.rank) or 0) > 0
+end
+
+local function PallyPower_JudgementAlreadyAssigned(judgementID, exceptName)
+    -- JudgementAssignments is a compatibility-style proxy, so iterate the
+    -- underlying saved assignment records rather than the empty proxy table.
+    for name, record in pairs(PallyPower_Assignments) do
+        if name ~= exceptName and record and record.judgement == judgementID then
+            return true
+        end
+    end
+    return false
+end
+
+local function PallyPower_GetJudgementCapabilityText(name)
+    local capability = AllPallysJudgements[name]
+    if capability == nil then return "W? L? C?" end
+    local w = capability[0] and tonumber(capability[0].rank) or 0
+    local l = capability[1] and tonumber(capability[1].rank) or 0
+    local c = capability[2] and tonumber(capability[2].rank) or 0
+    local t = capability[2] and tonumber(capability[2].talent) or 0
+    local ctext = (c > 0 and tostring(c) or "-")
+    if c > 0 and t > 0 then ctext = ctext .. "+" .. t end
+    return "W" .. (w > 0 and tostring(w) or "-") ..
+           " L" .. (l > 0 and tostring(l) or "-") ..
+           " C" .. ctext
+end
+
+local function PallyPower_GetJudgementTextureBase(judgementID)
+    local icon = PallyPower_JudgementIcons[judgementID]
+    if not icon then return nil end
+    local _, _, base = string.find(icon, "([^\\]+)$")
+    return base
+end
+
+
+local function PP_JudgementTooltipLines()
+    local lines = {}
+    for i = 1, 20 do
+        local left = getglobal("PallyPowerSpellScanTooltipTextLeft" .. i)
+        local right = getglobal("PallyPowerSpellScanTooltipTextRight" .. i)
+        if left and left:GetText() then table.insert(lines, left:GetText()) end
+        if right and right:GetText() then table.insert(lines, right:GetText()) end
+    end
+    return lines
+end
+
+local function PP_FindSecondsInLines(lines, preferJudgementText)
+    if not lines then return nil end
+    for _, text in ipairs(lines) do
+        if text then
+            local lower = string.lower(text)
+            if (not preferJudgementText) or string.find(lower, "judg") then
+                local _, _, seconds = string.find(lower, "for%s+(%d+)%s+sec")
+                if not seconds then
+                    _, _, seconds = string.find(lower, "(%d+)%s+sec")
+                end
+                if seconds then return tonumber(seconds) end
+            end
+        end
+    end
+    return nil
+end
+
+local function PP_FindSpellBookIndexByName(wantedName)
+    local i = 1
+    while true do
+        local spellName = GetSpellName(i, BOOKTYPE_SPELL)
+        if not spellName then break end
+        if spellName == wantedName then return i end
+        i = i + 1
+    end
+    return nil
+end
+
+local function PP_ScanJudgementBaseDuration()
+    local player = UnitName("player")
+    local crusaderSealID = PallyPower_JudgementSealID[2]
+    local spellIndex = nil
+    if player and AllPallysSeals[player] and AllPallysSeals[player][crusaderSealID] then
+        spellIndex = AllPallysSeals[player][crusaderSealID].id
+    end
+    if not spellIndex or not PallyPowerSpellScanTooltip then return 10 end
+
+    PallyPowerSpellScanTooltip:ClearLines()
+    PallyPowerSpellScanTooltip:SetSpell(spellIndex, BOOKTYPE_SPELL)
+    local lines = PP_JudgementTooltipLines()
+
+    -- Vanilla is 10 sec. English/custom tooltips can still override dynamically.
+    -- Non-English Vanilla therefore remains correct without an English spell-name dependency.
+    for _, text in ipairs(lines) do
+        if text then
+            local lower = string.lower(text)
+            local _, _, seconds = string.find(lower, "judge.-for%s+(%d+)%s+sec")
+            if seconds then return tonumber(seconds) end
+        end
+    end
+    local joined = string.lower(table.concat(lines, " "))
+    local _, _, seconds = string.find(joined, "judge.-for%s+(%d+)%s+sec")
+    return tonumber(seconds) or 10
+end
+
+local function PP_ScanLastingJudgement(baseDuration)
+    local result = {
+        rank = 0,
+        currentDuration = baseDuration,
+        affected = { [0] = true, [1] = true, [2] = true }
+    }
+
+    if not GetNumTalentTabs or not GetNumTalents or not GetTalentInfo then
+        return result
+    end
+
+    for tab = 1, (GetNumTalentTabs() or 0) do
+        for talent = 1, (GetNumTalents(tab) or 0) do
+            local talentName, _, _, _, currRank = GetTalentInfo(tab, talent)
+            if talentName == "Lasting Judgement" then
+                result.rank = tonumber(currRank) or 0
+
+                if result.rank > 0 and PallyPowerSpellScanTooltip and PallyPowerSpellScanTooltip.SetTalent then
+                    PallyPowerSpellScanTooltip:ClearLines()
+                    PallyPowerSpellScanTooltip:SetTalent(tab, talent)
+                    local lines = PP_JudgementTooltipLines()
+
+                    -- Only a learned talent may change the duration. Parse the
+                    -- current-rank tooltip dynamically; rank 0 always stays at base.
+                    local current = PP_FindSecondsInLines(lines, true)
+                    if current and current >= baseDuration then
+                        result.currentDuration = current
+                    end
+
+                    -- If the talent names specific Judgements, restrict its effect
+                    -- dynamically. Otherwise keep the Vanilla-compatible all-three
+                    -- fallback.
+                    local foundSpecific = false
+                    local affected = { [0] = false, [1] = false, [2] = false }
+                    for _, text in ipairs(lines) do
+                        local lower = text and string.lower(text) or ""
+                        if string.find(lower, "wisdom") then affected[0] = true; foundSpecific = true end
+                        if string.find(lower, "light") then affected[1] = true; foundSpecific = true end
+                        if string.find(lower, "crusader") then affected[2] = true; foundSpecific = true end
+                    end
+                    if foundSpecific then result.affected = affected end
+                end
+                return result
+            end
+        end
+    end
+    return result
+end
+
+local function PP_ScanAvengersJudgementBonus()
+    if not PallyPowerSpellScanTooltip or not PallyPowerSpellScanTooltip.SetInventoryItem then
+        return 0
+    end
+
+    local equippedCount = 0
+    local requiredCount = nil
+    local percent = nil
+
+    for slot = 1, 19 do
+        if GetInventoryItemLink("player", slot) then
+            PallyPowerSpellScanTooltip:ClearLines()
+            PallyPowerSpellScanTooltip:SetInventoryItem("player", slot)
+            local lines = PP_JudgementTooltipLines()
+
+            local itemHasSet = false
+            for _, text in ipairs(lines) do
+                if text and string.find(text, "Avenger's Battlegear") then
+                    itemHasSet = true
+                    local _, _, equipped = string.find(text, "%((%d+)/%d+%)")
+                    if equipped then equippedCount = math.max(equippedCount, tonumber(equipped) or 0) end
+                end
+            end
+
+            if itemHasSet and equippedCount == 0 then
+                -- Some Vanilla-compatible clients omit x/y from the set header.
+                equippedCount = equippedCount + 1
+            end
+
+            for _, text in ipairs(lines) do
+                if text then
+                    local lower = string.lower(text)
+                    if string.find(lower, "duration") and string.find(lower, "judgement") then
+                        local _, _, pct = string.find(text, "(%d+)%%")
+                        if pct then percent = tonumber(pct) or percent end
+                        local _, _, req = string.find(text, "^%((%d+)%)%s*[Ss]et:")
+                        if req then requiredCount = tonumber(req) end
+                    end
+                end
+            end
+        end
+    end
+
+    if percent and (not requiredCount or equippedCount >= requiredCount) then
+        return percent
+    end
+    return 0
+end
+
+function PallyPower_UpdateJudgementDurationInfo()
+    local base = PP_ScanJudgementBaseDuration()
+    local talent = PP_ScanLastingJudgement(base)
+    local setPercent = PP_ScanAvengersJudgementBonus()
+
+    local talentDuration = talent.currentDuration or base
+    local finalDuration = talentDuration
+    if setPercent and setPercent > 0 then
+        finalDuration = math.floor((talentDuration * (1 + setPercent / 100)) + 0.5)
+    end
+
+    PP_JudgementDurationInfo = {
+        base = base,
+        talentRank = talent.rank or 0,
+        talentDuration = talentDuration,
+        setPercent = setPercent or 0,
+        final = finalDuration,
+        affected = talent.affected
+    }
+end
+
+local function PP_JudgementDurationFor(judgementID)
+    local info = PP_JudgementDurationInfo or {}
+    if info.affected and info.affected[judgementID] == false then
+        return info.base or 10
+    end
+    return info.final or info.base or 10
+end
+
+local function PP_JudgementFormatTime(seconds)
+    if not seconds or seconds < 0 then seconds = 0 end
+    seconds = math.ceil(seconds)
+    local minutes = math.floor(seconds / 60)
+    local remain = math.mod(seconds, 60)
+    return string.format("%d:%02d", minutes, remain)
+end
+
+local function PP_JudgementSetDebug(text)
+    local label = getglobal("PallyPowerBuffBarJudgementDebug")
+    if not label then return end
+
+    if PP_PerUser and PP_PerUser.verbose_judgement_refresh == false then
+        label:SetText("")
+        label:Hide()
+        PP_JudgementDebugUntil = 0
+        return
+    end
+
+    label:SetText(text or "")
+    if text and text ~= "" then
+        label:Show()
+        PP_JudgementDebugUntil = GetTime() + 1
+    else
+        label:Hide()
+        PP_JudgementDebugUntil = 0
+    end
+end
+
+local function PP_JudgementTargetMatches(name)
+    return name and PP_JudgementTrack.targetName and name == PP_JudgementTrack.targetName
+end
+
+local function PP_JudgementStartOrRefresh(targetName, judgementID, debugText)
+    if not targetName or not judgementID or judgementID < 0 then return end
+    local duration = PP_JudgementDurationFor(judgementID)
+    PP_JudgementTrack.targetName = targetName
+    PP_JudgementTrack.judgementID = judgementID
+    PP_JudgementTrack.duration = duration
+    PP_JudgementTrack.expiresAt = GetTime() + duration
+    PP_JudgementTrack.truthPresent = nil
+    PP_JudgementSetDebug(debugText)
+    PP_JudgementNextScan = 0
+end
+
+local function PP_JudgementCanRefreshTarget(targetName)
+    if not targetName or not PP_JudgementTargetMatches(targetName) then return false end
+    if PP_JudgementTrack.expiresAt and PP_JudgementTrack.expiresAt > GetTime() then return true end
+    return PP_JudgementTrack.truthPresent == true
+end
+
+local function PP_JudgementAssignedID()
+    local player = UnitName("player")
+    local id = player and PallyPower_JudgementAssignments[player]
+    if id ~= nil and id >= 0 then return id end
+    return nil
+end
+
+local function PP_JudgementIsBlacklistedAbility(spellName)
+    return spellName and PP_JUDGEMENT_NO_REFRESH_ABILITIES[spellName] == true
+end
+
+local function PP_JudgementHandleApplication(spellName, targetName)
+    local assigned = PP_JudgementAssignedID()
+    if assigned == nil then return false end
+    if spellName ~= PallyPower_JudgementDebuffName[assigned] then return false end
+    PP_JudgementStartOrRefresh(targetName, assigned, "+judge")
+    return true
+end
+
+local function PP_JudgementHandleAutoAttack(targetName, avoidType)
+    if not PP_JudgementCanRefreshTarget(targetName) then return end
+    if not avoidType then
+        PP_JudgementStartOrRefresh(targetName, PP_JudgementTrack.judgementID, "+aa refresh")
+        return
+    end
+    if PP_PerUser.judgement_failed_attacks_refresh and (avoidType == "dodge" or avoidType == "parry") then
+        PP_JudgementStartOrRefresh(targetName, PP_JudgementTrack.judgementID, "+aa refresh")
+    else
+        PP_JudgementSetDebug("-aa avoid")
+    end
+end
+
+local function PP_JudgementHandleAbility(spellName, targetName, avoidType)
+    if not spellName or not PP_JudgementCanRefreshTarget(targetName) then return end
+    if PP_JudgementIsBlacklistedAbility(spellName) then
+        PP_JudgementSetDebug("-ability avoid")
+        return
+    end
+    if avoidType then
+        if not (PP_PerUser.judgement_failed_attacks_refresh and (avoidType == "dodge" or avoidType == "parry")) then
+            PP_JudgementSetDebug("-ability avoid")
+            return
+        end
+    end
+    PP_JudgementStartOrRefresh(targetName, PP_JudgementTrack.judgementID, "+ability")
+end
+
+local function PP_ParseAutoAttackHit(message)
+    if not message then return nil end
+    local _, _, target = string.find(message, "^You hit (.-) for ")
+    if not target then _, _, target = string.find(message, "^You crit (.-) for ") end
+    return target
+end
+
+local function PP_ParseAutoAttackAvoid(message)
+    if not message then return nil, nil end
+    local _, _, target = string.find(message, "^You miss (.-)%.$")
+    if target then return target, "miss" end
+    _, _, target = string.find(message, "^Your attack is dodged by (.-)%.$")
+    if target then return target, "dodge" end
+    _, _, target = string.find(message, "^Your attack is parried by (.-)%.$")
+    if target then return target, "parry" end
+    return nil, nil
+end
+
+local function PP_ParseAbilityHit(message)
+    if not message then return nil, nil end
+    local _, _, spell, target = string.find(message, "^Your (.-) hits (.-) for ")
+    if not spell then _, _, spell, target = string.find(message, "^Your (.-) crits (.-) for ") end
+    if not spell then _, _, spell, target = string.find(message, "^Your (.-) hits (.-)%.$") end
+    if not spell then _, _, spell, target = string.find(message, "^Your (.-) crits (.-)%.$") end
+    return spell, target
+end
+
+local function PP_ParseAbilityAvoid(message)
+    if not message then return nil, nil, nil end
+    local _, _, spell, target = string.find(message, "^Your (.-) misses (.-)%.$")
+    if spell then return spell, target, "miss" end
+    _, _, spell, target = string.find(message, "^Your (.-) was dodged by (.-)%.$")
+    if spell then return spell, target, "dodge" end
+    _, _, spell, target = string.find(message, "^Your (.-) was parried by (.-)%.$")
+    if spell then return spell, target, "parry" end
+    return nil, nil, nil
+end
+
+local function PP_ParseJudgementAfflicted(message)
+    if not message then return nil, nil end
+
+    local _, _, target, spell = string.find(message, "^(.-) is afflicted by your (.-)%.$")
+    if spell and target then return spell, target end
+
+    _, _, target, spell = string.find(message, "^(.-) is afflicted by (Judgement of .-)%.$")
+    if spell and target then return spell, target end
+
+    _, _, spell, target = string.find(message, "^Your (Judgement of .-) afflicts (.-)%.$")
+    if spell and target then return spell, target end
+
+    return nil, nil
+end
+
+local function PP_HandleJudgementCombatEvent(event, message)
+    if not message then return end
+
+    if event == "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE" then
+        -- Only use this event for the initial Judgement application. Periodic
+        -- spell damage (e.g. Consecration ticks) never reaches the refresh path.
+        local spell, target = PP_ParseJudgementAfflicted(message)
+        if spell and target then
+            PP_JudgementHandleApplication(spell, target)
+        end
+        return
+    end
+
+    if event == "CHAT_MSG_COMBAT_SELF_HITS" then
+        local target = PP_ParseAutoAttackHit(message)
+        if target then PP_JudgementHandleAutoAttack(target, nil) end
+        return
+    end
+
+    if event == "CHAT_MSG_COMBAT_SELF_MISSES" then
+        local target, avoidType = PP_ParseAutoAttackAvoid(message)
+        if target then PP_JudgementHandleAutoAttack(target, avoidType) end
+        return
+    end
+
+    if event == "CHAT_MSG_SPELL_SELF_DAMAGE" then
+        local spell, target = PP_ParseAbilityHit(message)
+        if spell and target then
+            if PP_JudgementHandleApplication(spell, target) then return end
+            PP_JudgementHandleAbility(spell, target, nil)
+            return
+        end
+
+        local avoidType
+        spell, target, avoidType = PP_ParseAbilityAvoid(message)
+        if spell and target then
+            PP_JudgementHandleAbility(spell, target, avoidType)
+        end
+    end
+end
+
+function PallyPower_CombineSelfBuffsOption()
+    if not PallyPower_OptionsFrameCombineSelfBuffs then return end
+    PP_PerUser.combineselfbuffs = (PallyPower_OptionsFrameCombineSelfBuffs:GetChecked() == 1)
+    PP_NextScan = 0
+    PallyPower_UpdateUI()
+end
+
+function PallyPower_SelfBuffsAboveHeaderOption()
+    if not PallyPower_OptionsFrameSelfBuffsAboveHeader then return end
+    PP_PerUser.selfbuffsaboveheader = (PallyPower_OptionsFrameSelfBuffsAboveHeader:GetChecked() == 1)
+    PP_NextScan = 0
+    PallyPower_UpdateUI()
+end
+
+function PallyPower_JudgementAboveHeaderOption()
+    if not PallyPower_OptionsFrameJudgementAboveHeader then return end
+    PP_PerUser.judgementaboveheader = (PallyPower_OptionsFrameJudgementAboveHeader:GetChecked() == 1)
+    PP_NextScan = 0
+    PallyPower_UpdateUI()
+end
+
+function PallyPower_VerboseJudgementRefreshOption()
+    if not PallyPower_OptionsFrameVerboseJudgementRefresh then return end
+    PP_PerUser.verbose_judgement_refresh =
+        (PallyPower_OptionsFrameVerboseJudgementRefresh:GetChecked() == 1)
+    if not PP_PerUser.verbose_judgement_refresh then
+        PP_JudgementSetDebug("")
+    end
+end
+
+function PallyPower_JudgementFailedRefreshOption()
+    if not PallyPowerFrameJudgementFailedRefresh then return end
+    PP_PerUser.judgement_failed_attacks_refresh =
+        (PallyPowerFrameJudgementFailedRefresh:GetChecked() == 1)
+end
+
+function PallyPower_JudgementFailedRefresh_OnEnter(btn)
+    GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+    GameTooltip:SetText("Dodges/parries refresh Judgements", 1, 1, 1)
+    GameTooltip:AddLine(
+        "Enable on servers where dodged or parried attacks refresh Judgement duration. Misses never refresh.",
+        0.8, 0.8, 0.8, 1
+    )
+    GameTooltip:Show()
+end
+
+function PallyPower_TargetHasJudgement(judgementID)
+    local wantedName = PallyPower_JudgementDebuffName[judgementID]
+    if not wantedName or not UnitExists("target") or not UnitCanAttack("player", "target") then
+        return nil
+    end
+
+    -- Vanilla-only truth scan for the initial tracker implementation:
+    -- read the debuff tooltip name rather than depending on DLL aura data.
+    -- This also avoids depending on the debuff texture matching the Seal texture.
+    if not PP_JudgementScanTooltip then
+        PP_JudgementScanTooltip = CreateFrame("GameTooltip", "PallyPowerJudgementScanTooltip", UIParent, "GameTooltipTemplate")
+        PP_JudgementScanTooltip:SetOwner(UIParent, "ANCHOR_NONE")
+    end
+    if PP_JudgementScanTooltip.SetUnitDebuff then
+        for i = 1, 16 do
+            local texture = UnitDebuff("target", i)
+            if not texture then break end
+            PP_JudgementScanTooltip:ClearLines()
+            PP_JudgementScanTooltip:SetUnitDebuff("target", i)
+            local line = getglobal("PallyPowerJudgementScanTooltipTextLeft1")
+            if line and line:GetText() == wantedName then return true end
+        end
+    end
+
+    -- Last-resort 1.12 fallback: compare the icon basename to the corresponding Seal icon.
+    local wantedBase = PallyPower_GetJudgementTextureBase(judgementID)
+    if wantedBase then
+        for i = 1, 16 do
+            local texture = UnitDebuff("target", i)
+            if not texture then break end
+            local _, _, base = string.find(texture, "([^\\]+)$")
+            if base and base == wantedBase then return true end
+        end
+    end
+    return false
+end
+
+local function PP_UpdateJudgementCountdownVisual()
+    if not PallyPowerBuffBarJudgement or not PallyPowerBuffBarJudgement:IsVisible() then return end
+
+    local now = GetTime()
+    local remaining = 0
+    if PP_JudgementTrack.expiresAt and PP_JudgementTrack.expiresAt > now then
+        remaining = PP_JudgementTrack.expiresAt - now
+    end
+
+    local timeText = getglobal("PallyPowerBuffBarJudgementTime")
+    if timeText then
+        if remaining > 0 then
+            timeText:SetText(PP_JudgementFormatTime(remaining))
+            timeText:Show()
+        else
+            timeText:SetText("")
+            timeText:Hide()
+        end
+    end
+
+    local bar = getglobal("PallyPowerBuffBarJudgementDurationBar")
+    if bar then
+        local duration = PP_JudgementTrack.duration or 0
+        if remaining > 0 and duration > 0 then
+            local fraction = remaining / duration
+            if fraction < 0 then fraction = 0 end
+            if fraction > 1 then fraction = 1 end
+            bar:SetValue(fraction)
+            bar:Show()
+        else
+            bar:SetValue(0)
+            bar:Hide()
+        end
+    end
+end
+
+function PallyPower_UpdateJudgementTracker()
+    if not PallyPowerBuffBarJudgement then return end
+    local player = UnitName("player")
+    local assignment = PallyPower_JudgementAssignments[player]
+    if assignment == nil or assignment == -1 then
+        local bar = getglobal("PallyPowerBuffBarJudgementDurationBar")
+        if bar then bar:Hide() end
+        PallyPowerBuffBarJudgement:Hide()
+        return
+    end
+
+    local icon = getglobal("PallyPowerBuffBarJudgementBuffIcon")
+    if icon then icon:SetTexture(PallyPower_JudgementIcons[assignment]) end
+
+    local now = GetTime()
+    local currentTarget = nil
+    if UnitExists("target") and UnitCanAttack("player", "target") then
+        currentTarget = UnitName("target")
+    end
+
+    local present = nil
+    if currentTarget then
+        present = PallyPower_TargetHasJudgement(assignment)
+
+        if present == true then
+            -- Truth detection must work independently of combat-log timing.
+            -- Adopt the current target so later melee refresh events can be tracked.
+            PP_JudgementTrack.targetName = currentTarget
+            PP_JudgementTrack.judgementID = assignment
+            PP_JudgementTrack.truthPresent = true
+        elseif PP_JudgementTrack.targetName == currentTarget then
+            PP_JudgementTrack.truthPresent = false
+            -- Current target is authoritative: a missing Judgement beats prediction.
+            PP_JudgementTrack.expiresAt = 0
+        end
+    end
+
+    local remaining = 0
+    if PP_JudgementTrack.expiresAt and PP_JudgementTrack.expiresAt > now then
+        remaining = PP_JudgementTrack.expiresAt - now
+    end
+
+    PP_UpdateJudgementCountdownVisual()
+
+    if present == true then
+        -- Green = current truth confirms active.
+        PallyPowerBuffBarJudgement:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
+    elseif currentTarget then
+        -- Red = current target truth confirms the assigned Judgement is missing.
+        PallyPowerBuffBarJudgement:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
+    elseif remaining > 0 then
+        -- Yellow = prediction says active but stock client cannot currently verify.
+        PallyPowerBuffBarJudgement:SetBackdropColor(1, 1, 0, PP_PerUser.transparency)
+    else
+        -- Predicted duration has elapsed with no current truth.
+        PallyPowerBuffBarJudgement:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
+    end
+end
+
+function PallyPower_JudgementButton_OnEnter(btn)
+    if not btn then return end
+    local _, _, pnum = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)ClassJ")
+    local pallyName = pnum and getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+    if not pallyName then return end
+    GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+    GameTooltip:SetText(pallyName .. " - Judgement", 1, 1, 1)
+    local capability = AllPallysJudgements[pallyName]
+    if capability == nil then
+        GameTooltip:AddLine("Capability unknown (legacy PallyPower client)", 0.8, 0.8, 0.8)
+    else
+        for id = 0, 2 do
+            local entry = capability[id]
+            local rank = entry and tonumber(entry.rank) or 0
+            local talent = entry and tonumber(entry.talent) or 0
+            local text = "Judgement of " .. PallyPower_JudgementID[id] .. ": "
+            if rank > 0 then
+                text = text .. "Seal Rank " .. rank
+                if id == 2 and talent > 0 then text = text .. " + Improved " .. talent .. "/3" end
+                GameTooltip:AddLine(text, 1, 1, 1)
+            else
+                GameTooltip:AddLine(text .. "Unavailable", 0.45, 0.45, 0.45)
+            end
+        end
+    end
+    local assigned = PallyPower_JudgementAssignments[pallyName]
+    if assigned ~= nil and assigned >= 0 then
+        GameTooltip:AddLine("Assigned: Judgement of " .. PallyPower_JudgementID[assigned], 0.96, 0.55, 0.73)
+    end
+    GameTooltip:Show()
+end
+
+function PallyPower_JudgementTracker_OnEnter(btn)
+    local player = UnitName("player")
+    local id = PallyPower_JudgementAssignments[player]
+    if id == nil or id < 0 then return end
+
+    GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+    GameTooltip:SetText("Judgement of " .. PallyPower_JudgementID[id], 1, 1, 1)
+    if PP_JudgementDurationInfo then
+        local info = PP_JudgementDurationInfo
+        local durationText = "Expected duration: " .. tostring(PP_JudgementDurationFor(id)) .. " sec"
+        GameTooltip:AddLine(durationText, 0.8, 0.8, 0.8)
+        if (info.talentRank or 0) > 0 or (info.setPercent or 0) > 0 then
+            GameTooltip:AddLine(
+                "Base " .. tostring(info.base or 10) ..
+                " sec | Lasting Judgement " .. tostring(info.talentRank or 0) ..
+                "/3 | Set +" .. tostring(info.setPercent or 0) .. "%",
+                0.6, 0.6, 0.6
+            )
+        end
+    end
+    if UnitExists("target") and UnitCanAttack("player", "target") then
+        local present = PallyPower_TargetHasJudgement(id)
+        GameTooltip:AddLine(
+            present and "Present on target" or "Missing from target",
+            present and 0 or 1,
+            present and 1 or 0,
+            0
+        )
+    else
+        GameTooltip:AddLine("No hostile target", 0.8, 0.8, 0.8)
+    end
+    GameTooltip:Show()
+end
+
+function PallyPower_JudgementUI_Init()
+    if PP_JudgementUIReady then return end
+
+    -- 1.8.0 UI ownership rule:
+    -- static Judgement widgets are defined in PallyPower.xml. Lua only consumes
+    -- those widgets and updates their data/state; it does not manufacture XML UI.
+    if not PallyPowerFrameClassJ or not PallyPowerFrameClassGroupJ then return end
+    if not PallyPowerBuffBarJudgement then return end
+
+    local i = 1
+    while getglobal("PallyPowerFramePlayer" .. i) do
+        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassJ") then return end
+        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassACapIcon0") then return end
+        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassJCapIcon0") then return end
+        i = i + 1
+    end
+
+    if PallyPowerFrameJudgementFailedRefresh then
+        PallyPowerFrameJudgementFailedRefresh:SetChecked(
+            PP_PerUser.judgement_failed_attacks_refresh == true
+        )
+    end
+
+    PP_JudgementUIReady = true
+end
+
+-- ============================================================================
 -- UI FOUNDATION (1.6.0)
 -- ============================================================================
 -- Static repeated UI is defined through XML virtual templates.
@@ -214,6 +945,13 @@ PP_UI = {
     ASSIGNMENT_COLUMN = 82,
     EYE_BUTTON = 18,
 }
+
+
+-- ---------------------------------------------------------------------------
+-- Management grid geometry (1.8.0)
+-- ---------------------------------------------------------------------------
+-- Static management-grid geometry is defined in PallyPower.xml.
+-- Lua intentionally does not reposition or create assignment columns.
 
 local function PallyPower_ClampUIScale(value)
     value = tonumber(value) or 1
@@ -274,17 +1012,21 @@ PALLYPOWER_MAXPERCLASS = 15
 PALLYPOWER_AURA_CLASS = 10
 PALLYPOWER_SEAL_CLASS = 11
 PALLYPOWER_RF_CLASS = 12
+PALLYPOWER_JUDGEMENT_CLASS = 13
 PP_PREFIX = "PLPWR"
 
 AllPallys = {}
 AllPallysAuras = {}
 AllPallysSeals = {}
+AllPallysJudgements = {}
+PallyPower_RFCapabilities = {}
 
 PallyPower_Assignments = {}
 PallyPower_AuraAssignments = {}
 PallyPower_SealAssignments = {}
 PallyPower_RFAssignments = {}
 PallyPower_NormalAssignments = {}
+PallyPower_JudgementAssignments = {}
 PallyPower_Tanks = {}
 
 -- ---------------------------------------------------------------------------
@@ -382,6 +1124,9 @@ function PallyPower_MigrateAssignmentStorage()
     PallyPower_SealAssignments = PP_CreateAssignmentProxy("seal")
     PallyPower_RFAssignments = PP_CreateAssignmentProxy("rf")
     PallyPower_NormalAssignments = PP_CreateAssignmentProxy("normal")
+    -- New 1.8 judgement assignments live inside the existing saved assignment record.
+    -- This adds no new SavedVariable and old clients simply ignore the string key.
+    PallyPower_JudgementAssignments = PP_CreateAssignmentProxy("judgement")
 
     PP_AssignmentStorageMigrated = true
 end
@@ -399,8 +1144,57 @@ BuffIconSmall = {}
 AuraNames = {}
 SealNames = {}
 
+-- Judgement is intentionally separate from the legacy Seal assignment system.
+-- IDs are local to PallyPowerVanilla 1.8+ and are only used by new optional
+-- PLPWR messages that older PallyPower clients safely ignore.
+PallyPower_JudgementID = {
+    [0] = "Wisdom",
+    [1] = "Light",
+    [2] = "Crusader"
+}
+PallyPower_JudgementDebuffName = {
+    [0] = "Judgement of Wisdom",
+    [1] = "Judgement of Light",
+    [2] = "Judgement of the Crusader"
+}
+PallyPower_JudgementSealID = {
+    [0] = 2, -- Seal of Wisdom
+    [1] = 1, -- Seal of Light
+    [2] = 4  -- Seal of the Crusader
+}
+PallyPower_JudgementIcons = {}
+PP_JudgementNextScan = 0
+PP_JUDGEMENT_SCAN_INTERVAL = 1.0
+PP_JudgementUIReady = false
+PP_JudgementScanTooltip = nil
+
+-- Vanilla-first Judgement timer state. This intentionally does not use Nampower;
+-- enhanced GUID/non-target truth can be layered on later without changing this model.
+PP_JudgementTrack = {
+    targetName = nil,
+    judgementID = nil,
+    duration = 10,
+    expiresAt = 0,
+    truthPresent = nil
+}
+PP_JudgementDurationInfo = {
+    base = 10,
+    talentRank = 0,
+    talentDuration = 10,
+    setPercent = 0,
+    final = 10
+}
+PP_JudgementDebugUntil = 0
+
+-- Direct attack abilities are assumed to refresh unless explicitly known not to.
+PP_JUDGEMENT_NO_REFRESH_ABILITIES = {
+    ["Hammer of Wrath"] = true,
+    ["Judgement of Command"] = true
+}
+
 PallyPower_LayOnHandsIcon = "Interface\\Icons\\Spell_Holy_LayOnHands"
 PallyPower_DivineItervention = "Interface\\Icons\\Spell_Nature_TimeStop"
+PallyPower_HammerOfJusticeIcon = "Interface\\Icons\\Spell_Holy_SealOfMight"
 
 local PP_PerUserDefaults = {
     scalemain = 1, -- corner of main window docked to
@@ -414,6 +1208,10 @@ local PP_PerUserDefaults = {
     showrfbutton = true,
     showaurabutton = true,
     showsealbutton = true,
+    showjudgementbutton = true,
+    combineselfbuffs = false,
+    selfbuffsaboveheader = false,
+    judgementaboveheader = false,
     minimapbuttonshow = true,
     playsoundwhen0 = true,
     verbosebuffs = true,
@@ -423,7 +1221,9 @@ local PP_PerUserDefaults = {
     hideblizzaura = false,
     useunitxp_sp3 = false,
     usehdicons = false,
-    transparency = 0.5
+    transparency = 0.5,
+    judgement_failed_attacks_refresh = false,
+    verbose_judgement_refresh = true
 }
 
 local function PP_CreatePerUserDefaults()
@@ -440,8 +1240,30 @@ PP_UnitXPDllLoaded = false
 
 PallyPower_ClassTexture = {}
 
+local PP_LocalizedBuffNameToID = {}
+
+local PP_CLASS_TOKEN_ID = {
+    WARRIOR=0, ROGUE=1, PRIEST=2, DRUID=3, PALADIN=4,
+    HUNTER=5, MAGE=6, WARLOCK=7, SHAMAN=8
+}
+
+local PP_BuffBarClassColors = {
+    [0] = {0.78, 0.61, 0.43}, -- Warrior
+    [1] = {1.00, 0.96, 0.41}, -- Rogue
+    [2] = {1.00, 1.00, 1.00}, -- Priest
+    [3] = {1.00, 0.49, 0.04}, -- Druid
+    [4] = {0.96, 0.55, 0.73}, -- Paladin
+    [5] = {0.67, 0.83, 0.45}, -- Hunter
+    [6] = {0.41, 0.80, 0.94}, -- Mage
+    [7] = {0.58, 0.51, 0.79}, -- Warlock
+    [8] = {0.00, 0.44, 0.87}, -- Shaman
+    [9] = {0.78, 0.61, 0.43}, -- Pet (shares Warrior blessings)
+}
+
+
 LastCast = {}
 LastCastPlayer = {}
+LastCastPlayerStamp = {}
 
 -- Initialize LastCastOn
 LastCastOn = {}
@@ -760,23 +1582,6 @@ local function PP_UI_SetTooltip(owner, title, body)
     GameTooltip:Show()
 end
 
-local function PP_UI_CreateEyeButton(name, anchorFrame, tooltip)
-    local btn = CreateFrame("Button", name, PallyPowerFrame)
-    btn:SetWidth(PP_UI.EYE_BUTTON); btn:SetHeight(PP_UI.EYE_BUTTON)
-    btn:SetFrameLevel(PallyPowerFrame:GetFrameLevel() + 3)
-    btn:SetPoint("BOTTOMRIGHT", anchorFrame, "BOTTOMRIGHT", 1, -1)
-
-    local eye = btn:CreateTexture(name .. "Eye", "ARTWORK")
-    eye:SetWidth(PP_UI.EYE_BUTTON); eye:SetHeight(PP_UI.EYE_BUTTON); eye:SetPoint("CENTER")
-    btn.eye = eye
-
-    btn:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, tooltip, "Click to show or hide this button on the Buff Bar.")
-    end)
-    btn:SetScript("OnLeave", function() GameTooltip:Hide() end)
-    return btn
-end
-
 local function PP_UI_SetControlEnabled(button, enabled)
     if not button or not button:GetNormalTexture() then return end
     if enabled then
@@ -807,26 +1612,19 @@ local function PP_UI_UpdateState()
     end
     PP_UI_SetControlEnabled(PP_UI_FeedbackButton, true)
 
-    if PP_UI_AuraEye then
-        if PP_PerUser.showaurabutton then
-            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On")
-        else
-            PP_UI_AuraEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off")
-        end
+    local eyeOn = "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On"
+    local eyeOff = "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off"
+    if PallyPowerFrameAuraEyeIcon then
+        PallyPowerFrameAuraEyeIcon:SetTexture(PP_PerUser.showaurabutton and eyeOn or eyeOff)
     end
-    if PP_UI_SealEye then
-        if PP_PerUser.showsealbutton then
-            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On")
-        else
-            PP_UI_SealEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off")
-        end
+    if PallyPowerFrameRFEyeIcon then
+        PallyPowerFrameRFEyeIcon:SetTexture(PP_PerUser.showrfbutton and eyeOn or eyeOff)
     end
-    if PP_UI_RFEye then
-        if PP_PerUser.showrfbutton then
-            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On")
-        else
-            PP_UI_RFEye.eye:SetTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off")
-        end
+    if PallyPowerFrameSealEyeIcon then
+        PallyPowerFrameSealEyeIcon:SetTexture(PP_PerUser.showsealbutton and eyeOn or eyeOff)
+    end
+    if PallyPowerFrameJudgementEyeIcon then
+        PallyPowerFrameJudgementEyeIcon:SetTexture(PP_PerUser.showjudgementbutton and eyeOn or eyeOff)
     end
 
     if PP_UI_NampowerState then
@@ -848,6 +1646,38 @@ local function PP_UI_UpdateState()
     if PP_UI_SmartButton then
         PP_UI_SmartButton:SetChecked(PP_PerUser.smartbuffs)
     end
+end
+
+function PallyPower_VisibilityEye_OnEnter(button, title)
+    PP_UI_SetTooltip(button, title, "Click to show or hide this button on the Buff Bar.")
+end
+
+function PallyPower_AuraEye_OnClick()
+    AuraOptionChk:SetChecked(not PP_PerUser.showaurabutton)
+    PallyPower_AuraOption()
+    PP_UI_UpdateState()
+    PallyPower_UpdateLayout()
+end
+
+function PallyPower_RFEye_OnClick()
+    RighteousFuryOptionChk:SetChecked(not PP_PerUser.showrfbutton)
+    PallyPower_RighteousFuryOption()
+    PP_UI_UpdateState()
+    PallyPower_UpdateLayout()
+end
+
+function PallyPower_SealEye_OnClick()
+    SealOptionChk:SetChecked(not PP_PerUser.showsealbutton)
+    PallyPower_SealOption()
+    PP_UI_UpdateState()
+    PallyPower_UpdateLayout()
+end
+
+function PallyPower_JudgementEye_OnClick()
+    PP_PerUser.showjudgementbutton = not PP_PerUser.showjudgementbutton
+    PP_NextScan = 0
+    PP_UI_UpdateState()
+    PallyPower_UpdateLayout()
 end
 
 function PallyPower_UI_Init()
@@ -956,23 +1786,11 @@ function PallyPower_UI_Init()
         PallyPowerFrameTitleFreeAssignText:SetText("Free Assignment")
     end
 
-    PP_UI_AuraEye = PP_UI_CreateEyeButton("PP_UI_AuraEye",PallyPowerFrameClassA,"Aura on Buff Bar")
-    PP_UI_AuraEye:SetScript("OnClick",function()
-        AuraOptionChk:SetChecked(not PP_PerUser.showaurabutton); PallyPower_AuraOption(); PP_UI_UpdateState()
-    end)
-    PP_UI_SealEye = PP_UI_CreateEyeButton("PP_UI_SealEye",PallyPowerFrameClassS,"Seal on Buff Bar")
-    PP_UI_SealEye:SetScript("OnClick",function()
-        SealOptionChk:SetChecked(not PP_PerUser.showsealbutton); PallyPower_SealOption(); PP_UI_UpdateState()
-    end)
-    PP_UI_RFEye = PP_UI_CreateEyeButton("PP_UI_RFEye",PallyPowerFrameClassR,"Righteous Fury on Buff Bar")
-    PP_UI_RFEye:SetScript("OnClick",function()
-        RighteousFuryOptionChk:SetChecked(not PP_PerUser.showrfbutton); PallyPower_RighteousFuryOption(); PP_UI_UpdateState()
-    end)
-
     if PallyPowerFrameOptions then PallyPowerFrameOptions:SetText("Advanced") end
     if PallyPowerFrameOptionButton then PallyPowerFrameOptionButton:SetText("Advanced") end
 
-    -- Options: hide moved controls, retain them internally, compact what remains.
+    -- Advanced Options layout is XML-owned.
+    -- Lua only controls state/visibility and interaction behaviour.
     local movedLabels={PallyPower_OptionsFrameOption3,
         PallyPower_OptionsFrameOption4,
         PallyPower_OptionsFrameOption5,PallyPower_OptionsFrameOption6,PallyPower_OptionsFrameOption7,PallyPower_OptionsFrameOption7a,
@@ -981,16 +1799,6 @@ function PallyPower_UI_Init()
     local movedControls={PallyPower_OptionsFrameFeedback,PallyPower_OptionsFrameSmart,FramesLockedOptionChk,RighteousFuryOptionChk,AuraOptionChk,SealOptionChk,
         PlaySoundOptionChk,HorizontalLayoutOptionChk,UseUnitXPSP3OptionChk}
     for _,f in movedControls do if f then f:Hide() end end
-
-    PallyPower_OptionsFrame:SetHeight(385)
-
-    -- Correct XML global is PallyPower_OptionsFrameTitle (not ...TitleText).
-    if PallyPower_OptionsFrameTitle then
-        PallyPower_OptionsFrameTitle:SetText("PallyPower - Advanced Options")
-        PallyPower_OptionsFrameTitle:SetTextColor(0.96, 0.55, 0.73)
-        PallyPower_OptionsFrameTitle:SetFontObject(GameFontNormalLarge)
-        PallyPower_OptionsFrameTitle:SetWidth(300)
-    end
 
     PallyPower_OptionsFrame:SetMovable(true)
     PallyPower_OptionsFrame:EnableMouse(true)
@@ -1002,168 +1810,15 @@ function PallyPower_UI_Init()
         this:StopMovingOrSizing()
     end)
 
-    local function PP_UI_CreateSectionHeader(name, textValue, y)
-        local header = PallyPower_OptionsFrame:CreateFontString(
-            name, "OVERLAY", "GameFontNormal"
-        )
-        header:SetPoint(
-            "TOPLEFT",
-            PallyPower_OptionsFrame,
-            "TOPLEFT",
-            10,
-            y
-        )
-        header:SetText(textValue)
-        header:SetTextColor(0.96, 0.55, 0.73)
-        return header
-    end
-
-    -- ---------------------------------------------------------------
-    -- Minimap
-    -- ---------------------------------------------------------------
-    PP_UI_CreateSectionHeader("PP_UI_AdvancedMinimapHeader", "Minimap", -38)
-
-    PallyPower_OptionsFrameOption8:SetText("Show Button")
-    PallyPower_OptionsFrameOption8:ClearAllPoints()
-    PallyPower_OptionsFrameOption8:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -62)
-    MinimapButtonOptionChk:ClearAllPoints()
-    MinimapButtonOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -62)
-    MinimapButtonOptionChk:Show()
-    PallyPower_OptionsFrameOption8:Show()
-
-    PallyPower_OptionsFrameOption9:ClearAllPoints()
-    PallyPower_OptionsFrameOption9:SetPoint(
-        "TOPLEFT",
-        PallyPower_OptionsFrame,
-        "TOPLEFT",
-        18,
-        -87
-    )
-    PallyPower_OptionsFrameOption9:SetText("Button Position")
-
-    MinimapButtonOptionSlider:ClearAllPoints()
-    MinimapButtonOptionSlider:SetPoint(
-        "TOPRIGHT",
-        PallyPower_OptionsFrame,
-        "TOPRIGHT",
-        -5,
-        -87
-    )
     if MinimapButtonOptionSliderLow then MinimapButtonOptionSliderLow:Hide() end
     if MinimapButtonOptionSliderHigh then MinimapButtonOptionSliderHigh:Hide() end
 
-    -- ---------------------------------------------------------------
-    -- Visual
-    -- ---------------------------------------------------------------
-    PP_UI_CreateSectionHeader("PP_UI_AdvancedVisualHeader", "Visual", -125)
-
-    PallyPower_OptionsFrameOption14:SetText("Use HD Icons")
-    PallyPower_OptionsFrameOption14:ClearAllPoints()
-    PallyPower_OptionsFrameOption14:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -149)
-    UseHDIconsOptionChk:ClearAllPoints()
-    UseHDIconsOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -149)
-    UseHDIconsOptionChk:Show()
-    PallyPower_OptionsFrameOption14:Show()
-
-    PallyPower_OptionsFrameOption15:ClearAllPoints()
-    PallyPower_OptionsFrameOption15:SetPoint(
-        "TOPLEFT",
-        PallyPower_OptionsFrame,
-        "TOPLEFT",
-        18,
-        -174
-    )
-    PallyPower_OptionsFrameOption15:SetText("Global Transparency")
-
-    TransparencyOptionSlider:ClearAllPoints()
-    TransparencyOptionSlider:SetPoint(
-        "TOPRIGHT",
-        PallyPower_OptionsFrame,
-        "TOPRIGHT",
-        -5,
-        -174
-    )
-
-    PallyPower_OptionsFrameOption12:SetText("Hide Blizzard Aura Frame")
-    PallyPower_OptionsFrameOption12:ClearAllPoints()
-    PallyPower_OptionsFrameOption12:SetPoint("TOPLEFT", PallyPower_OptionsFrame, "TOPLEFT", 18, -204)
-    HideBlizzardFrameOptionChk:ClearAllPoints()
-    HideBlizzardFrameOptionChk:SetPoint("TOPRIGHT", PallyPower_OptionsFrame, "TOPRIGHT", -5, -204)
-    HideBlizzardFrameOptionChk:Show()
-    PallyPower_OptionsFrameOption12:Show()
-
-    -- ---------------------------------------------------------------
-    -- Scanning
-    -- ---------------------------------------------------------------
-    PP_UI_CreateSectionHeader("PP_UI_AdvancedScanningHeader", "Scanning", -237)
-
-    PallyPower_OptionsFrameOption1:ClearAllPoints()
-    PallyPower_OptionsFrameOption1:SetPoint(
-        "TOPLEFT",
-        PallyPower_OptionsFrame,
-        "TOPLEFT",
-        18,
-        -316
-    )
-    PallyPower_OptionsFrameOption1:SetText("Scan Unitframes every")
-
-    PallyPower_OptionsFrameScan1:SetParent(PallyPower_OptionsFrame)
     PallyPower_OptionsFrameScan1:SetAutoFocus(false)
     PallyPower_OptionsFrameScan1:ClearFocus()
-    PallyPower_OptionsFrameScan1:ClearAllPoints()
-    PallyPower_OptionsFrameScan1:SetPoint(
-        "TOPRIGHT",
-        PallyPower_OptionsFrame,
-        "TOPRIGHT",
-        -30,
-        -314
-    )
-    PallyPower_OptionsFrameScan1:SetWidth(34)
-
-    PallyPower_OptionsFrameOption2:ClearAllPoints()
-    PallyPower_OptionsFrameOption2:SetPoint(
-        "TOPLEFT",
-        PallyPower_OptionsFrame,
-        "TOPLEFT",
-        18,
-        -341
-    )
-    PallyPower_OptionsFrameOption2:SetText("Units Scanned per Frame")
-
-    PallyPower_OptionsFrameScan2:SetParent(PallyPower_OptionsFrame)
     PallyPower_OptionsFrameScan2:SetAutoFocus(false)
     PallyPower_OptionsFrameScan2:ClearFocus()
-    PallyPower_OptionsFrameScan2:ClearAllPoints()
-    PallyPower_OptionsFrameScan2:SetPoint(
-        "TOPRIGHT",
-        PallyPower_OptionsFrame,
-        "TOPRIGHT",
-        -30,
-        -339
-    )
-    PallyPower_OptionsFrameScan2:SetWidth(34)
 
-    -- Active-Paladin geometry is defined in PallyPower.xml.
-    -- Lua only applies runtime colour/shadow to the counters.
-    for i = 1, 15 do
-        for id = 0, 8 do
-            local skill = getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id)
-            if skill then
-                skill:SetTextColor(1, 1, 1)
-                skill:SetShadowColor(0, 0, 0, 1)
-                skill:SetShadowOffset(1, -1)
-            end
-        end
-        for id = 0, 5 do
-            local talentText = getglobal("PallyPowerFramePlayer" .. i .. "Talent" .. id)
-            if talentText then
-                talentText:SetTextColor(1, 1, 1)
-                talentText:SetShadowColor(0, 0, 0, 1)
-                talentText:SetShadowOffset(1, -1)
-            end
-        end
-    end
-
+    PallyPower_JudgementUI_Init()
     PP_UI_READY=true
     PallyPower_ApplyOverallScale()
     PP_UI_UpdateState()
@@ -1211,6 +1866,14 @@ function PallyPower_OnLoad()
     this:RegisterEvent("RAID_ROSTER_UPDATE")
     this:RegisterEvent("ADDON_LOADED")
     this:RegisterEvent("PLAYER_AURAS_CHANGED")
+    this:RegisterEvent("PLAYER_TARGET_CHANGED")
+    this:RegisterEvent("CHAT_MSG_COMBAT_SELF_HITS")
+    this:RegisterEvent("CHAT_MSG_COMBAT_SELF_MISSES")
+    this:RegisterEvent("CHAT_MSG_SPELL_SELF_DAMAGE")
+    this:RegisterEvent("CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE")
+    this:RegisterEvent("SPELLCAST_STOP")
+    this:RegisterEvent("SPELLCAST_FAILED")
+    this:RegisterEvent("SPELLCAST_INTERRUPTED")
     PallyPower_SetFrameBackdropColor(this)
     this:SetScale(1)
     SlashCmdList["PALLYPOWER"] = function(msg)
@@ -1229,12 +1892,180 @@ function PallyPower_SetFrameBackdropColor(frame)
     end
 end
 
+
+local PP_BlessingTimerTxn = nil
+local PP_BlessingTimerPending = nil
+
+local function PP_CopyTimerTable(source)
+    local copy = {}
+    for key, value in source do copy[key] = value end
+    return copy
+end
+
+local function PP_RestoreTimerTable(target, snapshot)
+    for key in target do target[key] = nil end
+    for key, value in snapshot do target[key] = value end
+end
+
+local function PP_BeginBlessingTimerTxn()
+    PP_BlessingTimerTxn = {
+        beforeClass = PP_CopyTimerTable(LastCast),
+        beforePlayer = PP_CopyTimerTable(LastCastPlayer),
+        beforePlayerStamp = PP_CopyTimerTable(LastCastPlayerStamp)
+    }
+end
+
+local function PP_HoldBlessingTimerTxn()
+    if not PP_BlessingTimerTxn then return end
+    local pending = {
+        classTimers = {},
+        playerTimers = {},
+        playerStamps = {},
+        stopSeen = false,
+        confirmAt = nil
+    }
+
+    for key, value in LastCast do
+        if PP_BlessingTimerTxn.beforeClass[key] ~= value then pending.classTimers[key] = value end
+    end
+    for key, value in LastCastPlayer do
+        if PP_BlessingTimerTxn.beforePlayer[key] ~= value then
+            pending.playerTimers[key] = value
+            pending.playerStamps[key] = GetTime()
+        end
+    end
+
+    PP_RestoreTimerTable(LastCast, PP_BlessingTimerTxn.beforeClass)
+    PP_RestoreTimerTable(LastCastPlayer, PP_BlessingTimerTxn.beforePlayer)
+    PP_RestoreTimerTable(LastCastPlayerStamp, PP_BlessingTimerTxn.beforePlayerStamp)
+    PP_BlessingTimerTxn = nil
+    PP_BlessingTimerPending = pending
+end
+
+local function PP_CancelPendingBlessingTimer()
+    PP_BlessingTimerTxn = nil
+    PP_BlessingTimerPending = nil
+end
+
+local function PP_BlessingTimerSpellStopped()
+    if PP_BlessingTimerPending then
+        PP_BlessingTimerPending.stopSeen = true
+        PP_BlessingTimerPending.confirmAt = GetTime() + 0.10
+    end
+end
+
+local function PP_UpdatePendingBlessingTimer()
+    local pending = PP_BlessingTimerPending
+    if pending and pending.stopSeen and pending.confirmAt and GetTime() >= pending.confirmAt then
+        for key, value in pending.classTimers do LastCast[key] = value end
+        for key, value in pending.playerTimers do LastCastPlayer[key] = value end
+        for key, value in pending.playerStamps do LastCastPlayerStamp[key] = value end
+        PP_BlessingTimerPending = nil
+    end
+end
+
+local PP_BuffTimerDisplayElapsed = 0
+
+local function PP_GetBlessingTimerDisplayForButton(btn)
+    if not btn or btn.classID == nil or btn.buffID == nil then
+        return nil, nil
+    end
+
+    local classKey = btn.buffID .. btn.classID
+    local classTimer = LastCast[classKey]
+
+    local newestPlayer = nil
+    local newestStamp = nil
+    local newestTimer = nil
+
+    local shortestTimer = classTimer
+    local shortestSourceType = classTimer and "class" or nil
+    local shortestSourceKey = classTimer and classKey or nil
+
+    if CurrentBuffs[btn.classID] then
+        for unit, stats in CurrentBuffs[btn.classID] do
+            local playerName = stats and stats.name
+            if playerName then
+                local timer = LastCastPlayer[playerName]
+                if timer then
+                    local stamp = LastCastPlayerStamp[playerName] or 0
+
+                    if newestStamp == nil or stamp > newestStamp then
+                        newestStamp = stamp
+                        newestPlayer = playerName
+                        newestTimer = timer
+                    end
+
+                    if shortestTimer == nil or timer < shortestTimer then
+                        shortestTimer = timer
+                        shortestSourceType = "player"
+                        shortestSourceKey = playerName
+                    end
+                end
+            end
+        end
+    end
+
+    -- Time: class-wide Greater Blessing when known; otherwise the most recently
+    -- cast known individual Blessing in this class.
+    local primaryTimer = classTimer or newestTimer
+    local primarySourceType = classTimer and "class" or (newestPlayer and "player" or nil)
+    local primarySourceKey = classTimer and classKey or newestPlayer
+
+    -- Time2: shortest known Blessing. Suppress only when it is the same source
+    -- already represented by Time, not merely because formatted values match.
+    local secondaryTimer = shortestTimer
+    if secondaryTimer
+        and primarySourceType == shortestSourceType
+        and primarySourceKey == shortestSourceKey then
+        secondaryTimer = nil
+    end
+
+    return primaryTimer, secondaryTimer
+end
+
+local function PP_UpdateBlessingTimerText()
+    if not PallyPowerBuffBar or not PallyPowerBuffBar:IsVisible() then return end
+
+    for i = 1, 10 do
+        local btn = getglobal("PallyPowerBuffBarBuff" .. i)
+        if btn and btn:IsVisible() and btn.classID ~= nil and btn.buffID ~= nil then
+            local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
+            local timeText = getglobal(btn:GetName() .. "Time")
+            local time2Text = getglobal(btn:GetName() .. "Time2")
+
+            if timeText then timeText:SetText(PallyPower_FormatTime(primaryTimer)) end
+            if time2Text then time2Text:SetText(PallyPower_FormatTime(secondaryTimer)) end
+        end
+    end
+end
+
 function PallyPower_OnUpdate(tdiff)
+    PP_UpdatePendingBlessingTimer()
+
+    PP_BuffTimerDisplayElapsed = PP_BuffTimerDisplayElapsed + tdiff
+    if PP_BuffTimerDisplayElapsed >= 1 then
+        PP_BuffTimerDisplayElapsed = 0
+        PP_UpdateBlessingTimerText()
+    end
+    PP_UpdateJudgementCountdownVisual()
     lastClassBtnTime = lastClassBtnTime - tdiff
     if lastClassBtnTime < 0 then
         lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
         lastClassBtn = 1
     end
+    if PP_JudgementDebugUntil > 0 and GetTime() >= PP_JudgementDebugUntil then
+        PP_JudgementSetDebug("")
+    end
+
+    PP_JudgementNextScan = PP_JudgementNextScan - tdiff
+    if PP_JudgementNextScan <= 0 then
+        PP_JudgementNextScan = PP_JUDGEMENT_SCAN_INTERVAL
+        if PallyPower_JudgementAssignments[UnitName("player")] ~= nil and PallyPower_JudgementAssignments[UnitName("player")] ~= -1 then
+            PallyPower_UpdateJudgementTracker()
+        end
+    end
+
     if (RestorSelfAutoCast) then
         RestorSelfAutoCastTimeOut = RestorSelfAutoCastTimeOut - tdiff
         if (RestorSelfAutoCastTimeOut < 0) then
@@ -1268,6 +2099,7 @@ function PallyPower_OnUpdate(tdiff)
                 PlaySoundFile("Interface\\Addons\\PallyPowerVanilla\\Sounds\\ding.mp3")
             end
             LastCastPlayer[i] = nil
+            LastCastPlayerStamp[i] = nil
         end
     end
 end
@@ -1325,12 +2157,14 @@ function PallyPower_AdjustIcons()
     AuraNames[5] = "Fire Resistance Aura"
     AuraNames[6] = "Sanctity Aura"
 
-    SealIcons[0] = "Interface\\"..icons_prefix.."Spell_Holy_RighteousnessAura"
-    SealIcons[1] = "Interface\\"..icons_prefix.."Spell_Holy_HolySmite"
-    SealIcons[2] = "Interface\\"..icons_prefix.."Spell_Holy_HealingAura"
-    SealIcons[3] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWrath"
-    SealIcons[4] = "Interface\\"..icons_prefix.."Ability_Warrior_InnerRage"
-    SealIcons[5] = "Interface\\"..icons_prefix.."Ability_ThunderBolt"
+    -- Legacy Seal IDs with language-neutral Blizzard textures.
+    -- Numeric IDs are unchanged for backwards-compatible PallyPower comms.
+    SealIcons[0] = "Interface\\"..icons_prefix.."Ability_ThunderBolt"            -- Righteousness
+    SealIcons[1] = "Interface\\"..icons_prefix.."Spell_Holy_HealingAura"        -- Light
+    SealIcons[2] = "Interface\\"..icons_prefix.."Spell_Holy_RighteousnessAura"  -- Wisdom
+    SealIcons[3] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWrath"        -- Justice
+    SealIcons[4] = "Interface\\"..icons_prefix.."Spell_Holy_HolySmite"          -- Crusader
+    SealIcons[5] = "Interface\\"..icons_prefix.."Ability_Warrior_InnerRage"     -- Command
     
     -- Seal spell names for Nampower matching
     SealNames[0] = "Seal of Righteousness"
@@ -1339,6 +2173,13 @@ function PallyPower_AdjustIcons()
     SealNames[3] = "Seal of Justice"
     SealNames[4] = "Seal of the Crusader"
     SealNames[5] = "Seal of Command"
+
+    -- Judgement icons are resolved semantically from the actual learned Seal
+    -- spell textures during PallyPower_ScanSpells(). These are legacy-only
+    -- fallbacks for the brief period before the spellbook scan has completed.
+    PallyPower_JudgementIcons[0] = PallyPower_JudgementIcons[0] or SealIcons[2] -- Wisdom fallback
+    PallyPower_JudgementIcons[1] = PallyPower_JudgementIcons[1] or SealIcons[1] -- Light fallback
+    PallyPower_JudgementIcons[2] = PallyPower_JudgementIcons[2] or SealIcons[4] -- Crusader fallback
 
     if (PP_PerUser.regularblessings == true) then
         RegularBlessings = true
@@ -1397,6 +2238,12 @@ end
 function PallyPower_OnEvent(event,arg1)
     local type, id
 
+    if event == "SPELLCAST_STOP" then
+        PP_BlessingTimerSpellStopped()
+    elseif event == "SPELLCAST_FAILED" or event == "SPELLCAST_INTERRUPTED" then
+        PP_CancelPendingBlessingTimer()
+    end
+
     if (event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD") then
         PallyPower_AdjustIcons()
         PallyPower_ScanSpells()
@@ -1414,8 +2261,8 @@ function PallyPower_OnEvent(event,arg1)
     if (event == "PLAYER_ENTERING_WORLD" and (not PallyPower_SealAssignments[UnitName("player")])) then
         PallyPower_SealAssignments[UnitName("player")] = -1
     end
-    if event == "PLAYER_ENTERING_WORLD" and PallyPower_RFAssignments[UnitName("player")] == nil then
-        PallyPower_RFAssignments[UnitName("player")] = false
+    if event == "PLAYER_ENTERING_WORLD" and PallyPower_JudgementAssignments[UnitName("player")] == nil then
+        PallyPower_JudgementAssignments[UnitName("player")] = -1
     end
 
     if event == "CHAT_MSG_ADDON" and arg1 == PP_PREFIX and (arg3 == "PARTY" or arg3 == "RAID") then
@@ -1451,6 +2298,18 @@ function PallyPower_OnEvent(event,arg1)
         PallyPower_ScanRaid()
     end
 
+    if event == "CHAT_MSG_COMBAT_SELF_HITS"
+        or event == "CHAT_MSG_COMBAT_SELF_MISSES"
+        or event == "CHAT_MSG_SPELL_SELF_DAMAGE"
+        or event == "CHAT_MSG_SPELL_PERIODIC_CREATURE_DAMAGE" then
+        PP_HandleJudgementCombatEvent(event, arg1)
+    end
+
+    if event == "PLAYER_TARGET_CHANGED" then
+        PP_JudgementNextScan = 0
+        PallyPower_UpdateJudgementTracker()
+    end
+
     if event == "ADDON_LOADED" and arg1 == "PallyPowerVanilla" then
         PallyPower_MigrateAssignmentStorage()
         -- Initialise per-character settings before any startup function reads them.
@@ -1484,7 +2343,7 @@ function PallyPower_CheckRighteousFury()
                 if spellId and spellId > 0 then
                     -- Get spell name and check if it's Righteous Fury
                     local spellName = GetSpellRecField(spellId, "name")
-                    if spellName and spellName == "Righteous Fury" then
+                    if spellName and nameRighteousFury and spellName == nameRighteousFury then
                         return true
                     end
                 end
@@ -1504,6 +2363,22 @@ function PallyPower_CheckRighteousFury()
                 	return true
             	end
             end
+        end
+        counter = counter + 1
+    end
+    return false
+end
+
+function PallyPower_CancelRighteousFury()
+    local counter = 0
+    while GetPlayerBuff(counter) >= 0 do
+        local index = GetPlayerBuff(counter)
+        local texture = GetPlayerBuffTexture(index)
+        if texture and string.find(texture, "Spell_Holy_SealOfFury") then
+            CancelPlayerBuff(index)
+            UIErrorsFrame:Clear()
+            UIErrorsFrame:AddMessage("Righteous Fury Removed")
+            return true
         end
         counter = counter + 1
     end
@@ -1564,6 +2439,12 @@ function PallyPower_AdjustTransparency()
     PallyPower_SetFrameBackdropColor(PallyPowerBuffBar)
     PallyPower_SetFrameBackdropColor(PallyPowerWarningFrame)
     PallyPower_SetFrameBackdropColor(PallyPowerSaveMenu)
+
+    -- Individual Buff Bar buttons use status colours with transparency applied
+    -- during UpdateUI(). Refresh them immediately when the slider changes.
+    if initialized and PallyPowerBuffBar then
+        PallyPower_UpdateUI()
+    end
 end
 
 function PallyPower_SlashCommandHandler(msg)
@@ -1663,8 +2544,13 @@ function PallyPower_Report()
             if PallyPower_SealAssignments[name] and PallyPower_SealAssignments[name] ~= -1 then
                 blessings = blessings.." --- Seal: "..PallyPower_SealID[PallyPower_SealAssignments[name]]
             end
+            if PallyPower_JudgementAssignments[name] ~= nil and PallyPower_JudgementAssignments[name] ~= -1 then
+                blessings = blessings.." --- Judgement: "..PallyPower_JudgementID[PallyPower_JudgementAssignments[name]]
+            end
             if PallyPower_RFAssignments[name] == true then
                 blessings = blessings.." --- Righteous Fury"
+            elseif PallyPower_RFAssignments[name] == "off" then
+                blessings = blessings.." --- No Righteous Fury"
             end
             SendChatMessage(name .. ": " .. blessings, type)
             PP_Debug(name .. ": " .. blessings)
@@ -1713,6 +2599,7 @@ function PallyPowerGrid_Update(tdiff)
     getglobal("PallyPowerFrameClassA"):SetTexture(PallyPower_AuraMastery)
     getglobal("PallyPowerFrameClassS"):SetTexture(PallyPower_AbilitySeal)
     getglobal("PallyPowerFrameClassR"):SetTexture(PallyPower_RighteousFury)
+    if PallyPowerFrameClassJ then PallyPowerFrameClassJ:SetTexture("Interface\\Icons\\Spell_Holy_RighteousFury") end
 
     -- Pally 1 is always myself
     local i = 1
@@ -1724,14 +2611,20 @@ function PallyPowerGrid_Update(tdiff)
             getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetText(name)
             getglobal("PallyPowerFramePlayer" .. i .. "InGroup"):SetText(PallyPower_GetPlayerGroupID(name))
 
-            -- Set icons about Lay on Hands and Divine Intervention here ( communicated via messages )
-            if skills["LayOnHands"] ~= nil  and skills["LayOnHands"] == true then
+            -- Cooldown-ready summary (communicated via the legacy COOLDOWNS message).
+            if skills["HammerOfJustice"] ~= nil and skills["HammerOfJustice"] == true then
+                getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ"):SetTexture(PallyPower_HammerOfJusticeIcon)
+                getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ"):Show()
+            else
+                getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ"):Hide()
+            end
+            if skills["LayOnHands"] ~= nil and skills["LayOnHands"] == true then
                 getglobal("PallyPowerFramePlayer" .. i .. "IconLH"):SetTexture(PallyPower_LayOnHandsIcon)
                 getglobal("PallyPowerFramePlayer" .. i .. "IconLH"):Show()
             else
                 getglobal("PallyPowerFramePlayer" .. i .. "IconLH"):Hide()
             end
-            if skills["DivineIntervention"] ~= nil  and skills["DivineIntervention"] == true then
+            if skills["DivineIntervention"] ~= nil and skills["DivineIntervention"] == true then
                 getglobal("PallyPowerFramePlayer" .. i .. "IconDI"):SetTexture(PallyPower_DivineItervention)
                 getglobal("PallyPowerFramePlayer" .. i .. "IconDI"):Show()
             else
@@ -1740,64 +2633,47 @@ function PallyPowerGrid_Update(tdiff)
 
             getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetText(skills["symbols"])
             getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetTextColor(1, 1, 0.5)
-            if (PallyPower_CanControl(name)) then
-                getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetTextColor(1, 1, 1)
-            else
-                if (PallyPower_CheckRaidLeader(name)) then
-                    getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetTextColor(0, 1, 0)
-                else
-                    getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetTextColor(1, 0, 0)
-                end
-            end
+            -- Paladin identity uses the class colour consistently; control state is
+            -- represented by assignment availability rather than recolouring the name.
+            getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetTextColor(0.96, 0.55, 0.73)
             for id = 0, 5 do -- Blessings Icons and skills
                 if (skills[id]) then
                     getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Show()
                     getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Show()
-                    -- Spell rank is a plain number.
-                    txt = skills[id]["rank"]
+                    local rank = tonumber(skills[id]["rank"]) or 0
+                    local talent = tonumber(skills[id]["talent"]) or 0
+                    local capabilityText = tostring(rank)
+                    if talent > 0 then capabilityText = capabilityText .. "+" .. talent end
                     getglobal(
                         "PallyPowerFramePlayer" .. i .. "Skill" .. id
-                    ):SetText(txt)
-
-                    -- Talent improvement is a separate +N overlay.
-                    local talentText = getglobal(
-                        "PallyPowerFramePlayer" .. i .. "Talent" .. id
-                    )
-                    if talentText then
-                        if (skills[id]["talent"] + 0 > 0) then
-                            talentText:SetText("+" .. skills[id]["talent"])
-                            talentText:Show()
-                        else
-                            talentText:SetText("")
-                            talentText:Hide()
-                        end
-                    end
+                    ):SetText(capabilityText)
                 else
                     getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Hide()
                     getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Hide()
-                    local talentText = getglobal(
-                        "PallyPowerFramePlayer" .. i .. "Talent" .. id
-                    )
-                    if talentText then talentText:Hide() end
                 end
             end
-            for id = 6, 8 do -- Aura Icons and skills (Auras start from 0 and icon start at 6)
-                if AllPallysAuras[name] and AllPallysAuras[name][id-6] then
-                    getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Show()
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Show()
-                    -- Aura capability value denotes talent improvement.
-                    local auraRank = AllPallysAuras[name][id-6].rank + 0
+            -- Aura capability summary lives in the Aura assignment cell.
+            for auraID = 0, 2 do
+                local capIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassACapIcon" .. auraID)
+                local capSkill = getglobal("PallyPowerFramePlayer" .. i .. "ClassACapSkill" .. auraID)
+                local auraInfo = AllPallysAuras[name] and AllPallysAuras[name][auraID]
+                if capIcon and capSkill and auraInfo then
+                    capIcon:SetTexture(AuraIcons[auraID])
+                    capIcon:Show()
+                    local auraRank = tonumber(auraInfo.rank) or 0
+                    local auraTalent = tonumber(auraInfo.talent) or 0
                     if auraRank > 0 then
-                        txt = "+" .. auraRank
+                        local capabilityText = tostring(auraRank)
+                        if auraTalent > 0 then capabilityText = capabilityText .. "+" .. auraTalent end
+                        capSkill:SetText(capabilityText)
+                        capSkill:Show()
                     else
-                        txt = ""
+                        capSkill:SetText("")
+                        capSkill:Hide()
                     end
-                    getglobal(
-                        "PallyPowerFramePlayer" .. i .. "Skill" .. id
-                    ):SetText(txt)
                 else
-                    getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Hide()
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Hide()
+                    if capIcon then capIcon:Hide() end
+                    if capSkill then capSkill:Hide() end
                 end
             end
             for id = 0, 9 do
@@ -1823,10 +2699,72 @@ function PallyPowerGrid_Update(tdiff)
             else
                 getglobal("PallyPowerFramePlayer" .. i .. "ClassSIcon"):SetTexture(nil)
             end
-            if PallyPower_RFAssignments[name] == true then
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassRIcon"):SetTexture(PallyPower_RighteousFury)
+            local judgementButton = getglobal("PallyPowerFramePlayer" .. i .. "ClassJ")
+            if judgementButton then
+                local assignedJudgement = PallyPower_JudgementAssignments[name]
+                local judgementIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassJIcon")
+                if judgementIcon then
+                    if assignedJudgement ~= nil and assignedJudgement >= 0 then
+                        judgementIcon:SetTexture(PallyPower_JudgementIcons[assignedJudgement])
+                    else
+                        judgementIcon:SetTexture(nil)
+                    end
+                end
+                -- Seal capability summary lives in the Judgement cell: the Seal
+                -- determines which Judgement this paladin can provide.  Use the same
+                -- compact icon/value presentation as Aura capability.
+                local judgementCapability = AllPallysJudgements[name]
+                for jid = 0, 2 do
+                    local capIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassJCapIcon" .. jid)
+                    local capSkill = getglobal("PallyPowerFramePlayer" .. i .. "ClassJCapSkill" .. jid)
+                    local entry = judgementCapability and judgementCapability[jid]
+                    if capIcon and capSkill then
+                        capIcon:SetTexture(PallyPower_JudgementIcons[jid])
+                        capIcon:Show()
+                        if judgementCapability == nil then
+                            capSkill:SetText("?")
+                            capSkill:Show()
+                        else
+                            local rank = entry and (tonumber(entry.rank) or 0) or 0
+                            local talent = entry and (tonumber(entry.talent) or 0) or 0
+                            if rank > 0 then
+                                local capabilityText = tostring(rank)
+                                if talent > 0 then capabilityText = capabilityText .. "+" .. talent end
+                                capSkill:SetText(capabilityText)
+                                capSkill:Show()
+                            else
+                                capSkill:SetText("")
+                                capSkill:Hide()
+                                capIcon:SetAlpha(0.25)
+                            end
+                        end
+                        if judgementCapability == nil or (entry and (tonumber(entry.rank) or 0) > 0) then capIcon:SetAlpha(1) end
+                    end
+                end
+                if AllPallysJudgements[name] ~= nil then
+                    local any = false
+                    for jid = 0, 2 do if PallyPower_JudgementCanAssign(name, jid) then any = true end end
+                    judgementButton:SetAlpha(any and 1 or 0.35)
+                else
+                    judgementButton:SetAlpha(1)
+                end
+            end
+            local rfCell = getglobal("PallyPowerFramePlayer" .. i .. "ClassR")
+            local rfIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassRIcon")
+            local rfNo = getglobal("PallyPowerFramePlayer" .. i .. "ClassRNoRF")
+            local rfState = PallyPower_RFAssignments[name]
+            if rfCell then
+                rfCell:SetAlpha((PallyPower_RFCapabilities[name] == false and rfState ~= "off") and 0.35 or 1)
+            end
+            if rfState == true then
+                if rfIcon then rfIcon:SetTexture(PallyPower_RighteousFury) end
+                if rfNo then rfNo:Hide() end
+            elseif rfState == "off" then
+                if rfIcon then rfIcon:SetTexture(PallyPower_RighteousFury) end
+                if rfNo then rfNo:Show() end
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassRIcon"):SetTexture(nil)
+                if rfIcon then rfIcon:SetTexture(nil) end
+                if rfNo then rfNo:Hide() end
             end
             i = i + 1
             numPallys = numPallys + 1
@@ -1867,11 +2805,8 @@ function PallyPowerGrid_Update(tdiff)
                         else
                             getglobal(pbnt .. "Icon"):SetTexture("")
                         end
-                        if PallyPower_Tanks[shortname] and PallyPower_Tanks[shortname] == true then
-                            getglobal(pbnt .. "Text"):SetTextColor(1, 0.65, 0)
-                        else
-                            getglobal(pbnt .. "Text"):SetTextColor(1, 1, 1)
-                        end
+                        local nameColor = PP_BuffBarClassColors[ii - 1] or {1, 1, 1}
+                        getglobal(pbnt .. "Text"):SetTextColor(nameColor[1], nameColor[2], nameColor[3])
                         getglobal(pbnt):SetFrameStrata("DIALOG")
                         getglobal(pbnt):SetAlpha(1)        
                         currentPlayer = currentPlayer + 1
@@ -1893,14 +2828,16 @@ function PallyPowerGrid_Update(tdiff)
         end           
 
         PallyPowerFrame:SetHeight(10 + 14 + 34 + 52 + (numPallys * 76) + 10 + (13 * numMaxClass)) -- Reduced footer by 12px: keeps multi-Paladin growth unchanged while tightening the bottom control band
-        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", 8, -90 - 13 * numMaxClass)
+        getglobal("PallyPowerFramePlayer1"):ClearAllPoints()
+        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", PallyPowerFrame, "TOPLEFT", 8, -90 - 13 * numMaxClass)
 		for i = 1, PALLYPOWER_MAXCLASSES do
 			getglobal("PallyPowerFrameClassGroup" .. i .. "Line"):SetHeight( 2 + 13 * numMaxClass)
         end        
         getglobal("PallyPowerFrameClassGroupALine"):SetHeight( 2 + 13 * numMaxClass)
         getglobal("PallyPowerFrameClassGroupSLine"):SetHeight( 2 + 13 * numMaxClass)
         getglobal("PallyPowerFrameClassGroupRLine"):SetHeight( 2 + 13 * numMaxClass)
-        for i = 1, 12 do
+        if PallyPowerFrameClassGroupJLine then PallyPowerFrameClassGroupJLine:SetHeight(2 + 13 * numMaxClass) end
+            for i = 1, 12 do
             if i <= numPallys then
                 getglobal("PallyPowerFramePlayer" .. i):Show()
             else
@@ -2138,9 +3075,11 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
             time2Text:SetJustifyH("CENTER")
         end
         if countText then
-            countText:SetWidth(PP_UI.META_WIDTH); countText:SetHeight(PP_UI.META_HEIGHT)
+            local fontPath = GameFontNormal:GetFont()
+            if fontPath then countText:SetFont(fontPath, 40, "OUTLINE") end
+            countText:SetWidth(40); countText:SetHeight(40)
             countText:ClearAllPoints()
-            countText:SetPoint("BOTTOM", btn, "BOTTOM", 0, 3)
+            countText:SetPoint("CENTER", classIcon, "CENTER", 0, 0)
             countText:SetJustifyH("CENTER")
         end
     else
@@ -2158,25 +3097,62 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
             buffIcon:SetPoint("LEFT", btn, "LEFT", 33, 0)
         end
 
-        -- Right-most 30px is the metadata/count block.
+        -- Three visual zones: class/status | assigned blessing | timers.
+        -- The two timers share the right-hand zone equally.
         if timeText then
-            timeText:SetWidth(PP_UI.META_WIDTH); timeText:SetHeight(PP_UI.META_HEIGHT)
+            timeText:SetWidth(PP_UI.META_WIDTH); timeText:SetHeight(14)
             timeText:ClearAllPoints()
-            timeText:SetPoint("TOPRIGHT", btn, "TOPRIGHT", -2, -1)
+            timeText:SetPoint("RIGHT", btn, "RIGHT", -2, 7)
             timeText:SetJustifyH("RIGHT")
         end
         if time2Text then
-            time2Text:SetWidth(PP_UI.META_WIDTH); time2Text:SetHeight(PP_UI.META_HEIGHT)
+            time2Text:SetWidth(PP_UI.META_WIDTH); time2Text:SetHeight(14)
             time2Text:ClearAllPoints()
-            time2Text:SetPoint("RIGHT", btn, "RIGHT", -2, 0)
+            time2Text:SetPoint("RIGHT", btn, "RIGHT", -2, -7)
             time2Text:SetJustifyH("RIGHT")
         end
         if countText then
-            countText:SetWidth(PP_UI.META_WIDTH); countText:SetHeight(PP_UI.META_HEIGHT)
+            local fontPath = GameFontNormal:GetFont()
+            if fontPath then countText:SetFont(fontPath, 40, "OUTLINE") end
+            countText:SetWidth(40); countText:SetHeight(40)
             countText:ClearAllPoints()
-            countText:SetPoint("BOTTOMRIGHT", btn, "BOTTOMRIGHT", -2, 1)
-            countText:SetJustifyH("RIGHT")
+            countText:SetPoint("CENTER", classIcon, "CENTER", 0, 0)
+            countText:SetJustifyH("CENTER")
         end
+    end
+end
+
+local function PP_SetSelfBuffIcon(kind, texture)
+    local separate = getglobal("PallyPowerBuffBar" .. kind .. "BuffIcon")
+    local combined = getglobal("PallyPowerBuffBarSelfCombined" .. kind .. "BuffIcon")
+    if separate then separate:SetTexture(texture) end
+    if combined then combined:SetTexture(texture) end
+end
+
+local function PP_SetSelfBuffBackdrop(kind, r, g, b)
+    local separate = getglobal("PallyPowerBuffBar" .. kind)
+    local combined = getglobal("PallyPowerBuffBarSelfCombined" .. kind)
+    if separate then separate:SetBackdropColor(r, g, b, PP_PerUser.transparency) end
+    if combined then combined:SetBackdropColor(r, g, b, PP_PerUser.transparency) end
+end
+
+local function PP_SetRFNoOverlay(show)
+    local separate = getglobal("PallyPowerBuffBarRFNoRF")
+    local combined = getglobal("PallyPowerBuffBarSelfCombinedRFNoRF")
+    if separate then if show then separate:Show() else separate:Hide() end end
+    if combined then if show then combined:Show() else combined:Hide() end end
+end
+
+local function PallyPower_ApplyCombinedSelfGeometry(frame, horizontal)
+    if not frame then return end
+    frame:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
+    local slots = { getglobal(frame:GetName() .. "Aura"), getglobal(frame:GetName() .. "RF"), getglobal(frame:GetName() .. "Seal") }
+    if horizontal then
+        frame:SetWidth(PP_UI.BUFF_SHORT); frame:SetHeight(PP_UI.BUFF_LONG)
+        for i, slot in slots do if slot then slot:SetWidth(26); slot:SetHeight(28); slot:ClearAllPoints(); slot:SetPoint("TOP", frame, "TOP", 0, -1 - ((i - 1) * 30)) end end
+    else
+        frame:SetWidth(PP_UI.BUFF_LONG); frame:SetHeight(PP_UI.BUFF_SHORT)
+        for i, slot in slots do if slot then slot:SetWidth(28); slot:SetHeight(26); slot:ClearAllPoints(); slot:SetPoint("LEFT", frame, "LEFT", 1 + ((i - 1) * 30), 0) end end
     end
 end
 
@@ -2196,99 +3172,106 @@ local function PallyPower_ApplySpecialButtonGeometry(btn, horizontal)
         icon:SetWidth(PP_UI.BUFF_ICON)
         icon:SetHeight(PP_UI.BUFF_ICON)
         icon:ClearAllPoints()
-        icon:SetPoint("CENTER", btn, "CENTER", 0, 0)
+        if horizontal then
+            icon:SetPoint("TOP", btn, "TOP", 0, -3)
+        else
+            icon:SetPoint("LEFT", btn, "LEFT", 5, 0)
+        end
     end
+
 end
 
 function PallyPower_UpdateLayout()
     local namePlayer = UnitName("player")
     local horizontal = (PP_PerUser.horizontal == true)
-
-    PallyPowerBuffBarTitle:ClearAllPoints()
-    PallyPowerBuffBarTitle:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 0, 0)
-
     if horizontal then
-        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT)
-        PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG)
-        PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2)
-        PallyPowerBuffBarTitleText:SetText("PP")
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2); PallyPowerBuffBarTitleText:SetText("PP")
     else
-        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG)
-        PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT)
-        PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4)
-        PallyPowerBuffBarTitleText:SetText("PallyPower")
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4); PallyPowerBuffBarTitleText:SetText("PallyPower")
     end
-
     local hasAura = PallyPower_AuraAssignments[namePlayer] and PallyPower_AuraAssignments[namePlayer] ~= -1
     local hasSeal = PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1
-
-    local showRF = (PP_PerUser.showrfbutton == true and
-        PallyPower_RFAssignments[namePlayer] == true and
-        hasRighteousFury == true) and (IsPally == 1)
+    local hasJudgement = PallyPower_JudgementAssignments[namePlayer] ~= nil and PallyPower_JudgementAssignments[namePlayer] ~= -1
+    local rfAssignmentState = PallyPower_RFAssignments[namePlayer]
+    local showRF = (PP_PerUser.showrfbutton == true and (rfAssignmentState == true or rfAssignmentState == "off")) and (IsPally == 1)
     local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (IsPally == 1)
     local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (IsPally == 1)
-
-    local specialButtons = {
-        PallyPowerBuffBarRF,
-        PallyPowerBuffBarAura,
-        PallyPowerBuffBarSeal
-    }
-    for _, button in specialButtons do
-        button:Hide()
-        PallyPower_ApplySpecialButtonGeometry(button, horizontal)
+    local showJudgement = (PP_PerUser.showjudgementbutton == true and hasJudgement == true and PallyPowerBuffBarJudgement ~= nil) and (IsPally == 1)
+    local separateSelf = { PallyPowerBuffBarAura, PallyPowerBuffBarRF, PallyPowerBuffBarSeal }
+    for _, button in separateSelf do button:Hide(); PallyPower_ApplySpecialButtonGeometry(button, horizontal) end
+    PallyPowerBuffBarJudgement:Hide(); PallyPower_ApplySpecialButtonGeometry(PallyPowerBuffBarJudgement, horizontal)
+    PallyPowerBuffBarSelfCombined:Hide(); PallyPower_ApplyCombinedSelfGeometry(PallyPowerBuffBarSelfCombined, horizontal)
+    if showAura then PallyPowerBuffBarSelfCombinedAura:Show() else PallyPowerBuffBarSelfCombinedAura:Hide() end
+    if showRF then PallyPowerBuffBarSelfCombinedRF:Show() else PallyPowerBuffBarSelfCombinedRF:Hide() end
+    if showSeal then PallyPowerBuffBarSelfCombinedSeal:Show() else PallyPowerBuffBarSelfCombinedSeal:Hide() end
+    for i = 1, 10 do PallyPower_ApplyBlessingButtonGeometry(getglobal("PallyPowerBuffBarBuff" .. i), horizontal) end
+    local selfSpecials = {}
+    if PP_PerUser.combineselfbuffs == true then
+        if showAura or showRF or showSeal then table.insert(selfSpecials, PallyPowerBuffBarSelfCombined) end
+    else
+        if showAura then table.insert(selfSpecials, PallyPowerBuffBarAura) end
+        if showRF then table.insert(selfSpecials, PallyPowerBuffBarRF) end
+        if showSeal then table.insert(selfSpecials, PallyPowerBuffBarSeal) end
     end
 
-    for i = 1, 10 do
-        PallyPower_ApplyBlessingButtonGeometry(
-            getglobal("PallyPowerBuffBarBuff" .. i),
-            horizontal
-        )
-    end
-
-    local visibleButtons = {}
-    if showRF then table.insert(visibleButtons, PallyPowerBuffBarRF) end
-    if showAura then table.insert(visibleButtons, PallyPowerBuffBarAura) end
-    if showSeal then table.insert(visibleButtons, PallyPowerBuffBarSeal) end
-
-    local lastButton = PallyPowerBuffBarTitle
-
-    for _, button in visibleButtons do
-        button:Show()
-        button:ClearAllPoints()
-
-        if horizontal then
-            button:SetPoint("TOPLEFT", lastButton, "TOPRIGHT", 0, 0)
+    local above = {}
+    local below = {}
+    for _, button in selfSpecials do
+        if PP_PerUser.selfbuffsaboveheader == true then
+            table.insert(above, button)
         else
-            button:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, 0)
+            table.insert(below, button)
         end
+    end
+    if showJudgement then
+        if PP_PerUser.judgementaboveheader == true then
+            table.insert(above, PallyPowerBuffBarJudgement)
+        else
+            table.insert(below, PallyPowerBuffBarJudgement)
+        end
+    end
 
-        lastButton = button
+    local function PP_AnchorAfter(frame, previous)
+        frame:ClearAllPoints()
+        if horizontal then
+            frame:SetPoint("TOPLEFT", previous, "TOPRIGHT", 0, 0)
+        else
+            frame:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, 0)
+        end
     end
 
     local firstBlessing = PallyPowerBuffBarBuff1
-    firstBlessing:ClearAllPoints()
-    if horizontal then
-        firstBlessing:SetPoint("TOPLEFT", lastButton, "TOPRIGHT", 0, 0)
-    else
-        firstBlessing:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, 0)
-    end
+    PallyPowerBuffBarTitle:ClearAllPoints()
+    local previous = nil
 
-    for i = 2, 10 do
-        local button = getglobal("PallyPowerBuffBarBuff" .. i)
-        local previous = getglobal("PallyPowerBuffBarBuff" .. (i - 1))
+    for index, button in above do
+        button:Show()
         button:ClearAllPoints()
-
-        if horizontal then
-            button:SetPoint("TOPLEFT", previous, "TOPRIGHT", 0, 0)
+        if index == 1 then
+            button:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 0, 0)
         else
-            button:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, 0)
+            PP_AnchorAfter(button, previous)
         end
-
-        button:Hide()
+        previous = button
     end
 
-    return table.getn(visibleButtons)
+    if previous then
+        PP_AnchorAfter(PallyPowerBuffBarTitle, previous)
+    else
+        PallyPowerBuffBarTitle:SetPoint("TOPLEFT", PallyPowerBuffBar, "TOPLEFT", 0, 0)
+    end
+    previous = PallyPowerBuffBarTitle
+
+    for _, button in below do
+        button:Show()
+        PP_AnchorAfter(button, previous)
+        previous = button
+    end
+    PP_AnchorAfter(firstBlessing, previous)
+    for i = 2, 10 do local button=getglobal("PallyPowerBuffBarBuff"..i); local previous=getglobal("PallyPowerBuffBarBuff"..(i-1)); PP_AnchorAfter(button, previous); button:Hide() end
+    return table.getn(above) + table.getn(below)
 end
+
 
 function PallyPower_UpdateUI()
     if PP_UI_READY then PP_UI_UpdateState() end
@@ -2304,7 +3287,7 @@ function PallyPower_UpdateUI()
 	
     -- Buff Bar
     PallyPowerBuffBar:SetScale((PP_PerUser.uiscale or 1) * PP_PerUser.scalebar)
-    getglobal("PallyPowerBuffBarRFBuffIcon"):SetTexture(PallyPower_RighteousFury)
+    PP_SetSelfBuffIcon("RF", PallyPower_RighteousFury)
 
 
     local pclass, eclass = UnitClass("player")
@@ -2332,43 +3315,24 @@ function PallyPower_UpdateUI()
             icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
         end
         
-        -- RF is only shown when assigned. Red = assigned but missing;
-        -- successful detection below changes it to green.
-        PallyPowerBuffBarRF:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
+        -- RF tri-state truth:
+        -- RF assignment: green when present, red when missing.
+        -- no-RF assignment: green when absent, red when incorrectly present.
         local i
         local testUnitBuff
-        
-        -- Use Nampower API if available for better performance
-        if PP_NampowerAPI then
-            local auras = GetUnitField("player", "aura")
-            if auras then
-                for i = 1, table.getn(auras) do
-                    local spellId = auras[i]
-                    if spellId and spellId > 0 then
-                        local spellName = GetSpellRecField(spellId, "name")
-                        if spellName and spellName == "Righteous Fury" then
-                            PallyPowerBuffBarRF:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
-                            break
-                        end
-                    end
-                end
-            end
+        local rfActive = PallyPower_CheckRighteousFury()
+        local rfState = PallyPower_RFAssignments[namePlayer]
+        if rfState == "off" then
+            PP_SetSelfBuffBackdrop("RF", rfActive and 1 or 0, rfActive and 0 or 1, 0); PP_SetRFNoOverlay(true)
         else
-            -- Fallback to original method
-            for i = 1,40 do 
-                testUnitBuff = UnitBuff("player",i) 
-                if (testUnitBuff and testUnitBuff == string.gsub(BuffIcon[9],icons_prefix,"")) then 
-                    PallyPowerBuffBarRF:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
-                    break
-                end 
-            end
-        end 
+            PP_SetSelfBuffBackdrop("RF", rfActive and 0 or 1, rfActive and 1 or 0, 0); PP_SetRFNoOverlay(false)
+        end
     
-        PallyPowerBuffBarAura:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
+        PP_SetSelfBuffBackdrop("Aura", 0, 0, 0)
         if PallyPower_AuraAssignments[namePlayer] then
             -- Red = assigned aura missing; successful detection below changes it to green.
-            PallyPowerBuffBarAura:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
-            getglobal("PallyPowerBuffBarAuraBuffIcon"):SetTexture(AuraIcons[PallyPower_AuraAssignments[namePlayer]])
+            PP_SetSelfBuffBackdrop("Aura", 1, 0, 0)
+            PP_SetSelfBuffIcon("Aura", AuraIcons[PallyPower_AuraAssignments[namePlayer]])
             
             -- Use Nampower API if available for better performance
             if PP_NampowerAPI then
@@ -2380,7 +3344,7 @@ function PallyPower_UpdateUI()
                         if spellId and spellId > 0 then
                             local spellName = GetSpellRecField(spellId, "name")
                             if spellName and spellName == targetAuraName then
-                                PallyPowerBuffBarAura:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
+                                PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
                                 break
                             end
                         end
@@ -2393,50 +3357,40 @@ function PallyPower_UpdateUI()
                     if (testUnitBuff and PallyPower_AuraAssignments[namePlayer] ~= nil and 
                         AuraIcons[PallyPower_AuraAssignments[namePlayer]] ~= nil and
                         testUnitBuff == string.gsub(AuraIcons[PallyPower_AuraAssignments[namePlayer]],icons_prefix,"")) then 
-                        PallyPowerBuffBarAura:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
+                        PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
                         break
                     end 
                 end
             end
         else
-            getglobal("PallyPowerBuffBarAuraBuffIcon"):SetTexture(nil)
+            PP_SetSelfBuffIcon("Aura", nil)
         end
 
-        PallyPowerBuffBarSeal:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
+        PP_SetSelfBuffBackdrop("Seal", 0, 0, 0)
         if PallyPower_SealAssignments[namePlayer] then
-            getglobal("PallyPowerBuffBarSealBuffIcon"):SetTexture(SealIcons[PallyPower_SealAssignments[namePlayer]])
-            
-            -- Use Nampower API if available for better performance
-            if PP_NampowerAPI then
-                local auras = GetUnitField("player", "aura")
-                if auras and SealNames[PallyPower_SealAssignments[namePlayer]] then
-                    local targetSealName = SealNames[PallyPower_SealAssignments[namePlayer]]
-                    for i = 1, table.getn(auras) do
-                        local spellId = auras[i]
-                        if spellId and spellId > 0 then
-                            local spellName = GetSpellRecField(spellId, "name")
-                            if spellName and spellName == targetSealName then
-                                PallyPowerBuffBarSeal:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
-                                break
-                            end
-                        end
-                    end
-                end
-            else
-                -- Fallback to original method
-                for i=1,40 do 
-                    testUnitBuff = UnitBuff("player",i) 
-                    if (testUnitBuff and PallyPower_SealAssignments[namePlayer] ~= nil and 
-                        SealIcons[PallyPower_SealAssignments[namePlayer]] ~= nil and
-                        testUnitBuff == string.gsub(SealIcons[PallyPower_SealAssignments[namePlayer]],icons_prefix,"")) then 
-                        PallyPowerBuffBarSeal:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
+            local assignedSeal = PallyPower_SealAssignments[namePlayer]
+            local assignedSealIcon = SealIcons[assignedSeal]
+            PP_SetSelfBuffBackdrop("Seal", 1, 0, 0)
+            PP_SetSelfBuffIcon("Seal", assignedSealIcon)
+
+            -- Seal truth deliberately uses the base-client buff texture scan.
+            -- This works with or without Nampower and avoids depending on
+            -- custom-server spell-name records for player buffs.
+            if assignedSealIcon then
+                local wantedTexture = string.gsub(assignedSealIcon, icons_prefix, "")
+                for i = 1, 40 do
+                    testUnitBuff = UnitBuff("player", i)
+                    if testUnitBuff and testUnitBuff == wantedTexture then
+                        PP_SetSelfBuffBackdrop("Seal", 0, 1, 0)
                         break
-                    end 
+                    end
                 end
             end
         else
-            getglobal("PallyPowerBuffBarSealBuffIcon"):SetTexture(nil)
+            PP_SetSelfBuffIcon("Seal", nil)
         end
+
+        PallyPower_UpdateJudgementTracker()
 
         PallyPowerBuffBar:Show()
         PallyPowerBuffBarTitleText:SetText("PallyPower")
@@ -2453,6 +3407,17 @@ function PallyPower_UpdateUI()
                     local btn = getglobal("PallyPowerBuffBarBuff" .. BuffNum)
                     btn.classID = class
                     btn.buffID = assign[class]
+                    local countText = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text")
+                    local timeText = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time")
+                    local time2Text = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2")
+                    local classColor = PP_BuffBarClassColors[class]
+                    if classColor then
+                        if timeText then timeText:SetTextColor(classColor[1], classColor[2], classColor[3]) end
+                        if time2Text then time2Text:SetTextColor(classColor[1], classColor[2], classColor[3]) end
+                    end
+                    if countText then
+                        countText:SetTextColor(1, 0, 0)
+                    end
                     btn.need = {}
                     btn.have = {}
                     btn.range = {}
@@ -2498,40 +3463,36 @@ function PallyPower_UpdateUI()
                         end
                     end
 
-                    --Cleanup timers if no Have
+                    -- Invalidate inferred timers when a completed class sweep
+                    -- finds nobody with the assigned Blessing.
                     if nhave == 0 then
                         LastCast[assign[btn.classID] .. btn.classID] = nil
                         if CurrentBuffs[btn.classID] then
                             for unit, stats in CurrentBuffs[btn.classID] do
                                 if LastCastPlayer[stats.name] then
                                     LastCastPlayer[stats.name] = nil
+                                    LastCastPlayerStamp[stats.name] = nil
                                 end
                             end
                         end
                     end
 
-                    local individual_time = PALLYPOWER_GREATERBLESSINGDURATION    
-                    if CurrentBuffs[btn.classID] then
-                        for unit, stats in CurrentBuffs[btn.classID] do
-                            if LastCastPlayer[stats.name] and LastCastPlayer[stats.name] < individual_time then
-                                individual_time = LastCastPlayer[stats.name]
-                            end 
-                        end    
-                    end
-                    if individual_time ~= PALLYPOWER_GREATERBLESSINGDURATION then
-                        getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2"):SetText(PallyPower_FormatTime(individual_time))
-                    else
-                        getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2"):SetText("")
-                    end    
+                    local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
+                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time"):SetText(PallyPower_FormatTime(primaryTimer))
+                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2"):SetText(PallyPower_FormatTime(secondaryTimer))
 
-                    if ndead > 0 then
-                        getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text"):SetText(nneed .. " (" .. ndead .. ")")
+                    local counter = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text")
+                    if nneed == 0 then
+                        counter:SetText("")
+                        counter:Hide()
                     else
-                        getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text"):SetText(nneed)
+                        if ndead > 0 then
+                            counter:SetText(nneed .. " (" .. ndead .. ")")
+                        else
+                            counter:SetText(nneed)
+                        end
+                        counter:Show()
                     end
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time"):SetText(
-                        PallyPower_FormatTime(LastCast[assign[class] .. class])
-                    )
                     if not (nneed > 0 or nhave > 0 or ndead > 0) then
                     else
                         BuffNum = BuffNum + 1
@@ -2728,6 +3689,38 @@ function PallyPower_UpdateImprovedBlessingTalents(RankInfo)
     PallyPower_ApplyImprovedBlessingTalent(RankInfo, 1, "might")
 end
 
+local function PallyPower_FindTalentRankByName(wantedName)
+    if not wantedName then return 0 end
+    local numTabs = GetNumTalentTabs() or 0
+    for tab = 1, numTabs do
+        local numTalents = GetNumTalents(tab) or 0
+        for talent = 1, numTalents do
+            local talentName, _, _, _, currRank = GetTalentInfo(tab, talent)
+            if talentName == wantedName then
+                return tonumber(currRank) or 0
+            end
+        end
+    end
+    return 0
+end
+
+local function PallyPower_UpdateImprovedAuraTalents(AuraRankInfo)
+    if not AuraRankInfo then return end
+
+    local talentMap = {
+        [0] = "Improved Devotion Aura",
+        [1] = "Improved Retribution Aura",
+        [2] = "Improved Concentration Aura"
+    }
+
+    for auraID, talentName in pairs(talentMap) do
+        local info = AuraRankInfo[auraID]
+        if info and info["rank"] then
+            info["talent"] = PallyPower_FindTalentRankByName(talentName)
+        end
+    end
+end
+
 function PallyPower_ScanSpells()
     -- If test mode is active, inject fake data and skip real spell scanning
     if PP_TestMode then
@@ -2735,6 +3728,8 @@ function PallyPower_ScanSpells()
         AllPallys[UnitName("player")] = RankInfo
         AllPallysAuras[UnitName("player")] = AuraRankInfo
         AllPallysSeals[UnitName("player")] = SealRankInfo
+        AllPallysJudgements[UnitName("player")] = PallyPower_BuildJudgementCapability(SealRankInfo)
+        PallyPower_RFCapabilities[UnitName("player")] = hasRighteousFury == true
         PP_IsPally = true
         initialized = true
         if not PallyPower_Assignments[UnitName("player")] then
@@ -2750,6 +3745,8 @@ function PallyPower_ScanSpells()
     local RankInfo = {}
     local AuraRankInfo = {}
     local SealRankInfo = {}
+    hasRighteousFury = false
+    nameRighteousFury = nil
     local i = 1
 
     local icons_prefix
@@ -2762,11 +3759,13 @@ function PallyPower_ScanSpells()
     while true do
         local spellName, spellRank = GetSpellName(i, BOOKTYPE_SPELL)
         local spellTexture = GetSpellTexture(i, BOOKTYPE_SPELL)
+
         if not spellName then
             break
         end
 
-        if spellTexture == string.gsub(BuffIcon[9],icons_prefix,"") then
+        -- Language-neutral utility detection; preserve localized name for casting.
+        if spellTexture and string.find(spellTexture, "Spell_Holy_SealOfFury") then
             hasRighteousFury = true
             nameRighteousFury = spellName
         end
@@ -2779,6 +3778,11 @@ function PallyPower_ScanSpells()
         if spellTexture == PallyPower_LayOnHandsIcon then
             if GetSpellCooldown(i, BOOKTYPE_SPELL) == 0 then
                 RankInfo["LayOnHands"] = true
+            end
+        end
+        if spellTexture == PallyPower_HammerOfJusticeIcon then
+            if GetSpellCooldown(i, BOOKTYPE_SPELL) == 0 then
+                RankInfo["HammerOfJustice"] = true
             end
         end
 
@@ -2815,6 +3819,9 @@ function PallyPower_ScanSpells()
                         SealRankInfo[id]["id"] = i
                         SealRankInfo[id]["name"] = name
                         SealRankInfo[id]["talent"] = 0
+                        if spellTexture then
+                            SealIcons[id] = spellTexture
+                        end
                     end
                 end
             end
@@ -2835,6 +3842,7 @@ function PallyPower_ScanSpells()
                         RankInfo[id]["name"] = name
                         RankInfo[id]["spellname"] = spellName
                         RankInfo[id]["talent"] = 0
+                        PP_LocalizedBuffNameToID[spellName] = id
                     end
                 end
             end
@@ -2851,6 +3859,7 @@ function PallyPower_ScanSpells()
                         else
                             RankInfo[id]["id"] = i
                             RankInfo[id]["name"] = name
+                            PP_LocalizedBuffNameToID[spellName] = id
                         end
                     end
                 end
@@ -2866,45 +3875,17 @@ function PallyPower_ScanSpells()
 
     -- Improved Might/Wisdom are detected independently from talent tooltips.
     PallyPower_UpdateImprovedBlessingTalents(RankInfo)
-    --Improved Concentration Aura
-    nameTalent, icon, iconx, icony, currRank, maxRank = GetTalentInfo(1, 10);
-    if currRank > 0 then
-        for id, name in pairs(PallyPower_AuraID) do
-            if (id == 2) then
-                if AuraRankInfo and AuraRankInfo[id] and AuraRankInfo[id]["rank"] then
-                    AuraRankInfo[id]["talent"] = currRank
-                end
-            end
-        end
-    end
-    --Improved Devotion Aura
-    nameTalent, icon, iconx, icony, currRank, maxRank = GetTalentInfo(2, 1);
-    if currRank > 0 then
-        for id, name in pairs(PallyPower_AuraID) do
-            if (id == 0) then
-                if AuraRankInfo and AuraRankInfo[id] and AuraRankInfo[id]["rank"] then
-                    AuraRankInfo[id]["talent"] = currRank
-                end
-            end
-        end
-    end
-    --Improved Retribution Aura
-    nameTalent, icon, iconx, icony, currRank, maxRank = GetTalentInfo(3, 6);
-    if currRank > 0 then
-        for id, name in pairs(PallyPower_AuraID) do
-            if (id == 1) then
-                if AuraRankInfo and AuraRankInfo[id] and AuraRankInfo[id]["rank"] then
-                    AuraRankInfo[id]["talent"] = currRank
-                end
-            end
-        end
-    end
+    -- Aura talents are resolved by talent name rather than fixed tree/index.
+    -- This is robust across Vanilla-compatible servers with reordered talent entries.
+    PallyPower_UpdateImprovedAuraTalents(AuraRankInfo)
 
     local _, class = UnitClass("player")
     if class == "PALADIN" then
         AllPallys[UnitName("player")] = RankInfo
         AllPallysAuras[UnitName("player")] = AuraRankInfo
         AllPallysSeals[UnitName("player")] = SealRankInfo
+        AllPallysJudgements[UnitName("player")] = PallyPower_BuildJudgementCapability(SealRankInfo)
+        PallyPower_RFCapabilities[UnitName("player")] = hasRighteousFury == true
         PP_IsPally = true
         if initialized then
             PallyPower_SendSelf()
@@ -2920,6 +3901,7 @@ function PallyPower_ScanSpells()
     end
 
     PallyPower_ScanInventory()
+    PallyPower_UpdateJudgementDurationInfo()
     return RankInfo
 end
 
@@ -2927,6 +3909,8 @@ function PallyPower_Refresh()
     AllPallys = {}       
     AllPallysAuras = {} 
     AllPallysSeals = {} 
+    AllPallysJudgements = {}
+    PallyPower_RFCapabilities = {}
 
     --[[for name in PallyPower_Assignments do
         if (name ~= UnitName("player")) then
@@ -2969,6 +3953,7 @@ function PallyPower_Clear(fromupdate, who)
             PallyPower_Assignments[name].aura = -1
             PallyPower_Assignments[name].seal = -1
             PallyPower_Assignments[name].rf = false
+            PallyPower_Assignments[name].judgement = -1
             PallyPower_Tanks = {}
         end
     end
@@ -3020,6 +4005,12 @@ function PallyPower_SendSelf()
         cooldownsString = cooldownsString .. "0"
     end
     if RankInfo["LayOnHands"] and RankInfo["LayOnHands"] == true then
+        cooldownsString = cooldownsString .. "1"
+    else
+        cooldownsString = cooldownsString .. "0"
+    end
+    -- Optional third bit; old clients keep reading the original DI/LoH bits.
+    if RankInfo["HammerOfJustice"] and RankInfo["HammerOfJustice"] == true then
         cooldownsString = cooldownsString .. "1"
     else
         cooldownsString = cooldownsString .. "0"
@@ -3076,11 +4067,31 @@ function PallyPower_SendSelf()
         PallyPower_SendMessage(msg)
     end
     
-    -- Separate command: old PallyPower clients ignore RFSELF safely.
-    if PallyPower_RFAssignments[UnitName("player")] == true then
-        PallyPower_SendMessage("RFSELF 1")
+    -- New 1.8 judgement capability/assignment packet. Old clients ignore it.
+    local judgementInfo = AllPallysJudgements[UnitName("player")]
+    if judgementInfo then
+        local w = judgementInfo[0] and (tonumber(judgementInfo[0].rank) or 0) or 0
+        local l = judgementInfo[1] and (tonumber(judgementInfo[1].rank) or 0) or 0
+        local c = judgementInfo[2] and (tonumber(judgementInfo[2].rank) or 0) or 0
+        local t = judgementInfo[2] and (tonumber(judgementInfo[2].talent) or 0) or 0
+        local ja = PallyPower_JudgementAssignments[UnitName("player")]
+        local jaText = (ja ~= nil and ja >= 0) and tostring(ja) or "n"
+        PallyPower_SendMessage("JSELF " .. w .. "," .. l .. "," .. c .. "," .. t .. "@" .. jaText)
+    end
+
+    -- RF capability is separate from RF assignment. Old clients ignore RFCAP.
+    PallyPower_SendMessage("RFCAP " .. (hasRighteousFury and "1" or "0"))
+
+    -- Legacy RFSELF keeps old clients compatible: only positive RF is representable.
+    local rfState = PallyPower_RFAssignments[UnitName("player")]
+    PallyPower_SendMessage("RFSELF " .. (rfState == true and "1" or "0"))
+    -- Exact tri-state packet for PallyPowerVanilla clients.
+    if rfState == true then
+        PallyPower_SendMessage("RFSELF2 1")
+    elseif rfState == "off" then
+        PallyPower_SendMessage("RFSELF2 0")
     else
-        PallyPower_SendMessage("RFSELF 0")
+        PallyPower_SendMessage("RFSELF2 n")
     end
 
     for name, _ in pairs(PallyPower_Tanks) do
@@ -3136,7 +4147,6 @@ function PallyPower_ParseMessage(sender, msg)
                 end
                 AllPallys[sender] = newPally
                 PallyPower_Assignments[sender] = newAssignments
-                PallyPower_RFAssignments[sender] = false
                 PP_NextScan = 0.1 --PallyPower_UpdateUI()
             end
         end
@@ -3192,12 +4202,52 @@ function PallyPower_ParseMessage(sender, msg)
                 PP_NextScan = 0 --PallyPower_UpdateUI()
             end
         end
-        if string.find(msg, "^RFSELF") then
+        if string.find(msg, "^JSELF") then
+            local _, _, w, l, c, t, assigned = string.find(msg, "^JSELF ([0-9]+),([0-9]+),([0-9]+),([0-9]+)@([0-9n]+)")
+            if w and l and c and t then
+                AllPallysJudgements[sender] = {
+                    [0] = { rank = tonumber(w) or 0, talent = 0 },
+                    [1] = { rank = tonumber(l) or 0, talent = 0 },
+                    [2] = { rank = tonumber(c) or 0, talent = tonumber(t) or 0 }
+                }
+                local value = -1
+                if assigned and assigned ~= "n" then value = tonumber(assigned) or -1 end
+                if value >= 0 and not PallyPower_JudgementCanAssign(sender, value) then value = -1 end
+                PallyPower_JudgementAssignments[sender] = value
+                PP_NextScan = 0
+            end
+        end
+        if string.find(msg, "^RFCAP") then
+            local _, _, capable = string.find(msg, "^RFCAP ([01])")
+            if capable then
+                PallyPower_RFCapabilities[sender] = (capable == "1")
+                if capable == "0" and PallyPower_RFAssignments[sender] == true then
+                    PallyPower_RFAssignments[sender] = nil
+                end
+                PP_NextScan = 0
+            end
+        end
+        if string.find(msg, "^RFSELF ") then
             local _, _, assigned = string.find(msg, "^RFSELF ([01])")
             if assigned then
-                PallyPower_RFAssignments[sender] = (assigned == "1")
+                if assigned == "1" and PallyPower_RFCapabilities[sender] ~= false then
+                    PallyPower_RFAssignments[sender] = true
+                else
+                    PallyPower_RFAssignments[sender] = nil
+                end
             end
-            PP_NextScan = 0 --PallyPower_UpdateUI()
+            PP_NextScan = 0
+        end
+        if string.find(msg, "^RFSELF2") then
+            local _, _, state = string.find(msg, "^RFSELF2 ([n10])")
+            if state == "1" and PallyPower_RFCapabilities[sender] ~= false then
+                PallyPower_RFAssignments[sender] = true
+            elseif state == "0" then
+                PallyPower_RFAssignments[sender] = "off"
+            elseif state == "n" then
+                PallyPower_RFAssignments[sender] = nil
+            end
+            PP_NextScan = 0
         end
         if string.find(msg, "^ASSIGN") then
            local  _, _, name, class, skill = string.find(msg, "^ASSIGN (.*) (.*) (.*)")
@@ -3248,14 +4298,47 @@ function PallyPower_ParseMessage(sender, msg)
             PallyPower_SealAssignments[name] = skill
             PP_NextScan = 0 --PallyPower_UpdateUI()
         end
-        if string.find(msg, "^RFASSIGN") then
+        if string.find(msg, "^JASSIGN") then
+            local _, _, name, skill = string.find(msg, "^JASSIGN (.*) (.*)")
+            if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
+                return false
+            end
+            skill = tonumber(skill)
+            if not name or skill == nil then return false end
+            if skill >= 0 and not PallyPower_JudgementCanAssign(name, skill) then
+                skill = -1
+            end
+            PallyPower_JudgementAssignments[name] = skill
+            PP_JudgementNextScan = 0
+            PP_NextScan = 0
+        end
+        if string.find(msg, "^RFASSIGN ") then
             local _, _, name, assigned = string.find(msg, "^RFASSIGN (.*) ([01])")
             if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
                 return false
             end
             if not name or not assigned then return false end
-            PallyPower_RFAssignments[name] = (assigned == "1")
-            PP_NextScan = 0 --PallyPower_UpdateUI()
+            if assigned == "1" and PallyPower_RFCapabilities[name] ~= false then
+                PallyPower_RFAssignments[name] = true
+            else
+                PallyPower_RFAssignments[name] = nil
+            end
+            PP_NextScan = 0
+        end
+        if string.find(msg, "^RFASSIGN2") then
+            local _, _, name, state = string.find(msg, "^RFASSIGN2 (.*) ([n10])")
+            if (not (name == sender)) and (not (PallyPower_CheckRaidLeader(sender) or PP_PerUser.freeassign)) then
+                return false
+            end
+            if not name or not state then return false end
+            if state == "1" and PallyPower_RFCapabilities[name] ~= false then
+                PallyPower_RFAssignments[name] = true
+            elseif state == "0" then
+                PallyPower_RFAssignments[name] = "off"
+            elseif state == "n" then
+                PallyPower_RFAssignments[name] = nil
+            end
+            PP_NextScan = 0
         end
         if string.find(msg, "^MASSIGN") then
             local _, _, name, skill = string.find(msg, "^MASSIGN (.*) (.*)")
@@ -3298,8 +4381,10 @@ function PallyPower_ParseMessage(sender, msg)
             if AllPallys[sender] and cooldowns then
                 local diAvailable = string.sub(cooldowns, 1, 1)
                 local lhAvailable = string.sub(cooldowns, 2, 2)
+                local hojAvailable = string.sub(cooldowns, 3, 3)
                 AllPallys[sender]["DivineIntervention"] = (diAvailable == "1")
                 AllPallys[sender]["LayOnHands"] = (lhAvailable == "1")
+                AllPallys[sender]["HammerOfJustice"] = (hojAvailable == "1")
             else
                 -- Legacy clients may send packets in a different order; request
                 -- their normal SELF state instead of assuming it already exists.
@@ -3372,6 +4457,195 @@ function PallyPower_ResetPosition()
     end
 end
 
+
+local function PP_TooltipIcon(texture, size)
+    size = size or 16
+    return "|T" .. tostring(texture or "Interface\\Icons\\INV_Misc_QuestionMark") .. ":" .. size .. ":" .. size .. "|t"
+end
+
+local function PP_GetPlayerIndexFromFrame(frame)
+    if not frame or not frame.GetName then return nil end
+    local frameName = frame:GetName()
+    if not frameName then return nil end
+    local _, _, index = string.find(frameName, "PallyPowerFramePlayer(%d+)")
+    return tonumber(index)
+end
+
+local function PP_GetPlayerNameByIndex(index)
+    if not index or not AllPallys then return nil end
+    local i = 0
+    for name, _ in pairs(AllPallys) do
+        i = i + 1
+        if i == index then return name end
+    end
+    return nil
+end
+
+local function PP_AddCapabilityLine(texture, rank, talent, talentMax, showRank, talentRelevant)
+    local text = PP_TooltipIcon(texture, 18)
+
+    if showRank and rank and tonumber(rank) and tonumber(rank) > 0 then
+        text = text .. "  Rank " .. tostring(rank)
+    end
+
+    if talentRelevant then
+        local talentRank = tonumber(talent) or 0
+        local maxRank = tonumber(talentMax) or 0
+        if talentRank > 0 then
+            if maxRank > 0 then
+                text = text .. (showRank and ", " or "  ") .. "Improved " .. talentRank .. "/" .. maxRank
+            else
+                text = text .. (showRank and ", " or "  ") .. "Improved " .. talentRank
+            end
+        else
+            text = text .. (showRank and ", " or "  ") .. "Untalented"
+        end
+    end
+
+    GameTooltip:AddLine(text, 1, 1, 1)
+end
+
+function PallyPower_ShowBlessingCapabilities(frame)
+    local index = PP_GetPlayerIndexFromFrame(frame)
+    local name = PP_GetPlayerNameByIndex(index)
+    if not name then return end
+
+    local skills = AllPallys[name]
+    if not skills then return end
+
+    GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+    GameTooltip:SetText(name .. "'s Blessings", 0.96, 0.55, 0.73)
+
+    -- IDs: 0 Wisdom, 1 Might, 2 Salvation, 3 Light, 4 Kings, 5 Sanctuary.
+    -- Kings and Salvation are single-rank in Vanilla, so rank is omitted.
+    local defs = {
+        [0] = { showRank = true,  talentRelevant = true,  talentMax = 5 },
+        [1] = { showRank = true,  talentRelevant = true,  talentMax = 5 },
+        [2] = { showRank = false, talentRelevant = false, talentMax = 0 },
+        [3] = { showRank = true,  talentRelevant = false, talentMax = 0 },
+        [4] = { showRank = false, talentRelevant = false, talentMax = 0 },
+        [5] = { showRank = true,  talentRelevant = false, talentMax = 0 },
+    }
+
+    for id = 0, 5 do
+        local info = skills[id]
+        if info and info.rank and tonumber(info.rank) and tonumber(info.rank) > 0 then
+            local d = defs[id]
+            PP_AddCapabilityLine(
+                BlessingIcon[id],
+                info.rank,
+                info.talent,
+                d.talentMax,
+                d.showRank,
+                d.talentRelevant
+            )
+        end
+    end
+
+    GameTooltip:Show()
+end
+
+function PallyPower_ShowAuraCapabilities(frame)
+    local index = PP_GetPlayerIndexFromFrame(frame)
+    local name = PP_GetPlayerNameByIndex(index)
+    if not name then return end
+
+    local auraInfo = AllPallysAuras and AllPallysAuras[name]
+    if not auraInfo then return end
+
+    GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+    GameTooltip:SetText(name .. "'s Auras", 0.96, 0.55, 0.73)
+
+    -- Aura IDs: 0 Devo, 1 Retri, 2 Conc, 3 Shadow, 4 Frost, 5 Fire, 6 Sanctity.
+    -- Conc and Sanctity are single-rank; only Devo/Retri/Conc have relevant talents.
+    local defs = {
+        [0] = { showRank = true,  talentRelevant = true,  talentMax = 5 },
+        [1] = { showRank = true,  talentRelevant = true,  talentMax = 2 },
+        [2] = { showRank = false, talentRelevant = true,  talentMax = 3 },
+        [3] = { showRank = true,  talentRelevant = false, talentMax = 0 },
+        [4] = { showRank = true,  talentRelevant = false, talentMax = 0 },
+        [5] = { showRank = true,  talentRelevant = false, talentMax = 0 },
+        [6] = { showRank = false, talentRelevant = false, talentMax = 0 },
+    }
+
+    for id = 0, 6 do
+        local info = auraInfo[id]
+        if info and info.rank and tonumber(info.rank) and tonumber(info.rank) > 0 then
+            local d = defs[id]
+            PP_AddCapabilityLine(
+                AuraIcons[id],
+                info.rank,
+                info.talent,
+                d.talentMax,
+                d.showRank,
+                d.talentRelevant
+            )
+        end
+    end
+
+    GameTooltip:Show()
+end
+
+function PallyPower_ShowAllSealCapabilities(frame)
+    local index = PP_GetPlayerIndexFromFrame(frame)
+    local name = PP_GetPlayerNameByIndex(index)
+    if not name then return end
+
+    local seals = AllPallysSeals and AllPallysSeals[name]
+    if not seals then return end
+
+    GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+    GameTooltip:SetText(name .. "'s Seals", 0.96, 0.55, 0.73)
+
+    for id = 0, 5 do
+        local info = seals[id]
+        if info and info.rank and tonumber(info.rank) and tonumber(info.rank) > 0 then
+            -- Seal of Justice (ID 3) is a single-rank Seal in Vanilla.
+            local showRank = (id ~= 3)
+            PP_AddCapabilityLine(
+                SealIcons[id],
+                info.rank,
+                0,
+                0,
+                showRank,
+                false
+            )
+        end
+    end
+
+    GameTooltip:Show()
+end
+
+function PallyPower_ShowSealCapabilities(frame)
+    local index = PP_GetPlayerIndexFromFrame(frame)
+    local name = PP_GetPlayerNameByIndex(index)
+    if not name then return end
+
+    local judgementCapability = AllPallysJudgements and AllPallysJudgements[name]
+    if not judgementCapability then return end
+
+    GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+    GameTooltip:SetText(name .. "'s Seals", 0.96, 0.55, 0.73)
+
+    -- Judgement capability IDs: 0 Wisdom, 1 Light, 2 Crusader.
+    -- Only Crusader has a relevant improvement talent.
+    for id = 0, 2 do
+        local info = judgementCapability[id]
+        if info and info.rank and tonumber(info.rank) and tonumber(info.rank) > 0 then
+            PP_AddCapabilityLine(
+                PallyPower_JudgementIcons[id],
+                info.rank,
+                info.talent,
+                (id == 2) and 3 or 0,
+                true,
+                id == 2
+            )
+        end
+    end
+
+    GameTooltip:Show()
+end
+
 function PallyPower_ShowCredits()
     GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
     GameTooltip:SetText(PallyPower_Credits1, 1, 1, 1)
@@ -3392,39 +4666,14 @@ function PallyPower_ShowVersionTooltip()
 end
 
 function PallyPower_ShowAuras(btn)
-    GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
-    _, _, pnum, _ = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class")
-    pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-    local auras = AllPallysAuras[pname]
-    if auras then
-        GameTooltip:SetText(pname..PallyPower_Auras, 1, 1, 1)
-        for i = 3, 6 do
-            if auras[i] then
-                local strAura = auras[i].name.." "..auras[i].rank.."+"..auras[i].talent            
-                GameTooltip:AddLine(strAura)
-            end
-        end    
-        GameTooltip:Show()
-    end
+    -- Legacy callable name retained for compatibility.
+    PallyPower_ShowAuraCapabilities(btn)
 end
 
 function PallyPower_ShowSeals(btn)
-    GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
-    _, _, pnum, _ = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class")
-    pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-    local seals = AllPallysSeals[pname]
-    if seals then
-        GameTooltip:SetText(pname..PallyPower_Seals, 1, 1, 1)
-        for i = 0, 5 do
-            if seals[i] then
-                local strSeal = PallyPower_SealSpellPrefix..seals[i].name.." "..seals[i].rank
-                GameTooltip:AddLine(strSeal)
-            end
-        end    
-        GameTooltip:Show()
-    end
+    -- Legacy callable name retained for compatibility.
+    PallyPower_ShowAllSealCapabilities(btn)
 end
-
 
 function PallyPowerFrame_MouseDown(arg1)
     if (((not PallyPowerFrame.isLocked) or (PallyPowerFrame.isLocked == 0)) and (arg1 == "LeftButton" and (PP_PerUser.frameslocked == false))) then
@@ -3474,12 +4723,27 @@ end
 function PallyPowerGridButton_OnLoad(btn)
 end
 
+local function PallyPower_SendRFAssignment(name)
+    local state = PallyPower_RFAssignments[name]
+    -- Old clients see explicit no-RF as unassigned, which is the safest downgrade.
+    PallyPower_SendMessage("RFASSIGN " .. name .. " " .. (state == true and "1" or "0"))
+    if state == true then
+        PallyPower_SendMessage("RFASSIGN2 " .. name .. " 1")
+    elseif state == "off" then
+        PallyPower_SendMessage("RFASSIGN2 " .. name .. " 0")
+    else
+        PallyPower_SendMessage("RFASSIGN2 " .. name .. " n")
+    end
+end
+
+
 function PallyPowerGridButton_OnClick(btn, mouseBtn)
     local nameplayer = UnitName("player")
     local _, _, pnum, class = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class(.+)")
     if class == "A" then class = PALLYPOWER_AURA_CLASS end
     if class == "S" then class = PALLYPOWER_SEAL_CLASS end
     if class == "R" then class = PALLYPOWER_RF_CLASS end
+    if class == "J" then class = PALLYPOWER_JUDGEMENT_CLASS end
     pnum = pnum + 0
     class = class + 0
     pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
@@ -3488,7 +4752,7 @@ function PallyPowerGridButton_OnClick(btn, mouseBtn)
     end
 
     if (mouseBtn == "RightButton") then
-        if class ~= PALLYPOWER_AURA_CLASS and class ~= PALLYPOWER_SEAL_CLASS and class ~= PALLYPOWER_RF_CLASS then
+        if class ~= PALLYPOWER_AURA_CLASS and class ~= PALLYPOWER_SEAL_CLASS and class ~= PALLYPOWER_RF_CLASS and class ~= PALLYPOWER_JUDGEMENT_CLASS then
             PallyPower_Assignments[pname][class] = -1
             if (PallyPower_NormalAssignments[nameplayer] and PallyPower_NormalAssignments[nameplayer][class]) then
                 for lname in pairs(PallyPower_NormalAssignments[nameplayer][class]) do
@@ -3505,10 +4769,15 @@ function PallyPowerGridButton_OnClick(btn, mouseBtn)
             PallyPower_SealAssignments[pname] = -1
             PP_NextScan = 0 --PallyPower_UpdateUI()
             PallyPower_SendMessage("SASSIGN " .. pname .. " " .. "-1")
+        elseif class == PALLYPOWER_JUDGEMENT_CLASS then
+            PallyPower_JudgementAssignments[pname] = -1
+            PP_JudgementNextScan = 0
+            PP_NextScan = 0
+            PallyPower_SendMessage("JASSIGN " .. pname .. " -1")
         elseif class == PALLYPOWER_RF_CLASS then
-            PallyPower_RFAssignments[pname] = false
-            PP_NextScan = 0 --PallyPower_UpdateUI()
-            PallyPower_SendMessage("RFASSIGN " .. pname .. " 0")
+            PallyPower_RFAssignments[pname] = nil
+            PP_NextScan = 0
+            PallyPower_SendRFAssignment(pname)
         end
     else
         PallyPower_PerformCycle(pname, class, false)
@@ -3549,10 +4818,17 @@ function PallyPowerGridButton_OnEnter(btn)
                 spellName = "Seal of " .. PallyPower_SealID[sealIndex]
             end
         end
+    elseif class == "J" then
+        PallyPower_JudgementButton_OnEnter(btn)
+        return
     elseif class == "R" then
         local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-        if pallyName and PallyPower_RFAssignments[pallyName] == true then
-            spellName = "Righteous Fury"
+        if pallyName then
+            if PallyPower_RFAssignments[pallyName] == true then
+                spellName = "Righteous Fury"
+            elseif PallyPower_RFAssignments[pallyName] == "off" then
+                spellName = "No Righteous Fury"
+            end
         end
     -- It's a Blessing assignment (Class0-9)
     else
@@ -3731,15 +5007,49 @@ function PallyPower_PerformSealCycle(name, skipempty)
     PP_NextScan = 0 --PallyPower_UpdateUI()
 end
 
-function PallyPower_PerformRFCycle(name)
-    local assigned = not (PallyPower_RFAssignments[name] == true)
-    PallyPower_RFAssignments[name] = assigned
-    if assigned then
-        PallyPower_SendMessage("RFASSIGN " .. name .. " 1")
-    else
-        PallyPower_SendMessage("RFASSIGN " .. name .. " 0")
+function PallyPower_PerformJudgementCycle(name)
+    local shift = IsShiftKeyDown()
+    local current = PallyPower_JudgementAssignments[name]
+    if current == nil then current = -1 end
+    local selected = -1
+    for offset = 1, 4 do
+        local test = current + offset
+        if test > 2 then test = test - 4 end -- sequence -1,0,1,2
+        if test == -1 then
+            selected = -1
+            break
+        end
+        if PallyPower_JudgementCanAssign(name, test) and (shift or not PallyPower_JudgementAlreadyAssigned(test, name)) then
+            selected = test
+            break
+        end
     end
-    PP_NextScan = 0 --PallyPower_UpdateUI()
+    PallyPower_JudgementAssignments[name] = selected
+    PallyPower_SendMessage("JASSIGN " .. name .. " " .. selected)
+    PP_JudgementNextScan = 0
+    PP_NextScan = 0
+end
+
+
+function PallyPower_PerformRFCycle(name)
+    local state = PallyPower_RFAssignments[name]
+    if PallyPower_RFCapabilities[name] == false then
+        if state == "off" then
+            PallyPower_RFAssignments[name] = nil
+        else
+            PallyPower_RFAssignments[name] = "off"
+        end
+    else
+        if state == true then
+            PallyPower_RFAssignments[name] = "off"
+        elseif state == "off" then
+            PallyPower_RFAssignments[name] = nil
+        else
+            PallyPower_RFAssignments[name] = true
+        end
+    end
+    PallyPower_SendRFAssignment(name)
+    PP_NextScan = 0
 end
 
 function PallyPower_PerformCycleBackwards(name, class, skipempty)
@@ -3750,6 +5060,10 @@ function PallyPower_PerformCycleBackwards(name, class, skipempty)
     end
     if class == PALLYPOWER_SEAL_CLASS then
         PallyPower_PerformSealCycleBackwards(name, skipempty)
+        return
+    end
+    if class == PALLYPOWER_JUDGEMENT_CLASS then
+        PallyPower_PerformJudgementCycle(name)
         return
     end
     if class == PALLYPOWER_RF_CLASS then
@@ -3840,6 +5154,10 @@ function PallyPower_PerformCycle(name, class, skipempty)
 
     if class == PALLYPOWER_SEAL_CLASS then
         PallyPower_PerformSealCycle(name, skipempty)
+        return
+    end
+    if class == PALLYPOWER_JUDGEMENT_CLASS then
+        PallyPower_PerformJudgementCycle(name)
         return
     end
     if class == PALLYPOWER_RF_CLASS then
@@ -4102,6 +5420,9 @@ end
 -- Helper function for Nampower: Convert spell name to buff ID
 function PallyPower_GetBuffIDFromSpellName(spellName)
     if not spellName then return -2 end
+    if PP_LocalizedBuffNameToID[spellName] ~= nil then
+        return PP_LocalizedBuffNameToID[spellName]
+    end
     
     -- Use pattern matching to handle ranks (e.g., "Blessing of Wisdom (Rank 3)")
     -- Wisdom
@@ -4170,9 +5491,9 @@ function PallyPower_ScanRaid()
     while PP_Scanners[1] do
         unit = PP_Scanners[1]
         local name = UnitName(unit)
-        local class = UnitClass(unit)
-        if (name and class) then
-            local cid = PallyPower_GetClassID(class)
+        local _, classToken = UnitClass(unit)
+        if (name and classToken) then
+            local cid = PP_CLASS_TOKEN_ID[classToken] or -1
             if cid == 5 then -- hunters
                 if GetNumRaidMembers() > 0 then
                     local petId = "raidpet" .. string.sub(unit, 5)
@@ -4400,10 +5721,18 @@ function PallyPowerBuffButton_OnLoad(btn)
 end
 
 function PallyPowerBuffButton_OnClick(btn, mousebtn)
-    if (btn == getglobal("PallyPowerBuffBarRF")) and (hasRighteousFury == true) and 
-       (nameRighteousFury ~= nil)
-    then
-        CastSpellByName(nameRighteousFury)
+    if btn == getglobal("PallyPowerBuffBarRF") then
+        local rfState = PallyPower_RFAssignments[UnitName("player")]
+        if rfState == "off" then
+            if PallyPower_CheckRighteousFury() then
+                PallyPower_CancelRighteousFury()
+                PP_NextScan = 0
+            end
+            return
+        end
+        if rfState == true and hasRighteousFury == true and nameRighteousFury ~= nil then
+            CastSpellByName(nameRighteousFury)
+        end
         return
     end
 
@@ -4514,7 +5843,8 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
             if btn.buffID == 0 or btn.buffID == 1 or btn.buffID == 4 then
                 local count = PP_Symbols
                 if count == 0 then
-                    missingReagent = "Symbol of Kings"
+                    local localizedSymbol = GetItemInfo and GetItemInfo(21177)
+                    missingReagent = localizedSymbol or "Symbol of Kings"
                 end
             end
         end
@@ -4649,6 +5979,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
 
                 SpellTargetUnit(unit)
 
+                PP_BeginBlessingTimerTxn()
                 PP_NextScan = 1
                 if (RegularBlessings == true) then
                     LastCast[btn.buffID .. btn.classID] = PALLYPOWER_NORMALBLESSINGDURATION
@@ -4696,6 +6027,8 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                 else
                     tinsert(LastCastOn[btn.classID], unit)
                 end
+
+                PP_HoldBlessingTimerTxn()
 
                 if blessing ~= -1 and mousebtn == "RightButton" then
                     PallyPower_ShowBuffFeedback(
@@ -4913,6 +6246,7 @@ function PallyPower_AutoBless(mousebutton)
 
                         SpellTargetUnit(unit)
 
+                        PP_BeginBlessingTimerTxn()
                         PP_NextScan = 1
                         if (RegularBlessings == true) then
                             LastCast[btn.buffID .. btn.classID] = PALLYPOWER_NORMALBLESSINGDURATION
@@ -4960,6 +6294,9 @@ function PallyPower_AutoBless(mousebutton)
                         else
                             tinsert(LastCastOn[btn.classID], unit)
                         end
+
+                        PP_HoldBlessingTimerTxn()
+
                         if blessing ~= -1 and mousebutton == "Hotkey1" then
                             PallyPower_ShowBuffFeedback(
                                 format(
@@ -5500,8 +6837,8 @@ SlashCmdList["PPDBG"] = function()
   log("")
   log("--- Scan Info (Player) ---")
   if PP_ScanInfo then
-    local class = UnitClass("player")
-    local cid = PallyPower_GetClassID and PallyPower_GetClassID(class)
+    local _, classToken = UnitClass("player")
+    local cid = PP_CLASS_TOKEN_ID[classToken] or -1
     if cid and PP_ScanInfo[cid] and PP_ScanInfo[cid]["player"] then
       log("Found scan data for player:")
       for k, v in pairs(PP_ScanInfo[cid]["player"]) do

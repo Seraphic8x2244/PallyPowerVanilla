@@ -1,7 +1,7 @@
 ## Interface: 11200
 ## Title: PallyPowerVanilla
 ## Author: Seraphic8x2244
-## Version: 1.6.2
+## Version: 1.10.8
 ## Notes: PallyPower for World of Warcraft 1.12.1-based clients
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
