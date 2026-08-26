@@ -1,4 +1,4 @@
-# PallyPowerVanilla v1.7.1
+# PallyPowerVanilla v1.10.8
 
 PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** for World of Warcraft 1.12.1
 
@@ -13,22 +13,24 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 
 ## Fork Changes
 
-- **Refactor** - Refactoring decades of development into (hopefully) a more logical, easy to use structure. XML rewritten, LUA brought into one file.
-- **BuffBar UI** — Updated with cleaner buttons, horizontal layout now rotates blessing buttons so it fits on screen, new button artwork, verbose toggle added. Using PallyPower no longer cancels autoattack.
-- **Blessing Management UI** - Reorganised blessing/aura/symbol layout
-- **Dynamic Blessing data** — Blessing durations, mana costs, range, ranks and improvement talents are determined from the player's learned spells rather than hardcoded values.
-- **Self Buffs** - now also highlight red when missing, and update on event rather than the internal scan frequency.
-- **Righteous Fury** - is now assignable per-paladin, still hidable.
-- **Optional .dll enhancements** — nampower and unitxp_sp3 are supported optionally, enabled if found and report detection success/failure in advanced settings
-
-## How to Use
-
-PallyPowerVanilla works like PallyPower. Existing users should find the assignment system immediately familiar, including communication with compatible older versions of PallyPower.
-
-- **Left-click** a blessing to cast a Greater Blessing.
-- **Right-click** to cast a normal Blessing.
-- **Middle-click** a player in Blessing Management to mark them as a tank.
-- Common options are presented visually in the main interfaces, with less frequently used settings grouped under **Advanced Options**.
+- Ground up rewrite of the addon, with a familiar look
+- 100% backwards compatible
+- No hard-coded durations, ranks, values, timer or talents. Dynamic look up as best as can reasonably be done
+- BuffBar Changes
+- - Fixed Horizontal Layout
+  - Fixed fragile timers
+  - Selfbuffs can now but collapse into one box and/or moved above the header
+  - Left click for Greater Blessings - lesser if you don't have the spells or symbol of kings
+  - Right click for Lesser Blessings
+  - Added a judgement assignment and tracker, infers durations based on judgement cast and successful autoattacks. Supports dodge/parry refreshing judgements for _certain private server builds_
+- Assignment Changes
+- - Most of the "quick" options are now toggle buttons
+  - Middle-click to set a player as a tank
+  - Advanced controls moved into the old settings window
+  - You can assign the same aura to multiple paladins
+  - You can assign NOT righteous fury
+  - Seal assignment left for historical purposes...
+  - Visual Aura and Judgement summaries for ranks and talents
 
 ## Credits
 
