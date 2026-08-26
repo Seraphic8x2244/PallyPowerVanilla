@@ -17,14 +17,14 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 - 100% backwards compatible
 - No hard-coded durations, ranks, values, timer or talents. Dynamic look up as best as can reasonably be done
 - BuffBar Changes
-- - Fixed Horizontal Layout
+  - Fixed Horizontal Layout
   - Fixed fragile timers
   - Selfbuffs can now but collapse into one box and/or moved above the header
   - Left click for Greater Blessings - lesser if you don't have the spells or symbol of kings
   - Right click for Lesser Blessings
   - Added a judgement assignment and tracker, infers durations based on judgement cast and successful autoattacks. Supports dodge/parry refreshing judgements for _certain private server builds_
 - Assignment Changes
-- - Most of the "quick" options are now toggle buttons
+  - Most of the "quick" options are now toggle buttons
   - Middle-click to set a player as a tank
   - Advanced controls moved into the old settings window
   - You can assign the same aura to multiple paladins
