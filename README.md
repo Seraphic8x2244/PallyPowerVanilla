@@ -4,7 +4,7 @@ PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** 
 
 The aim is to preserve the familiar PallyPower experience and compatibility with existing versions while improving the addon for modern Vanilla clients and servers.
 
-![New UI](github-images/pp_161.png)
+
 
 ## Project Goals
 
@@ -23,6 +23,7 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
   - Left click for Greater Blessings - lesser if you don't have the spells or symbol of kings
   - Right click for Lesser Blessings
   - Added a judgement assignment and tracker, infers durations based on judgement cast and successful autoattacks. Supports dodge/parry refreshing judgements for _certain private server builds_
+  ![Updated Buffbar](github-images/pp_buffbar-1-10-8)
 - Assignment Changes
   - Most of the "quick" options are now toggle buttons
   - Middle-click to set a player as a tank
@@ -31,6 +32,7 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
   - You can assign NOT righteous fury
   - Seal assignment left for historical purposes...
   - Visual Aura and Judgement summaries for ranks and talents
+    ![Updated Assignments](github-images/pp_assignments-1-10-8)
 
 ## Credits
 
