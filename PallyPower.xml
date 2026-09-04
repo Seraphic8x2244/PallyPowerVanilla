@@ -334,12 +334,12 @@
 						<AbsDimension x="28" y="10" />
 					</Size>
 					<FontHeight>
-						<AbsValue val="15" />
+						<AbsValue val="11" />
 					</FontHeight>
 					<Anchors>
 						<Anchor point="TOPRIGHT">
 							<Offset>
-								<AbsDimension x="-2" y="-1" />
+								<AbsDimension x="-5" y="-2" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -349,12 +349,12 @@
 						<AbsDimension x="28" y="10" />
 					</Size>
 					<FontHeight>
-						<AbsValue val="15" />
+						<AbsValue val="11" />
 					</FontHeight>
 					<Anchors>
-						<Anchor point="RIGHT">
+						<Anchor point="BOTTOMRIGHT">
 							<Offset>
-								<AbsDimension x="-2" y="0" />
+								<AbsDimension x="-5" y="1" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -464,10 +464,12 @@
 		</Backdrop>
 		<Frames>
 			<Button name="$parentAura"><Size><AbsDimension x="28" y="26" /></Size><Anchors><Anchor point="LEFT"><Offset><AbsDimension x="1" y="0" /></Offset></Anchor></Anchors><Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background"><BackgroundInsets><AbsInset left="0" right="0" top="0" bottom="0" /></BackgroundInsets></Backdrop><Layers><Layer level="OVERLAY"><Texture name="$parentBuffIcon" file="Interface\Icons\Spell_Holy_DevotionAura"><Size><AbsDimension x="22" y="22" /></Size><Anchors><Anchor point="CENTER" /></Anchors></Texture></Layer></Layers><Scripts><OnLoad>this:RegisterForClicks("LeftButtonUp", "RightButtonUp")</OnLoad><OnClick>PallyPowerBuffButton_OnClick(PallyPowerBuffBarAura, arg1)</OnClick></Scripts></Button>
-			<Button name="$parentRF"><Size><AbsDimension x="28" y="26" /></Size><Anchors><Anchor point="LEFT"><Offset><AbsDimension x="31" y="0" /></Offset></Anchor></Anchors><Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background"><BackgroundInsets><AbsInset left="0" right="0" top="0" bottom="0" /></BackgroundInsets></Backdrop><Layers><Layer level="OVERLAY"><Texture name="$parentBuffIcon" file="Interface\Icons\Spell_Holy_SealOfFury"><Size><AbsDimension x="22" y="22" /></Size><Anchors><Anchor point="CENTER" /></Anchors></Texture><Texture name="$parentNoRF" file="Interface\Buttons\UI-Panel-MinimizeButton-Up" hidden="true">
+			<Button name="$parentRF"><Size><AbsDimension x="28" y="26" /></Size><Anchors><Anchor point="LEFT"><Offset><AbsDimension x="31" y="0" /></Offset></Anchor></Anchors><Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background"><BackgroundInsets><AbsInset left="0" right="0" top="0" bottom="0" /></BackgroundInsets></Backdrop><Layers><Layer level="OVERLAY"><Texture name="$parentBuffIcon" file="Interface\Icons\Spell_Holy_SealOfFury"><Size><AbsDimension x="22" y="22" /></Size><Anchors><Anchor point="CENTER" /></Anchors></Texture><FontString name="$parentNoRF" inherits="GameFontNormalLarge" text="X" justifyH="CENTER" justifyV="MIDDLE" outline="THICK" hidden="true">
 							<Size><AbsDimension x="24" y="24" /></Size>
+							<FontHeight><AbsValue val="20" /></FontHeight>
 							<Anchors><Anchor point="CENTER" relativeTo="$parentBuffIcon" relativePoint="CENTER" /></Anchors>
-						</Texture></Layer></Layers><Scripts><OnLoad>this:RegisterForClicks("LeftButtonUp", "RightButtonUp")</OnLoad><OnClick>PallyPowerBuffButton_OnClick(PallyPowerBuffBarRF, arg1)</OnClick></Scripts></Button>
+							<Color r="1" g="0" b="0" />
+						</FontString></Layer></Layers><Scripts><OnLoad>this:RegisterForClicks("LeftButtonUp", "RightButtonUp")</OnLoad><OnClick>PallyPowerBuffButton_OnClick(PallyPowerBuffBarRF, arg1)</OnClick></Scripts></Button>
 			<Button name="$parentSeal"><Size><AbsDimension x="28" y="26" /></Size><Anchors><Anchor point="LEFT"><Offset><AbsDimension x="61" y="0" /></Offset></Anchor></Anchors><Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background"><BackgroundInsets><AbsInset left="0" right="0" top="0" bottom="0" /></BackgroundInsets></Backdrop><Layers><Layer level="OVERLAY"><Texture name="$parentBuffIcon" file="Interface\Icons\Spell_Holy_SealOfWisdom"><Size><AbsDimension x="22" y="22" /></Size><Anchors><Anchor point="CENTER" /></Anchors></Texture></Layer></Layers><Scripts><OnLoad>this:RegisterForClicks("LeftButtonUp", "RightButtonUp")</OnLoad><OnClick>PallyPowerBuffButton_OnClick(PallyPowerBuffBarSeal, arg1)</OnClick></Scripts></Button>
 		</Frames>
 	</Frame>
@@ -847,10 +849,12 @@
 				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<Texture name="$parentNoRF" file="Interface\Buttons\UI-Panel-MinimizeButton-Up" hidden="true">
+						<FontString name="$parentNoRF" inherits="GameFontNormalLarge" text="X" justifyH="CENTER" justifyV="MIDDLE" outline="THICK" hidden="true">
 							<Size><AbsDimension x="24" y="24" /></Size>
+							<FontHeight><AbsValue val="20" /></FontHeight>
 							<Anchors><Anchor point="CENTER" relativeTo="$parentIcon" relativePoint="CENTER" /></Anchors>
-						</Texture>
+							<Color r="1" g="0" b="0" />
+						</FontString>
 					</Layer>
 				</Layers>
 			</Button>
@@ -1076,10 +1080,12 @@
 				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<Texture name="$parentNoRF" file="Interface\Buttons\UI-Panel-MinimizeButton-Up" hidden="true">
+						<FontString name="$parentNoRF" inherits="GameFontNormalLarge" text="X" justifyH="CENTER" justifyV="MIDDLE" outline="THICK" hidden="true">
 							<Size><AbsDimension x="24" y="24" /></Size>
+							<FontHeight><AbsValue val="20" /></FontHeight>
 							<Anchors><Anchor point="CENTER" relativeTo="$parentBuffIcon" relativePoint="CENTER" /></Anchors>
-						</Texture>
+							<Color r="1" g="0" b="0" />
+						</FontString>
 					</Layer>
 				</Layers>
 			</Button>
@@ -1101,10 +1107,10 @@
 				<Anchors><Anchor point="TOPLEFT" relativeTo="$parentSeal" relativePoint="BOTTOMLEFT" /></Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<FontString name="$parentTime" inherits="GameFontHighlightSmall" text="" justifyH="CENTER">
-							<Size><AbsDimension x="50" y="10" /></Size>
-							<FontHeight><AbsValue val="15" /></FontHeight>
-							<Anchors><Anchor point="TOPRIGHT"><Offset><AbsDimension x="-2" y="-1" /></Offset></Anchor></Anchors>
+						<FontString name="$parentTime" inherits="GameFontHighlightSmall" text="" justifyH="CENTER" justifyV="MIDDLE">
+							<Size><AbsDimension x="50" y="15" /></Size>
+							<FontHeight><AbsValue val="11" /></FontHeight>
+							<Anchors><Anchor point="TOPRIGHT"><Offset><AbsDimension x="-6" y="-4" /></Offset></Anchor></Anchors>
 						</FontString>
 						<FontString name="$parentDebug" inherits="GameFontNormalSmall" text="" justifyH="LEFT">
 							<Size><AbsDimension x="78" y="12" /></Size>
@@ -1115,9 +1121,9 @@
 				</Layers>
 				<Frames>
 					<StatusBar name="$parentDurationBar" minValue="0" maxValue="1" defaultValue="0">
-						<Size><AbsDimension x="50" y="4" /></Size>
+						<Size><AbsDimension x="62" y="4" /></Size>
 						<Anchors>
-							<Anchor point="BOTTOMRIGHT"><Offset><AbsDimension x="-4" y="5" /></Offset></Anchor>
+							<Anchor point="BOTTOMRIGHT"><Offset><AbsDimension x="2" y="5" /></Offset></Anchor>
 						</Anchors>
 						<BarTexture file="Interface\\TargetingFrame\\UI-StatusBar" />
 						<BarColor r="1" g="1" b="1" />
@@ -2913,5 +2919,7 @@
 		</Frames>
 		<Scripts><OnShow>PlaySound("UChatScrollButton");</OnShow><OnHide>PlaySound("UChatScrollButton");</OnHide></Scripts>
 	</Frame>
+
+
 
 </Ui>

@@ -276,40 +276,16 @@ local function PP_JudgementTooltipLines()
     return lines
 end
 
-local function PP_FindSecondsInLines(lines, preferJudgementText)
-    if not lines then return nil end
-    for _, text in ipairs(lines) do
-        if text then
-            local lower = string.lower(text)
-            if (not preferJudgementText) or string.find(lower, "judg") then
-                local _, _, seconds = string.find(lower, "for%s+(%d+)%s+sec")
-                if not seconds then
-                    _, _, seconds = string.find(lower, "(%d+)%s+sec")
-                end
-                if seconds then return tonumber(seconds) end
-            end
-        end
-    end
-    return nil
-end
-
-local function PP_FindSpellBookIndexByName(wantedName)
-    local i = 1
-    while true do
-        local spellName = GetSpellName(i, BOOKTYPE_SPELL)
-        if not spellName then break end
-        if spellName == wantedName then return i end
-        i = i + 1
-    end
-    return nil
-end
-
-local function PP_ScanJudgementBaseDuration()
+-- The Vanilla client already folds Lasting Judgement and equipment bonuses into
+-- the Seal tooltip. Use that final displayed Judgement duration as truth; if the
+-- tooltip cannot be read or parsed, fall back to Vanilla's base 10 seconds.
+local function PP_JudgementDurationFor(judgementID)
     local player = UnitName("player")
-    local crusaderSealID = PallyPower_JudgementSealID[2]
+    local sealID = PallyPower_JudgementSealID[judgementID]
     local spellIndex = nil
-    if player and AllPallysSeals[player] and AllPallysSeals[player][crusaderSealID] then
-        spellIndex = AllPallysSeals[player][crusaderSealID].id
+
+    if player and sealID and AllPallysSeals[player] and AllPallysSeals[player][sealID] then
+        spellIndex = AllPallysSeals[player][sealID].id
     end
     if not spellIndex or not PallyPowerSpellScanTooltip then return 10 end
 
@@ -317,145 +293,24 @@ local function PP_ScanJudgementBaseDuration()
     PallyPowerSpellScanTooltip:SetSpell(spellIndex, BOOKTYPE_SPELL)
     local lines = PP_JudgementTooltipLines()
 
-    -- Vanilla is 10 sec. English/custom tooltips can still override dynamically.
-    -- Non-English Vanilla therefore remains correct without an English spell-name dependency.
+    -- Restrict parsing to wording about Judgement so we do not accidentally
+    -- read the Seal's own duration or another number from the tooltip.
     for _, text in ipairs(lines) do
         if text then
             local lower = string.lower(text)
-            local _, _, seconds = string.find(lower, "judge.-for%s+(%d+)%s+sec")
-            if seconds then return tonumber(seconds) end
+            local _, _, seconds = string.find(lower, "judg.-for%s+(%d+)%s+sec")
+            if seconds then return tonumber(seconds) or 10 end
         end
     end
+
     local joined = string.lower(table.concat(lines, " "))
-    local _, _, seconds = string.find(joined, "judge.-for%s+(%d+)%s+sec")
+    local _, _, seconds = string.find(joined, "judg.-for%s+(%d+)%s+sec")
     return tonumber(seconds) or 10
 end
 
-local function PP_ScanLastingJudgement(baseDuration)
-    local result = {
-        rank = 0,
-        currentDuration = baseDuration,
-        affected = { [0] = true, [1] = true, [2] = true }
-    }
-
-    if not GetNumTalentTabs or not GetNumTalents or not GetTalentInfo then
-        return result
-    end
-
-    for tab = 1, (GetNumTalentTabs() or 0) do
-        for talent = 1, (GetNumTalents(tab) or 0) do
-            local talentName, _, _, _, currRank = GetTalentInfo(tab, talent)
-            if talentName == "Lasting Judgement" then
-                result.rank = tonumber(currRank) or 0
-
-                if result.rank > 0 and PallyPowerSpellScanTooltip and PallyPowerSpellScanTooltip.SetTalent then
-                    PallyPowerSpellScanTooltip:ClearLines()
-                    PallyPowerSpellScanTooltip:SetTalent(tab, talent)
-                    local lines = PP_JudgementTooltipLines()
-
-                    -- Only a learned talent may change the duration. Parse the
-                    -- current-rank tooltip dynamically; rank 0 always stays at base.
-                    local current = PP_FindSecondsInLines(lines, true)
-                    if current and current >= baseDuration then
-                        result.currentDuration = current
-                    end
-
-                    -- If the talent names specific Judgements, restrict its effect
-                    -- dynamically. Otherwise keep the Vanilla-compatible all-three
-                    -- fallback.
-                    local foundSpecific = false
-                    local affected = { [0] = false, [1] = false, [2] = false }
-                    for _, text in ipairs(lines) do
-                        local lower = text and string.lower(text) or ""
-                        if string.find(lower, "wisdom") then affected[0] = true; foundSpecific = true end
-                        if string.find(lower, "light") then affected[1] = true; foundSpecific = true end
-                        if string.find(lower, "crusader") then affected[2] = true; foundSpecific = true end
-                    end
-                    if foundSpecific then result.affected = affected end
-                end
-                return result
-            end
-        end
-    end
-    return result
-end
-
-local function PP_ScanAvengersJudgementBonus()
-    if not PallyPowerSpellScanTooltip or not PallyPowerSpellScanTooltip.SetInventoryItem then
-        return 0
-    end
-
-    local equippedCount = 0
-    local requiredCount = nil
-    local percent = nil
-
-    for slot = 1, 19 do
-        if GetInventoryItemLink("player", slot) then
-            PallyPowerSpellScanTooltip:ClearLines()
-            PallyPowerSpellScanTooltip:SetInventoryItem("player", slot)
-            local lines = PP_JudgementTooltipLines()
-
-            local itemHasSet = false
-            for _, text in ipairs(lines) do
-                if text and string.find(text, "Avenger's Battlegear") then
-                    itemHasSet = true
-                    local _, _, equipped = string.find(text, "%((%d+)/%d+%)")
-                    if equipped then equippedCount = math.max(equippedCount, tonumber(equipped) or 0) end
-                end
-            end
-
-            if itemHasSet and equippedCount == 0 then
-                -- Some Vanilla-compatible clients omit x/y from the set header.
-                equippedCount = equippedCount + 1
-            end
-
-            for _, text in ipairs(lines) do
-                if text then
-                    local lower = string.lower(text)
-                    if string.find(lower, "duration") and string.find(lower, "judgement") then
-                        local _, _, pct = string.find(text, "(%d+)%%")
-                        if pct then percent = tonumber(pct) or percent end
-                        local _, _, req = string.find(text, "^%((%d+)%)%s*[Ss]et:")
-                        if req then requiredCount = tonumber(req) end
-                    end
-                end
-            end
-        end
-    end
-
-    if percent and (not requiredCount or equippedCount >= requiredCount) then
-        return percent
-    end
-    return 0
-end
-
 function PallyPower_UpdateJudgementDurationInfo()
-    local base = PP_ScanJudgementBaseDuration()
-    local talent = PP_ScanLastingJudgement(base)
-    local setPercent = PP_ScanAvengersJudgementBonus()
-
-    local talentDuration = talent.currentDuration or base
-    local finalDuration = talentDuration
-    if setPercent and setPercent > 0 then
-        finalDuration = math.floor((talentDuration * (1 + setPercent / 100)) + 0.5)
-    end
-
-    PP_JudgementDurationInfo = {
-        base = base,
-        talentRank = talent.rank or 0,
-        talentDuration = talentDuration,
-        setPercent = setPercent or 0,
-        final = finalDuration,
-        affected = talent.affected
-    }
-end
-
-local function PP_JudgementDurationFor(judgementID)
-    local info = PP_JudgementDurationInfo or {}
-    if info.affected and info.affected[judgementID] == false then
-        return info.base or 10
-    end
-    return info.final or info.base or 10
+    -- Kept as a compatibility/no-op refresh hook. Duration is read directly
+    -- from the assigned Seal tooltip whenever a Judgement timer starts.
 end
 
 local function PP_JudgementFormatTime(seconds)
@@ -867,19 +722,8 @@ function PallyPower_JudgementTracker_OnEnter(btn)
 
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:SetText("Judgement of " .. PallyPower_JudgementID[id], 1, 1, 1)
-    if PP_JudgementDurationInfo then
-        local info = PP_JudgementDurationInfo
-        local durationText = "Expected duration: " .. tostring(PP_JudgementDurationFor(id)) .. " sec"
-        GameTooltip:AddLine(durationText, 0.8, 0.8, 0.8)
-        if (info.talentRank or 0) > 0 or (info.setPercent or 0) > 0 then
-            GameTooltip:AddLine(
-                "Base " .. tostring(info.base or 10) ..
-                " sec | Lasting Judgement " .. tostring(info.talentRank or 0) ..
-                "/3 | Set +" .. tostring(info.setPercent or 0) .. "%",
-                0.6, 0.6, 0.6
-            )
-        end
-    end
+    local durationText = "Expected duration: " .. tostring(PP_JudgementDurationFor(id)) .. " sec"
+    GameTooltip:AddLine(durationText, 0.8, 0.8, 0.8)
     if UnitExists("target") and UnitCanAttack("player", "target") then
         local present = PallyPower_TargetHasJudgement(id)
         GameTooltip:AddLine(
@@ -1049,6 +893,9 @@ local PP_AssignmentStorageMigrated = false
 
 local function PP_EnsureAssignmentRecord(name)
     if not name then return nil end
+    if not PallyPower_Assignments then
+        PallyPower_Assignments = {}
+    end
     if not PallyPower_Assignments[name] then
         PallyPower_Assignments[name] = {}
     end
@@ -1058,6 +905,9 @@ end
 local function PP_CreateAssignmentProxy(field)
     return setmetatable({}, {
         __index = function(_, name)
+            if not PallyPower_Assignments then
+                return nil
+            end
             local record = PallyPower_Assignments[name]
             if record then
                 return record[field]
@@ -1066,6 +916,9 @@ local function PP_CreateAssignmentProxy(field)
         end,
         __newindex = function(_, name, value)
             if value == nil then
+                if not PallyPower_Assignments then
+                    return
+                end
                 local record = PallyPower_Assignments[name]
                 if record then
                     record[field] = nil
@@ -1084,7 +937,11 @@ end
 function PallyPower_MigrateAssignmentStorage()
     if PP_AssignmentStorageMigrated then return end
 
-    -- SavedVariables are available when ADDON_LOADED fires.
+    -- SavedVariables are loaded immediately before ADDON_LOADED. On a character
+    -- with no existing PallyPower assignment data the saved-variable loader may
+    -- leave the canonical table nil, so normalize it before creating proxies.
+    PallyPower_Assignments = PallyPower_Assignments or {}
+
     local legacyAuras = PallyPower_AuraAssignments or {}
     local legacySeals = PallyPower_SealAssignments or {}
     local legacyRF = PallyPower_RFAssignments or {}
@@ -1176,13 +1033,6 @@ PP_JudgementTrack = {
     duration = 10,
     expiresAt = 0,
     truthPresent = nil
-}
-PP_JudgementDurationInfo = {
-    base = 10,
-    talentRank = 0,
-    talentDuration = 10,
-    setPercent = 0,
-    final = 10
 }
 PP_JudgementDebugUntil = 0
 
@@ -2789,6 +2639,11 @@ function PallyPowerGrid_Update(tdiff)
             if CurrentBuffs[ii - 1] then
 
                 for unit, stats in CurrentBuffs[ii - 1] do
+                    -- The XML only creates PALLYPOWER_MAXPERCLASS player buttons.
+                    -- Stop populating this class once those fixed UI slots are full.
+                    if currentPlayer >= PALLYPOWER_MAXPERCLASS then
+                        break
+                    end
 
                     local pbnt = fname .. "PlayerButton" .. (currentPlayer + 1) -- Index is based on 1
 
@@ -2810,9 +2665,6 @@ function PallyPowerGrid_Update(tdiff)
                         getglobal(pbnt):SetFrameStrata("DIALOG")
                         getglobal(pbnt):SetAlpha(1)        
                         currentPlayer = currentPlayer + 1
-                        if currentPlayer > PALLYPOWER_MAXPERCLASS then
-                            currentPlayer = PALLYPOWER_MAXPERCLASS
-                        end
                     else
                         getglobal(pbnt .. "Icon"):SetTexture("")
                         getglobal(pbnt):SetFrameStrata("BACKGROUND")
@@ -5777,32 +5629,26 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     end
     PP_Debug("Casting " .. btn.buffID .. " on " .. btn.classID)
     
-    -- Check mana before attempting to cast
-    local blessingType = PALLYPOWER_SMALLBLESSING
-    if (mousebtn == "LeftButton") then
-        if not RegularBlessings and AllPallys[UnitName("player")][btn.buffID]["id"] ~= AllPallys[UnitName("player")][btn.buffID]["idsmall"] then
-            blessingType = PALLYPOWER_GREATERBLESSING
-        end
-    end
-    
+    -- Select the actual spell first. Left-click normally uses Greater Blessing.
+    -- With no Symbols of Kings, fall back to the learned normal Blessing.
+    local spellInfo = AllPallys[UnitName("player")][btn.buffID]
+    local wantsGreater = mousebtn == "LeftButton"
+                         and not RegularBlessings
+                         and spellInfo["id"] ~= spellInfo["idsmall"]
+    local castAsGreater = wantsGreater and (PP_Symbols or 0) > 0
+    local blessingType = castAsGreater and PALLYPOWER_GREATERBLESSING or PALLYPOWER_SMALLBLESSING
+    local spellBookID = castAsGreater and spellInfo["id"] or spellInfo["idsmall"]
+
     if not PallyPower_HasEnoughMana(btn.buffID, blessingType) then
         SpellStopTargeting()
         PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-        PallyPower_ShowBuffFeedback("Not enough mana to cast blessing", 1, 0, 0)
+        PallyPower_ShowFeedback("Not enough mana to cast blessing", 1, 0, 0)
         return
     end
-    
-    if (mousebtn == "RightButton") then
-        if GetSpellCooldown(AllPallys[UnitName("player")][btn.buffID]["idsmall"], BOOKTYPE_SPELL) < 1 then
-            CastSpell(AllPallys[UnitName("player")][btn.buffID]["idsmall"], BOOKTYPE_SPELL)
-            castspellid = btn.buffID
-        else
-            PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-            return
-        end
-    elseif (mousebtn == "LeftButton") then
-        if GetSpellCooldown(AllPallys[UnitName("player")][btn.buffID]["id"], BOOKTYPE_SPELL) < 1 then
-            CastSpell(AllPallys[UnitName("player")][btn.buffID]["id"], BOOKTYPE_SPELL)
+
+    if mousebtn == "RightButton" or mousebtn == "LeftButton" then
+        if GetSpellCooldown(spellBookID, BOOKTYPE_SPELL) < 1 then
+            CastSpell(spellBookID, BOOKTYPE_SPELL)
             castspellid = btn.buffID
         else
             PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
@@ -5819,7 +5665,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                 RecentCast = true
             end
         else
-            if (mousebtn == "LeftButton" and not (AllPallys[UnitName("player")][btn.buffID]["id"] == AllPallys[UnitName("player")][btn.buffID]["idsmall"])) then
+            if castAsGreater then
                 if LastCast[btn.buffID .. btn.classID] and LastCast[btn.buffID .. btn.classID] > (PALLYPOWER_GREATERBLESSINGDURATION) - PALLYPOWER_BLESSINGTRESHOLD then
                     RecentCast = true
                 end
@@ -5834,28 +5680,6 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     
     -- Track failure reasons for better error messages
     local failureReasons = {}
-    
-    -- Check for reagents if trying to cast Greater Blessing (LeftButton on Greater mode)
-    local missingReagent = nil
-    if not RegularBlessings and mousebtn == "LeftButton" and AllPallys[UnitName("player")][btn.buffID] then
-        if AllPallys[UnitName("player")][btn.buffID]["id"] ~= AllPallys[UnitName("player")][btn.buffID]["idsmall"] then
-            -- This is a Greater Blessing, check for Symbol of Kings (Wisdom, Kings, Might need it)
-            if btn.buffID == 0 or btn.buffID == 1 or btn.buffID == 4 then
-                local count = PP_Symbols
-                if count == 0 then
-                    local localizedSymbol = GetItemInfo and GetItemInfo(21177)
-                    missingReagent = localizedSymbol or "Symbol of Kings"
-                end
-            end
-        end
-    end
-    
-    if missingReagent then
-        SpellStopTargeting()
-        PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-        PallyPower_ShowBuffFeedback("Out of " .. missingReagent, 1, 0, 0) -- Red color
-        return
-    end
     
     -- Sort units by proximity if UnitXP is available, otherwise use original iteration
     local sortedUnits
@@ -5878,11 +5702,11 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
             RecentCast = LastRecentCast
         end
         skipclear = false
-        if mousebtn == "LeftButton" and GetNormalBlessings(UnitName("player"),btn.classID,UnitName(unit)) ~= -1 then
+        if castAsGreater and GetNormalBlessings(UnitName("player"),btn.classID,UnitName(unit)) ~= -1 then
             --continue with next unit if GB and unit has Individual blessings assigned
         else 
             -- Disable Greater Blessing LeftButton for pets if assignments differ
-            if (btn.classID == 9) and (mousebtn == "LeftButton") then
+            if (btn.classID == 9) and castAsGreater then
                 local player = UnitName("player")
                 if PallyPower_Assignments[player][0] ~= PallyPower_Assignments[player][9] then
                     SpellStopTargeting()
@@ -5906,11 +5730,6 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
             end
 
             -- Debug cast checks
-            -- Check mana before targeting
-            local blessingType = (mousebtn == "LeftButton" and not RegularBlessings and 
-                                 AllPallys[UnitName("player")][btn.buffID] and
-                                 AllPallys[UnitName("player")][btn.buffID]["id"] ~= AllPallys[UnitName("player")][btn.buffID]["idsmall"]) 
-                                 and PALLYPOWER_GREATERBLESSING or PALLYPOWER_SMALLBLESSING
             local rangeBlessing = (castspelloverride ~= -1) and castspelloverride or btn.buffID
             local rangeType = (castspelloverride ~= -1) and PALLYPOWER_SMALLBLESSING or blessingType
             local blessingRange = PallyPower_GetBlessingRange(rangeBlessing, rangeType)
@@ -5985,7 +5804,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                     LastCast[btn.buffID .. btn.classID] = PALLYPOWER_NORMALBLESSINGDURATION
                     LastCastPlayer[stats.name] = PALLYPOWER_NORMALBLESSINGDURATION
                 else
-                    if (mousebtn == "LeftButton" and not(AllPallys[UnitName("player")][btn.buffID]["id"] == AllPallys[UnitName("player")][btn.buffID]["idsmall"])) then
+                    if castAsGreater then
                         LastCast[btn.buffID .. btn.classID] = PALLYPOWER_GREATERBLESSINGDURATION
                     else
                         if LastCast[btn.buffID .. btn.classID] == nil or LastCast[btn.buffID .. btn.classID] < PALLYPOWER_NORMALBLESSINGDURATION then 
@@ -5993,8 +5812,9 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                         elseif LastCast[btn.buffID .. btn.classID] ~= nil and LastCast[btn.buffID .. btn.classID] > PALLYPOWER_NORMALBLESSINGDURATION and mousebtn == "RightButton" then 
                             LastCastPlayer[stats.name] = PALLYPOWER_NORMALBLESSINGDURATION
                         end
-                        if blessing ~= -1 and mousebtn == "RightButton" then
+                        if (blessing ~= -1 and mousebtn == "RightButton") or (mousebtn == "LeftButton" and not castAsGreater) then
                             LastCastPlayer[stats.name] = PALLYPOWER_NORMALBLESSINGDURATION
+                            LastCastPlayerStamp[stats.name] = GetTime()
                         end
                     end
                 end
@@ -6005,7 +5825,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
                 if skipclear then
                     PallyPower_RemoveFromTable(btn.need,UnitName(unit))
                 end
-                if (RegularBlessings == false and mousebtn == "LeftButton" and not(AllPallys[UnitName("player")][btn.buffID]["id"] == AllPallys[UnitName("player")][btn.buffID]["idsmall"])) then
+                if castAsGreater then
                     for unit, stats in CurrentBuffs[btn.classID] do
                         if GetNormalBlessings(UnitName("player"),btn.classID,UnitName(unit)) == -1 then   
                             if UnitIsVisible(unit) then
@@ -6081,7 +5901,11 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
         errorMsg = format(PallyPower_CouldntFind, PallyPower_BlessingID[btn.buffID], PallyPower_ClassID[btn.classID])
     end
     
-    PallyPower_ShowBuffFeedback(errorMsg, 1, 1, 0)
+    if failureReasons["not enough mana"] and table.getn(failureReasons["not enough mana"]) > 0 then
+        PallyPower_ShowFeedback(errorMsg, 1, 0, 0)
+    else
+        PallyPower_ShowBuffFeedback(errorMsg, 1, 1, 0)
+    end
 end
 
 function PallyPower_CastingSalvationOnTank(punit, castspell, overridespell)
@@ -6357,10 +6181,10 @@ function PallyPowerBuffButton_OnEnter(btn)
         1,
         1
     )
-    GameTooltip:AddLine(PallyPower_Have .. table.concat(btn.have, ", "), 0.5, 1, 0.5)
-    GameTooltip:AddLine(PallyPower_Need .. table.concat(btn.need, ", "), 1, 0.5, 0.5)
-    GameTooltip:AddLine(PallyPower_NotHere .. table.concat(btn.range, ", "), 0.5, 0.5, 1)
-    GameTooltip:AddLine(PallyPower_Dead .. table.concat(btn.dead, ", "), 1, 0, 0)
+    GameTooltip:AddLine(PallyPower_Have .. table.getn(btn.have), 0.5, 1, 0.5)
+    GameTooltip:AddLine(PallyPower_Need .. table.getn(btn.need), 1, 0.5, 0.5)
+    GameTooltip:AddLine(PallyPower_NotHere .. table.getn(btn.range), 0.5, 0.5, 1)
+    GameTooltip:AddLine(PallyPower_Dead .. table.getn(btn.dead), 1, 0, 0)
     GameTooltip:Show()
 end
 
@@ -7160,3 +6984,4 @@ function PallyPower_PrintTable(tbl, indent)
         end
     end
 end
+
