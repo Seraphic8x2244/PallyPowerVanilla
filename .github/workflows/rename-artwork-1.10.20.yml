@@ -1,0 +1,66 @@
+name: Rename artwork for 1.10.20
+
+on:
+  push:
+    branches:
+      - artwork-rename-1.10.20
+
+permissions:
+  contents: write
+
+jobs:
+  rename-artwork:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: artwork-rename-1.10.20
+
+      - name: Rename artwork and update references
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for f in artwork/pp_*.tga; do
+            [ -e "$f" ] || continue
+            git mv "$f" "artwork/${f#artwork/pp_}"
+          done
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          xml = Path('PallyPower.xml')
+          text = xml.read_text(encoding='utf-8')
+          bs = chr(92)
+          text = text.replace(bs + 'artwork' + bs + 'pp_', bs + 'artwork' + bs)
+          xml.write_text(text, encoding='utf-8')
+
+          toc = Path('PallyPowerVanilla.toc')
+          text = toc.read_text(encoding='utf-8')
+          text = re.sub(r'(?m)^## Version:.*$', '## Version: 1.10.20', text)
+          toc.write_text(text, encoding='utf-8')
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          text = re.sub(r'^# PallyPowerVanilla v[^\n]+', '# PallyPowerVanilla v1.10.20', text, count=1)
+          readme.write_text(text, encoding='utf-8')
+
+          remaining = []
+          for path in (Path('PallyPower.xml'), Path('PallyPower.lua')):
+            if path.exists() and (bs + 'artwork' + bs + 'pp_') in path.read_text(encoding='utf-8'):
+              remaining.append(str(path))
+          if remaining:
+            raise SystemExit('Remaining artwork pp_ references: ' + ', '.join(remaining))
+
+          old_files = list(Path('artwork').glob('pp_*.tga'))
+          if old_files:
+            raise SystemExit('Remaining pp_ artwork files: ' + ', '.join(map(str, old_files)))
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Rename artwork files and update references for 1.10.20"
+          git push origin HEAD:artwork-rename-1.10.20
