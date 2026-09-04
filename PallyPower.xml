@@ -1597,7 +1597,7 @@
 						<Offset><AbsDimension x="-6" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_close.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\close.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1693,7 +1693,7 @@
 						<Offset><AbsDimension x="-29" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_rotate.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\rotate.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1722,7 +1722,7 @@
 						<Offset><AbsDimension x="-52" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_bin.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\bin.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1742,7 +1742,7 @@
 						<Offset><AbsDimension x="-75" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_config.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\config.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1762,7 +1762,7 @@
 						<Offset><AbsDimension x="-98" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_position.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\position.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1794,7 +1794,7 @@
 						<Offset><AbsDimension x="-213" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_lock.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\lock.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1811,7 +1811,7 @@
 						<Offset><AbsDimension x="-190" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_text.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\text.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1828,7 +1828,7 @@
 						<Offset><AbsDimension x="-167" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_sound.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\sound.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1845,7 +1845,7 @@
 						<Offset><AbsDimension x="-144" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_orientation.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\orientation.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
@@ -1863,7 +1863,7 @@
 						<Offset><AbsDimension x="-121" y="-6" /></Offset>
 					</Anchor>
 				</Anchors>
-				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\pp_announce.tga">
+				<NormalTexture file="Interface\AddOns\PallyPowerVanilla\artwork\announce.tga">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
