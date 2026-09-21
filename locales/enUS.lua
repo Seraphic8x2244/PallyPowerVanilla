@@ -66,7 +66,7 @@ PallyPower_BuffBarTitle = "Pally Buffs (%d)"
 --- By Lines... Keep People the same, feel free to add yourself in the _Credits3 line if your localizing
 --- And feel free to add a friend or two to special thanks
 PallyPower_Credits1 = "Pally Power Vanilla"
-PallyPower_Credits2 = "Version "..PallyPower_Version
+PallyPower_Credits2 = "Version"
 PallyPower_Credits3 = ""
 PallyPower_Credits4 = "Original update by Hjorim / Sneakyfoot / Rake / Xerron / Azgaardian / Aznamir / ivanovlk / TheRealFayz"
 
