@@ -547,7 +547,7 @@ end
 
 function PallyPower_JudgementFailedRefresh_OnEnter(btn)
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-    GameTooltip:SetText("Dodges/parries refresh Judgements", 1, 1, 1)
+    GameTooltip:SetText(PALLYPOWER_TOOLTIP_JUDGEMENT_REFRESH, 1, 1, 1)
     GameTooltip:AddLine(
         "Enable on servers where dodged or parried attacks refresh Judgement duration. Misses never refresh.",
         0.8, 0.8, 0.8, 1
@@ -693,10 +693,10 @@ function PallyPower_JudgementButton_OnEnter(btn)
     local pallyName = pnum and getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
     if not pallyName then return end
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-    GameTooltip:SetText(pallyName .. " - Judgement", 1, 1, 1)
+    GameTooltip:SetText(pallyName .. PALLYPOWER_TOOLTIP_JUDGEMENT_SUFFIX, 1, 1, 1)
     local capability = AllPallysJudgements[pallyName]
     if capability == nil then
-        GameTooltip:AddLine("Capability unknown (legacy PallyPower client)", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(PALLYPOWER_TOOLTIP_CAPABILITY_UNKNOWN, 0.8, 0.8, 0.8)
     else
         for id = 0, 2 do
             local entry = capability[id]
@@ -708,13 +708,13 @@ function PallyPower_JudgementButton_OnEnter(btn)
                 if id == 2 and talent > 0 then text = text .. " + Improved " .. talent .. "/3" end
                 GameTooltip:AddLine(text, 1, 1, 1)
             else
-                GameTooltip:AddLine(text .. "Unavailable", 0.45, 0.45, 0.45)
+                GameTooltip:AddLine(text .. PALLYPOWER_UI_UNAVAILABLE, 0.45, 0.45, 0.45)
             end
         end
     end
     local assigned = PallyPower_JudgementAssignments[pallyName]
     if assigned ~= nil and assigned >= 0 then
-        GameTooltip:AddLine("Assigned: Judgement of " .. PallyPower_JudgementID[assigned], 0.96, 0.55, 0.73)
+        GameTooltip:AddLine(PALLYPOWER_TOOLTIP_ASSIGNED_JUDGEMENT .. PallyPower_JudgementID[assigned], 0.96, 0.55, 0.73)
     end
     GameTooltip:Show()
 end
@@ -725,7 +725,7 @@ function PallyPower_JudgementTracker_OnEnter(btn)
     if id == nil or id < 0 then return end
 
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-    GameTooltip:SetText("Judgement of " .. PallyPower_JudgementID[id], 1, 1, 1)
+    GameTooltip:SetText(PALLYPOWER_TOOLTIP_JUDGEMENT_OF .. PallyPower_JudgementID[id], 1, 1, 1)
     local durationText = "Expected duration: " .. tostring(PP_JudgementDurationFor(id)) .. " sec"
     GameTooltip:AddLine(durationText, 0.8, 0.8, 0.8)
     if UnitExists("target") and UnitCanAttack("player", "target") then
@@ -737,7 +737,7 @@ function PallyPower_JudgementTracker_OnEnter(btn)
             0
         )
     else
-        GameTooltip:AddLine("No hostile target", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(PALLYPOWER_TOOLTIP_NO_HOSTILE_TARGET, 0.8, 0.8, 0.8)
     end
     GameTooltip:Show()
 end
@@ -1483,17 +1483,17 @@ local function PP_UI_UpdateState()
 
     if PP_UI_NampowerState then
         if PP_NampowerAPI then
-            PP_UI_NampowerState:SetText("|cff00ff00Enabled|r")
+            PP_UI_NampowerState:SetText(PALLYPOWER_UI_STATUS_ENABLED)
         else
-            PP_UI_NampowerState:SetText("|cff808080Not Detected|r")
+            PP_UI_NampowerState:SetText(PALLYPOWER_UI_STATUS_NOT_DETECTED)
         end
     end
 
     if PP_UI_UnitXPState then
         if PP_UnitXPDllLoaded then
-            PP_UI_UnitXPState:SetText("|cff00ff00Enabled|r")
+            PP_UI_UnitXPState:SetText(PALLYPOWER_UI_STATUS_ENABLED)
         else
-            PP_UI_UnitXPState:SetText("|cff808080Not Detected|r")
+            PP_UI_UnitXPState:SetText(PALLYPOWER_UI_STATUS_NOT_DETECTED)
         end
     end
 
@@ -1543,7 +1543,7 @@ function PallyPower_UI_Init()
     PP_UI_RegisterEscapeFrame("PallyPower_OptionsFrame")
 
     -- Buff Bar title and Management header controls are defined in XML.
-    PallyPowerBuffBarTitleText:SetText("PallyPower")
+    PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_TITLE)
     PallyPowerBuffBarTitleText:SetTextColor(0.96, 0.55, 0.73)
     PallyPowerBuffBarTitle:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
 
@@ -1628,7 +1628,7 @@ function PallyPower_UI_Init()
 
     -- Blessing Management header and top-left technical area.
     if PallyPowerFrameTitleText then
-        PallyPowerFrameTitleText:SetText("PallyPower - Blessing Management")
+        PallyPowerFrameTitleText:SetText(PALLYPOWER_UI_ASSIGNMENTS_TITLE)
         PallyPowerFrameTitleText:SetTextColor(0.96, 0.55, 0.73)
     end
 
@@ -1637,11 +1637,11 @@ function PallyPower_UI_Init()
         PP_UI_SmartButton:SetChecked(PP_PerUser.smartbuffs)
     end
     if PallyPowerFrameTitleFreeAssignText then
-        PallyPowerFrameTitleFreeAssignText:SetText("Free Assignment")
+        PallyPowerFrameTitleFreeAssignText:SetText(PALLYPOWER_FREEASSIGN)
     end
 
-    if PallyPowerFrameOptions then PallyPowerFrameOptions:SetText("Advanced") end
-    if PallyPowerFrameOptionButton then PallyPowerFrameOptionButton:SetText("Advanced") end
+    if PallyPowerFrameOptions then PallyPowerFrameOptions:SetText(PALLYPOWER_UI_ADVANCED) end
+    if PallyPowerFrameOptionButton then PallyPowerFrameOptionButton:SetText(PALLYPOWER_UI_ADVANCED) end
 
     -- Advanced Options layout is XML-owned.
     -- Lua only controls state/visibility and interaction behaviour.
@@ -1698,7 +1698,7 @@ function PallyPower_InitConfig()
        if PP_PerUser.unitxp_autoenabled == nil then
            PP_PerUser.useunitxp_sp3 = true
            PP_PerUser.unitxp_autoenabled = true
-           DEFAULT_CHAT_FRAME:AddMessage("[PallyPower] UnitXP SP3 detected and auto-enabled for range/LOS checking")
+           DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_AUTO_ENABLED)
        end
     else
         PP_UnitXPDllLoaded = false
@@ -2231,7 +2231,7 @@ function PallyPower_CancelRighteousFury()
         if texture and string.find(texture, "Spell_Holy_SealOfFury") then
             CancelPlayerBuff(index)
             UIErrorsFrame:Clear()
-            UIErrorsFrame:AddMessage("Righteous Fury Removed")
+            UIErrorsFrame:AddMessage(PALLYPOWER_MSG_RF_REMOVED)
             return true
         end
         counter = counter + 1
@@ -2254,7 +2254,7 @@ function PallyPower_CancelSalvationBuff()
                         -- Cancel using buff index (1-based for UnitBuff compatibility)
                         CancelPlayerBuff(auraIdx - 1);
                         UIErrorsFrame:Clear();
-                        UIErrorsFrame:AddMessage("Salvation Removed");
+                        UIErrorsFrame:AddMessage(PALLYPOWER_MSG_SALVATION_REMOVED);
                         return
                     end
                 end
@@ -2275,7 +2275,7 @@ function PallyPower_CancelSalvationBuff()
                     if string.find(texture, buff[i]) then
                         CancelPlayerBuff(index);
                         UIErrorsFrame:Clear();
-                        UIErrorsFrame:AddMessage("Salvation Removed");
+                        UIErrorsFrame:AddMessage(PALLYPOWER_MSG_SALVATION_REMOVED);
                         return
                     end
                     i = i + 1
@@ -2325,8 +2325,8 @@ function PallyPower_SlashCommandHandler(msg)
         testArg = string.lower(testArg)
         if testArg == "prot" or testArg == "holy" or testArg == "ret" then
             PP_TestMode = testArg
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff8800[PallyPower] Test mode ENABLED: |cffffffff" .. testArg)
-            DEFAULT_CHAT_FRAME:AddMessage("|cffff8800[PallyPower] Faking paladin spells/talents. Use |cffffffff/pp test off|cffff8800 to disable.")
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_ENABLED .. testArg)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_FAKE)
             PallyPower_ScanSpells()
             getglobal("PallyPowerBuffBar"):Show()
             PP_NextScan = 0.1
@@ -2334,7 +2334,7 @@ function PallyPower_SlashCommandHandler(msg)
         elseif testArg == "off" or testArg == "clear" or testArg == "reset" or testArg == "" then
             if PP_TestMode then
                 PP_TestMode = nil
-                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[PallyPower] Test mode DISABLED. Real spell data restored.")
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_DISABLED)
                 -- Re-scan real spells
                 PallyPower_ScanSpells()
                 -- If not actually a paladin, hide buff bar again
@@ -2344,16 +2344,16 @@ function PallyPower_SlashCommandHandler(msg)
                 end
                 PP_NextScan = 0.1
             else
-                DEFAULT_CHAT_FRAME:AddMessage("|cffffff00[PallyPower] Test mode is not active.")
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_INACTIVE)
             end
             return true
         else
-            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00[PallyPower] Test profiles: |cffffffffprot|cffffff00, |cffffffffholy|cffffff00, |cffffffffret|cffffff00, |cffffffffoff")
-            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  All profiles include: Wisdom 6, Might 7, Salvation 1, Light 3, Devo 7, Ret 5, Conc 1")
-            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test prot |r- + Sanctuary 4, Sanctity Aura")
-            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test holy |r- + Wisdom +5, Might +5 talents, Kings, Sanctity Aura")
-            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test ret  |r- + Kings, Devo Aura +5 talent, Sanctity Aura")
-            DEFAULT_CHAT_FRAME:AddMessage("|cffffff00  /pp test off  |r- Disable test mode")
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_PROFILES)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_COMMON)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_PROT)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_HOLY)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_RET)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_OFF)
             return true
         end
     end
@@ -3043,7 +3043,7 @@ function PallyPower_UpdateLayout()
     if horizontal then
         PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2); PallyPowerBuffBarTitleText:SetText("PP")
     else
-        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4); PallyPowerBuffBarTitleText:SetText("PallyPower")
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4); PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_TITLE)
     end
     local hasAura = PallyPower_AuraAssignments[namePlayer] and PallyPower_AuraAssignments[namePlayer] ~= -1
     local hasSeal = PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1
@@ -3249,7 +3249,7 @@ function PallyPower_UpdateUI()
         PallyPower_UpdateJudgementTracker()
 
         PallyPowerBuffBar:Show()
-        PallyPowerBuffBarTitleText:SetText("PallyPower")
+        PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_TITLE)
         BuffNum = 1
         if PallyPower_Assignments[namePlayer] then
             local assign = PallyPower_Assignments[namePlayer]
@@ -3790,7 +3790,7 @@ function PallyPower_Refresh()
 end
 
 function PallyPower_ConfirmClear()
-    PallyPowerWarningFrameText:SetText("Wipe all assignments?")
+    PallyPowerWarningFrameText:SetText(PALLYPOWER_TEXT_WIPE_ASSIGNMENTS)
     PallyPowerWarningFrame.func = PallyPower_Clear
     PallyPowerWarningFrame.value = nil
     ShowUIPanel(PallyPowerWarningFrame)
@@ -4370,7 +4370,7 @@ function PallyPower_ShowBlessingCapabilities(frame)
     if not skills then return end
 
     GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-    GameTooltip:SetText(name .. "'s Blessings", 0.96, 0.55, 0.73)
+    GameTooltip:SetText(name .. PALLYPOWER_TOOLTIP_BLESSINGS_SUFFIX, 0.96, 0.55, 0.73)
 
     -- IDs: 0 Wisdom, 1 Might, 2 Salvation, 3 Light, 4 Kings, 5 Sanctuary.
     -- Kings and Salvation are single-rank in Vanilla, so rank is omitted.
@@ -4410,7 +4410,7 @@ function PallyPower_ShowAuraCapabilities(frame)
     if not auraInfo then return end
 
     GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-    GameTooltip:SetText(name .. "'s Auras", 0.96, 0.55, 0.73)
+    GameTooltip:SetText(name .. PALLYPOWER_TOOLTIP_AURAS_SUFFIX, 0.96, 0.55, 0.73)
 
     -- Aura IDs: 0 Devo, 1 Retri, 2 Conc, 3 Shadow, 4 Frost, 5 Fire, 6 Sanctity.
     -- Conc and Sanctity are single-rank; only Devo/Retri/Conc have relevant talents.
@@ -4451,7 +4451,7 @@ function PallyPower_ShowAllSealCapabilities(frame)
     if not seals then return end
 
     GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-    GameTooltip:SetText(name .. "'s Seals", 0.96, 0.55, 0.73)
+    GameTooltip:SetText(name .. PALLYPOWER_TOOLTIP_SEALS_SUFFIX, 0.96, 0.55, 0.73)
 
     for id = 0, 5 do
         local info = seals[id]
@@ -4481,7 +4481,7 @@ function PallyPower_ShowSealCapabilities(frame)
     if not judgementCapability then return end
 
     GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-    GameTooltip:SetText(name .. "'s Seals", 0.96, 0.55, 0.73)
+    GameTooltip:SetText(name .. PALLYPOWER_TOOLTIP_SEALS_SUFFIX, 0.96, 0.55, 0.73)
 
     -- Judgement capability IDs: 0 Wisdom, 1 Light, 2 Crusader.
     -- Only Crusader has a relevant improvement talent.
@@ -6479,26 +6479,26 @@ SlashCmdList["PPUNITXP"] = function(msg)
   msg = string.lower(msg or "")
   
   if not PP_UnitXPDllLoaded then
-    DEFAULT_CHAT_FRAME:AddMessage("|cffff0000[PallyPower] UnitXP SP3 is not detected/loaded|r")
+    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_NOT_DETECTED)
     return
   end
   
   if msg == "on" or msg == "enable" or msg == "1" or msg == "true" then
     PP_PerUser.useunitxp_sp3 = true
     UseUnitXPSP3OptionChk:SetChecked(true)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[PallyPower] UnitXP SP3 range/LOS checking ENABLED|r")
+    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_ENABLED)
   elseif msg == "off" or msg == "disable" or msg == "0" or msg == "false" then
     PP_PerUser.useunitxp_sp3 = false
     UseUnitXPSP3OptionChk:SetChecked(false)
-    DEFAULT_CHAT_FRAME:AddMessage("|cffff9900[PallyPower] UnitXP SP3 range/LOS checking DISABLED|r")
+    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_DISABLED)
   else
     -- Toggle
     PP_PerUser.useunitxp_sp3 = not PP_PerUser.useunitxp_sp3
     UseUnitXPSP3OptionChk:SetChecked(PP_PerUser.useunitxp_sp3)
     if PP_PerUser.useunitxp_sp3 then
-      DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[PallyPower] UnitXP SP3 range/LOS checking ENABLED|r")
+      DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_ENABLED)
     else
-      DEFAULT_CHAT_FRAME:AddMessage("|cffff9900[PallyPower] UnitXP SP3 range/LOS checking DISABLED|r")
+      DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_DISABLED)
     end
   end
 end
@@ -6726,9 +6726,9 @@ SlashCmdList["PPDBG"] = function()
   log("=== END DEBUG ===")
   
   if OGAALogger and OGAALogger.AddMessage then
-    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00PallyPower debug output sent to _OGAALogger|r")
+    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_DEBUG_LOGGER)
   else
-    DEFAULT_CHAT_FRAME:AddMessage("|cffff9900PallyPower debug output (install _OGAALogger for copy/paste)|r")
+    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_DEBUG_CHAT)
   end
 end
 
