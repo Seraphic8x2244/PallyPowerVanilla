@@ -7,6 +7,6 @@
 ## LoadOnDemand: 0
 ## SavedVariablesPerCharacter: PallyPower_Assignments, PallyPower_AuraAssignments, PallyPower_SealAssignments, PallyPower_RFAssignments, PallyPower_NormalAssignments, PP_PerUser, PP_Presets
 
-Locale\localization-enUS.lua
+locales\enUS.lua
 PallyPower.lua
 PallyPower.xml
