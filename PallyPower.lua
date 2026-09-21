@@ -1,4 +1,8 @@
--- PallyPowerVanilla 1.8.6 - Judgement support / capability presentation
+-- PallyPowerVanilla
+local ADDON_NAME = "PallyPowerVanilla"
+local ADDON_VERSION = GetAddOnMetadata(ADDON_NAME, "Version")
+PallyPower_Version = ADDON_VERSION
+
 -- ============================================================================
 -- BLESSING SPELL DATA / MANA COSTS
 -- Folded from PallyPowerManaCost.lua
@@ -4510,7 +4514,7 @@ function PallyPower_ShowCredits()
 end
 
 function PallyPower_ShowVersionTooltip()
-    local version = GetAddOnMetadata("PallyPowerVanilla", "Version") or "Unknown"
+    local version = ADDON_VERSION or "Unknown"
     GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
     GameTooltip:SetText("PallyPowerVanilla", 1, 1, 1)
     GameTooltip:AddLine("v" .. version, 1, 1, 1)
