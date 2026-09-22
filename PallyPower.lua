@@ -2477,7 +2477,9 @@ function PallyPowerGrid_Update(tdiff)
                 end
                 hojIcon:Show()
             else
-                hojIcon:Hide()
+                hojIcon:SetTexture(PallyPower_HammerOfJusticeIcon)
+                hojIcon:SetVertexColor(0.5, 0.5, 0.5)
+                hojIcon:Show()
             end
 
             local lhIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconLH")
@@ -2490,7 +2492,9 @@ function PallyPowerGrid_Update(tdiff)
                 end
                 lhIcon:Show()
             else
-                lhIcon:Hide()
+                lhIcon:SetTexture(PallyPower_LayOnHandsIcon)
+                lhIcon:SetVertexColor(0.5, 0.5, 0.5)
+                lhIcon:Show()
             end
 
             local diIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconDI")
@@ -2503,7 +2507,9 @@ function PallyPowerGrid_Update(tdiff)
                 end
                 diIcon:Show()
             else
-                diIcon:Hide()
+                diIcon:SetTexture(PallyPower_DivineItervention)
+                diIcon:SetVertexColor(0.5, 0.5, 0.5)
+                diIcon:Show()
             end
 
             getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetText(skills["symbols"])
