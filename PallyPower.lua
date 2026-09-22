@@ -2506,30 +2506,6 @@ function PallyPowerGrid_Update(tdiff)
                     getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Hide()
                 end
             end
-            -- Aura capability summary lives in the Aura assignment cell.
-            for auraID = 0, 2 do
-                local capIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassACapIcon" .. auraID)
-                local capSkill = getglobal("PallyPowerFramePlayer" .. i .. "ClassACapSkill" .. auraID)
-                local auraInfo = AllPallysAuras[name] and AllPallysAuras[name][auraID]
-                if capIcon and capSkill and auraInfo then
-                    capIcon:SetTexture(AuraIcons[auraID])
-                    capIcon:Show()
-                    local auraRank = tonumber(auraInfo.rank) or 0
-                    local auraTalent = tonumber(auraInfo.talent) or 0
-                    if auraRank > 0 then
-                        local capabilityText = tostring(auraRank)
-                        if auraTalent > 0 then capabilityText = capabilityText .. "+" .. auraTalent end
-                        capSkill:SetText(capabilityText)
-                        capSkill:Show()
-                    else
-                        capSkill:SetText("")
-                        capSkill:Hide()
-                    end
-                else
-                    if capIcon then capIcon:Hide() end
-                    if capSkill then capSkill:Hide() end
-                end
-            end
             for id = 0, 9 do
                 if (PallyPower_Assignments[name]) then
                     getglobal("PallyPowerFramePlayer" .. i .. "Class" .. id .. "Icon"):SetTexture(
@@ -2562,37 +2538,6 @@ function PallyPowerGrid_Update(tdiff)
                         judgementIcon:SetTexture(PallyPower_JudgementIcons[assignedJudgement])
                     else
                         judgementIcon:SetTexture(nil)
-                    end
-                end
-                -- Seal capability summary lives in the Judgement cell: the Seal
-                -- determines which Judgement this paladin can provide.  Use the same
-                -- compact icon/value presentation as Aura capability.
-                local judgementCapability = AllPallysJudgements[name]
-                for jid = 0, 2 do
-                    local capIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassJCapIcon" .. jid)
-                    local capSkill = getglobal("PallyPowerFramePlayer" .. i .. "ClassJCapSkill" .. jid)
-                    local entry = judgementCapability and judgementCapability[jid]
-                    if capIcon and capSkill then
-                        capIcon:SetTexture(PallyPower_JudgementIcons[jid])
-                        capIcon:Show()
-                        if judgementCapability == nil then
-                            capSkill:SetText("?")
-                            capSkill:Show()
-                        else
-                            local rank = entry and (tonumber(entry.rank) or 0) or 0
-                            local talent = entry and (tonumber(entry.talent) or 0) or 0
-                            if rank > 0 then
-                                local capabilityText = tostring(rank)
-                                if talent > 0 then capabilityText = capabilityText .. "+" .. talent end
-                                capSkill:SetText(capabilityText)
-                                capSkill:Show()
-                            else
-                                capSkill:SetText("")
-                                capSkill:Hide()
-                                capIcon:SetAlpha(0.25)
-                            end
-                        end
-                        if judgementCapability == nil or (entry and (tonumber(entry.rank) or 0) > 0) then capIcon:SetAlpha(1) end
                     end
                 end
                 if AllPallysJudgements[name] ~= nil then
