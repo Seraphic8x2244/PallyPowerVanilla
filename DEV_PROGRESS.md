@@ -4,7 +4,7 @@
 - Branch: `dev`
 - Version: `1.11.0-dev`
 - Goal: Migrate PallyPowerVanilla to the VanillaTemplate development structure without changing runtime architecture or artwork hierarchy.
-- State: Structural migration and assignment-grid cleanup implemented; Paladin utility cooldown-state tinting in progress before first in-game test.
+- State: Structural migration, assignment-grid cleanup and Paladin utility cooldown-state tinting implemented and statically checked; awaiting in-game test.
 
 ## Recent Commits
 - `4bd4f50` - Stable v1.10.20 migration baseline on `master`.
@@ -33,7 +33,7 @@
 - Existing Nampower and UnitXP calls remain behind their existing capability/enable checks.
 
 ## Implemented / Awaiting Test
-- Paladin utility icons are being updated to show green when ready and red when not ready, with unknown legacy state hidden.
+- Paladin HoJ/LoH/DI icons now show green when ready and red when known unavailable/on cooldown; unknown legacy HoJ state remains hidden.
 - Aura and Judgement capability micro-icon clusters removed; assignment icons and hover tooltips preserved.
 - Entire `1.11.0-dev` structural migration.
 - Version metadata centralization.
@@ -69,7 +69,7 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Nampower and UnitXP enhanced paths still work when present.
 
 ## Planned / To-do
-- Run the first in-game migration test.
+- Run the first in-game migration/UI test, including HoJ/LoH/DI ready/not-ready colours.
 - Fix only migration regressions found by that test.
 - Re-run static audit after any fixes.
 - After user verification, decide whether `1.11.0` is ready to promote to stable `main`.
@@ -86,4 +86,4 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Communication protocol redesign.
 
 ## Exact Next Step
-Update HoJ/LoH/DI state handling so known ready icons are green, known unavailable/cooldown icons are red, and unknown legacy states remain hidden; preserve the existing COOLDOWNS wire format.
+User tests `1.11.0-dev` in game, checking the Aura/Judgement cleanup plus HoJ/LoH/DI utility icons: green when ready, red when not ready, and no false HoJ state from legacy two-bit clients.
