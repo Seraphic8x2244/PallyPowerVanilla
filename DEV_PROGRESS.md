@@ -4,7 +4,7 @@
 - Branch: `dev`
 - Version: `1.11.0-dev`
 - Goal: Migrate PallyPowerVanilla to the VanillaTemplate development structure without changing runtime architecture or artwork hierarchy.
-- State: First in-game migration/UI test passed; Judgement rank mapping fixed and utility tint strength softened; awaiting focused retest.
+- State: User reports the accumulated migration/UI fixes working and has approved `1.11.0` for stable promotion to `main`.
 
 ## Recent Commits
 - `4bd4f50` - Stable v1.10.20 migration baseline on `master`.
@@ -33,46 +33,26 @@
 - Existing Nampower and UnitXP calls remain behind their existing capability/enable checks.
 
 ## Implemented / Awaiting Test
-- Paladin HoJ/LoH/DI icons now show green when ready, red when known unavailable/on cooldown, and grey when cooldown state is unknown.
-- Aura and Judgement capability micro-icon clusters removed; assignment icons and hover tooltips preserved.
-- Entire `1.11.0-dev` structural migration.
-- Version metadata centralization.
-- Locale path migration and localization cleanup.
-- XML label localization.
-- TOC-derived version in credits/version tooltip.
+- No release-blocking items remain. Some optional compatibility-path smoke checks are not individually documented, but the user has tested most of the release and considers it stable enough to ship.
 
 ## Current Issues
-- Migration changes have not yet been tested in game.
+- No known release-blocking issues.
 - Obsolete `PallyPower_Credits5` tooltip line removed; contributor credits remain in README.
 
 ## Testing
 
 ### Last Test
 - Version/commit: `1.11.0-dev` / current `dev`
-- Passed: Addon loads and runs in game; assignment-grid Aura/Judgement cleanup renders correctly; general UI is working.
-- Observed and fixed after test: HoJ/LoH/DI tint was too strong; Judgement capability ranks used the wrong Seal ID mapping.
-- Not yet fully verified: complete regression matrix including compatibility paths.
+- Passed: Addon loads and runs in game; Aura/Judgement cleanup works; Judgement ranks now match Seal ranks; HoJ/LoH/DI state tinting works with the softened colours; user reports most broader smoke checks tested.
+- Failed: No known release-blocking failures.
+- Not individually documented: every optional compatibility-path combination.
 
 ### Next Test
-Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
-- Addon loads with no Lua/XML errors.
-- Existing SavedVariables and presets load.
-- Buff Bar opens and updates.
-- Blessing Management and Advanced Options open correctly.
-- Localized labels/tooltips render instead of constant names.
-- Assignment reporting works.
-- Blessing cast/failure feedback renders correctly.
-- Keybindings and minimap button work.
-- Standard/HD artwork and expiry sound still resolve from the unchanged hierarchy.
-- Addon VERSION communication still works with existing PallyPower clients.
-- Native operation works with no optional DLLs.
-- Nampower and UnitXP enhanced paths still work when present.
+- Stable `main` release smoke test only if a packaging/release-specific issue appears.
 
 ## Planned / To-do
-- Run the first in-game migration/UI test, including HoJ/LoH/DI ready/not-ready colours.
-- Fix only migration regressions found by that test.
-- Re-run static audit after any fixes.
-- After user verification, decide whether `1.11.0` is ready to promote to stable `main`.
+- Promote tested `dev` state to stable `main` as `1.11.0`.
+- Keep `dev` available for subsequent development.
 
 ## Ideas / Backlog
 - Revisit artwork hierarchy separately after this migration is stable.
@@ -86,4 +66,4 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Communication protocol redesign.
 
 ## Exact Next Step
-User retests `1.11.0-dev`: confirm HoJ/LoH/DI status colours are subtle enough and the Judgement tooltip now reports the same underlying Wisdom/Light/Crusader ranks as the corresponding Seals.
+Create stable `main` from the approved `dev` state, set TOC/README version to `1.11.0`, exclude development-only docs from `main`, then record the stable commit back in this handoff.
