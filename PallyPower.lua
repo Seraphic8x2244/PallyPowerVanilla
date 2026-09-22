@@ -1282,7 +1282,7 @@ local function PP_Debug(string)
         string = "(nil)"
     end
     if (PP_DebugEnabled) then
-        DEFAULT_CHAT_FRAME:AddMessage("[PP] " .. string, 1, 0, 0)
+        DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_SHORT_PREFIX .. string, 1, 0, 0)
     end
 end
 
@@ -1503,7 +1503,7 @@ local function PP_UI_UpdateState()
 end
 
 function PallyPower_VisibilityEye_OnEnter(button, title)
-    PP_UI_SetTooltip(button, title, "Click to show or hide this button on the Buff Bar.")
+    PP_UI_SetTooltip(button, title, PALLYPOWER_TOOLTIP_VISIBILITY_DESC)
 end
 
 function PallyPower_AuraEye_OnClick()
@@ -1560,32 +1560,32 @@ function PallyPower_UI_Init()
     end
 
     PP_UI_LockButton:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Frame Lock", "Click to lock or unlock PallyPower frames.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_FRAME_LOCK_TITLE, PALLYPOWER_TOOLTIP_FRAME_LOCK_DESC)
     end)
     PP_UI_VerboseButton:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Buff Feedback", "Show or hide routine Blessing cast and failure messages.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_BUFF_FEEDBACK_TITLE, PALLYPOWER_TOOLTIP_BUFF_FEEDBACK_DESC)
     end)
     PP_UI_SoundButton:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Blessing Expiry Sound", "Toggle the sound played when Blessings expire.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_EXPIRY_SOUND_TITLE, PALLYPOWER_TOOLTIP_EXPIRY_SOUND_DESC)
     end)
     PP_UI_OrientationButton:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Buff Bar Orientation", "Switch between vertical and horizontal layouts.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_ORIENTATION_TITLE, PALLYPOWER_TOOLTIP_ORIENTATION_DESC)
     end)
     PP_UI_FeedbackButton:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Announce Assignments", "Print current assignments to party or raid chat.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_ANNOUNCE_TITLE, PALLYPOWER_TOOLTIP_ANNOUNCE_DESC)
     end)
 
     PallyPowerFrameRefresh:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Refresh", "Refresh PallyPower assignment data.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_REFRESH_TITLE, PALLYPOWER_TOOLTIP_REFRESH_DESC)
     end)
     PallyPowerFrameClear:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Clear Assignments", "Wipe all assignments.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_CLEAR_TITLE, PALLYPOWER_TOOLTIP_CLEAR_DESC)
     end)
     PallyPowerFrameOptions:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Advanced", "Open Advanced Options.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_ADVANCED_TITLE, PALLYPOWER_TOOLTIP_ADVANCED_DESC)
     end)
     PallyPowerFrameResetPosition:SetScript("OnEnter", function()
-        PP_UI_SetTooltip(this, "Reset Position", "Reset PallyPower frame positions.")
+        PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_RESET_POSITION_TITLE, PALLYPOWER_TOOLTIP_RESET_POSITION_DESC)
     end)
 
 
@@ -3041,7 +3041,7 @@ function PallyPower_UpdateLayout()
     local namePlayer = UnitName("player")
     local horizontal = (PP_PerUser.horizontal == true)
     if horizontal then
-        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2); PallyPowerBuffBarTitleText:SetText("PP")
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2); PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_SHORT_TITLE)
     else
         PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4); PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_TITLE)
     end
@@ -4505,19 +4505,19 @@ end
 function PallyPower_ShowCredits()
     GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
     GameTooltip:SetText(PallyPower_Credits1, 1, 1, 1)
-    GameTooltip:AddLine(PallyPower_Credits2 .. " " .. (ADDON_VERSION or "Unknown"), 1, 1, 1)
+    GameTooltip:AddLine(PallyPower_Credits2 .. " " .. (ADDON_VERSION or PALLYPOWER_UI_UNKNOWN), 1, 1, 1)
     GameTooltip:AddLine(PallyPower_Credits3)
     GameTooltip:AddLine(PallyPower_Credits4, 0, 1, 0)
     GameTooltip:AddLine(PallyPower_Credits5)
-    GameTooltip:AddLine(tostring(PallyPower_ShowMemoryUsage()) .. "MB")
+    GameTooltip:AddLine(tostring(PallyPower_ShowMemoryUsage()) .. PALLYPOWER_UI_MEMORY_SUFFIX)
     GameTooltip:Show()
 end
 
 function PallyPower_ShowVersionTooltip()
-    local version = ADDON_VERSION or "Unknown"
+    local version = ADDON_VERSION or PALLYPOWER_UI_UNKNOWN
     GameTooltip:SetOwner(this, "ANCHOR_TOPLEFT")
-    GameTooltip:SetText("PallyPowerVanilla", 1, 1, 1)
-    GameTooltip:AddLine("v" .. version, 1, 1, 1)
+    GameTooltip:SetText(PALLYPOWER_UI_ADDON_NAME, 1, 1, 1)
+    GameTooltip:AddLine(PALLYPOWER_UI_VERSION_PREFIX .. version, 1, 1, 1)
     GameTooltip:Show()
 end
 
@@ -6510,7 +6510,7 @@ SlashCmdList["PPDBG"] = function()
     if OGAALogger and OGAALogger.AddMessage and type(OGAALogger.AddMessage) == "function" then
       OGAALogger.AddMessage("PallyPower", msg)
     else
-      DEFAULT_CHAT_FRAME:AddMessage("[PallyPower] " .. msg)
+      DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_PREFIX .. msg)
     end
   end
   
