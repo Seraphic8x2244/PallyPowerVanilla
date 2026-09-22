@@ -4,7 +4,7 @@
 - Branch: `dev`
 - Version: `1.11.0-dev`
 - Goal: Migrate PallyPowerVanilla to the VanillaTemplate development structure without changing runtime architecture or artwork hierarchy.
-- State: Structural migration implemented and statically checked; awaiting first in-game test.
+- State: Structural migration implemented and statically checked; small assignment-grid cleanup in progress before first in-game test.
 
 ## Recent Commits
 - `4bd4f50` - Stable v1.10.20 migration baseline on `master`.
@@ -33,6 +33,7 @@
 - Existing Nampower and UnitXP calls remain behind their existing capability/enable checks.
 
 ## Implemented / Awaiting Test
+- Aura/Judgement assignment-cell micro-icon removal is now the active UI cleanup.
 - Entire `1.11.0-dev` structural migration.
 - Version metadata centralization.
 - Locale path migration and localization cleanup.
@@ -67,6 +68,7 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Nampower and UnitXP enhanced paths still work when present.
 
 ## Planned / To-do
+- Remove Aura and Judgement capability micro-icon clusters while preserving their assignment icons and hover tooltips.
 - Run the first in-game migration test.
 - Fix only migration regressions found by that test.
 - Re-run static audit after any fixes.
@@ -84,4 +86,4 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Communication protocol redesign.
 
 ## Exact Next Step
-User installs/tests `1.11.0-dev` in game and reports the first load/UI result; development then fixes only migration regressions before any stable release.
+Remove the Aura and Judgement capability micro-icon clusters from the assignment grid, delete their dead Lua update paths, preserve tooltips/assignment icons, then statically verify the affected UI.
