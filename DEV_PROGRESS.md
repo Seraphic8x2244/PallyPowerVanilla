@@ -4,7 +4,7 @@
 - Branch: `dev`
 - Version: `1.11.0-dev`
 - Goal: Migrate PallyPowerVanilla to the VanillaTemplate development structure without changing runtime architecture or artwork hierarchy.
-- State: Structural migration and Aura/Judgement assignment-grid cleanup implemented and statically checked; awaiting first in-game test.
+- State: Structural migration and assignment-grid cleanup implemented; Paladin utility cooldown-state tinting in progress before first in-game test.
 
 ## Recent Commits
 - `4bd4f50` - Stable v1.10.20 migration baseline on `master`.
@@ -33,6 +33,7 @@
 - Existing Nampower and UnitXP calls remain behind their existing capability/enable checks.
 
 ## Implemented / Awaiting Test
+- Paladin utility icons are being updated to show green when ready and red when not ready, with unknown legacy state hidden.
 - Aura and Judgement capability micro-icon clusters removed; assignment icons and hover tooltips preserved.
 - Entire `1.11.0-dev` structural migration.
 - Version metadata centralization.
@@ -85,4 +86,4 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Communication protocol redesign.
 
 ## Exact Next Step
-User tests `1.11.0-dev` in game, specifically confirming the Aura and Judgement cells now show only their main assignment icons while their capability tooltips still work, alongside the broader migration smoke test.
+Update HoJ/LoH/DI state handling so known ready icons are green, known unavailable/cooldown icons are red, and unknown legacy states remain hidden; preserve the existing COOLDOWNS wire format.
