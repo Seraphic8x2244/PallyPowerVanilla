@@ -455,7 +455,7 @@
 		<Size>
 			<AbsDimension x="1288" y="76" />
 		</Size>
-		<!-- PALADIN SUMMARY CELL: name, Symbols, LoH/DI, talent/rank summary -->
+		<!-- PALADIN SUMMARY CELL: name, Symbols, HoJ/LoH/DI, talent/rank summary -->
 		<Layers>
 			<Layer level="OVERLAY">
 				<FontString name="$parentName" inherits="GameFontNormalLarge" text="SomePally$parent" justifyH="LEFT">
