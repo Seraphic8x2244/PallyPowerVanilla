@@ -59,29 +59,6 @@
 	</Button>
 
 	<!-- Assignment cell with a compact capability strip above the assigned icon. -->
-	<Button name="PPCapabilityAssignmentCellTemplate" virtual="true">
-		<Size>
-			<AbsDimension x="80" y="54" />
-		</Size>
-		<Layers>
-			<Layer level="OVERLAY">
-				<Texture name="$parentIcon" file="Interface\AddOns\PallyPowerVanilla\artwork\Icons\Spell_Holy_SealOfWisdom">
-					<Size><AbsDimension x="32" y="32" /></Size>
-					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="24" y="-20" /></Offset></Anchor></Anchors>
-				</Texture>
-			</Layer>
-		</Layers>
-		<Scripts>
-			<OnLoad>
-				PallyPowerGridButton_OnLoad(this);
-				this:RegisterForClicks("LeftButtonUp", "RightButtonUp");
-			</OnLoad>
-			<OnClick>PallyPowerGridButton_OnClick(this, arg1)</OnClick>
-			<OnEnter>PallyPowerGridButton_OnEnter(this)</OnEnter>
-			<OnLeave>PallyPowerGridButton_OnLeave(this)</OnLeave>
-			<OnMouseWheel>PallyPowerGridButton_OnMouseWheel(this, arg1)</OnMouseWheel>
-		</Scripts>
-	</Button>
 	<Button name="PPPlayerOverrideTemplate" hidden = "false" virtual="true" enableMouse ="true"> <!--frameStrata="DIALOG"-->
 		<Size>
 			<AbsDimension x="84" y="13" />
@@ -795,7 +772,7 @@
 				</Scripts>
 			</Button>
  
-			<Button name="$parentClassA" inherits="PPCapabilityAssignmentCellTemplate">
+			<Button name="$parentClassA" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT">
 						<Offset>
@@ -803,35 +780,6 @@
 						</Offset>
 					</Anchor>
 				</Anchors>
-				<Layers><Layer level="OVERLAY">
-					<Texture name="$parentCapIcon0" file="Interface\Icons\INV_Misc_QuestionMark">
-						<Size><AbsDimension x="16" y="16" /></Size>
-						<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="6" y="-1" /></Offset></Anchor></Anchors>
-					</Texture>
-					<FontString name="$parentCapSkill0" inherits="GameFontNormalSmall" text="" justifyH="CENTER" justifyV="MIDDLE" outline="THICK">
-						<Size><AbsDimension x="26" y="16" /></Size>
-						<Anchors><Anchor point="CENTER" relativeTo="$parentCapIcon0" relativePoint="CENTER" /></Anchors>
-						<Color r="1" g="1" b="1" />
-					</FontString>
-					<Texture name="$parentCapIcon1" file="Interface\Icons\INV_Misc_QuestionMark">
-						<Size><AbsDimension x="16" y="16" /></Size>
-						<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="32" y="-1" /></Offset></Anchor></Anchors>
-					</Texture>
-					<FontString name="$parentCapSkill1" inherits="GameFontNormalSmall" text="" justifyH="CENTER" justifyV="MIDDLE" outline="THICK">
-						<Size><AbsDimension x="26" y="16" /></Size>
-						<Anchors><Anchor point="CENTER" relativeTo="$parentCapIcon1" relativePoint="CENTER" /></Anchors>
-						<Color r="1" g="1" b="1" />
-					</FontString>
-					<Texture name="$parentCapIcon2" file="Interface\Icons\INV_Misc_QuestionMark">
-						<Size><AbsDimension x="16" y="16" /></Size>
-						<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="58" y="-1" /></Offset></Anchor></Anchors>
-					</Texture>
-					<FontString name="$parentCapSkill2" inherits="GameFontNormalSmall" text="" justifyH="CENTER" justifyV="MIDDLE" outline="THICK">
-						<Size><AbsDimension x="26" y="16" /></Size>
-						<Anchors><Anchor point="CENTER" relativeTo="$parentCapIcon2" relativePoint="CENTER" /></Anchors>
-						<Color r="1" g="1" b="1" />
-					</FontString>
-				</Layer></Layers>
 				<Scripts>
 					<OnEnter>
 						PallyPower_ShowAuraCapabilities(this)
@@ -873,41 +821,12 @@
 					</OnLeave>
 				</Scripts>
 			</Button>
-			<Button name="$parentClassJ" inherits="PPCapabilityAssignmentCellTemplate">
+			<Button name="$parentClassJ" inherits="PPAssignmentCellTemplate">
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parentClassA" relativePoint="TOPLEFT">
 						<Offset><AbsDimension x="246" y="0" /></Offset>
 					</Anchor>
 				</Anchors>
-				<Layers><Layer level="OVERLAY">
-					<Texture name="$parentCapIcon0" file="Interface\Icons\INV_Misc_QuestionMark">
-						<Size><AbsDimension x="16" y="16" /></Size>
-						<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="6" y="-1" /></Offset></Anchor></Anchors>
-					</Texture>
-					<FontString name="$parentCapSkill0" inherits="GameFontNormalSmall" text="" justifyH="CENTER" justifyV="MIDDLE" outline="THICK">
-						<Size><AbsDimension x="26" y="16" /></Size>
-						<Anchors><Anchor point="CENTER" relativeTo="$parentCapIcon0" relativePoint="CENTER" /></Anchors>
-						<Color r="1" g="1" b="1" />
-					</FontString>
-					<Texture name="$parentCapIcon1" file="Interface\Icons\INV_Misc_QuestionMark">
-						<Size><AbsDimension x="16" y="16" /></Size>
-						<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="32" y="-1" /></Offset></Anchor></Anchors>
-					</Texture>
-					<FontString name="$parentCapSkill1" inherits="GameFontNormalSmall" text="" justifyH="CENTER" justifyV="MIDDLE" outline="THICK">
-						<Size><AbsDimension x="26" y="16" /></Size>
-						<Anchors><Anchor point="CENTER" relativeTo="$parentCapIcon1" relativePoint="CENTER" /></Anchors>
-						<Color r="1" g="1" b="1" />
-					</FontString>
-					<Texture name="$parentCapIcon2" file="Interface\Icons\INV_Misc_QuestionMark">
-						<Size><AbsDimension x="16" y="16" /></Size>
-						<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="58" y="-1" /></Offset></Anchor></Anchors>
-					</Texture>
-					<FontString name="$parentCapSkill2" inherits="GameFontNormalSmall" text="" justifyH="CENTER" justifyV="MIDDLE" outline="THICK">
-						<Size><AbsDimension x="26" y="16" /></Size>
-						<Anchors><Anchor point="CENTER" relativeTo="$parentCapIcon2" relativePoint="CENTER" /></Anchors>
-						<Color r="1" g="1" b="1" />
-					</FontString>
-				</Layer></Layers>
 				<Scripts>
 					<OnEnter>
 						PallyPower_ShowSealCapabilities(this)
