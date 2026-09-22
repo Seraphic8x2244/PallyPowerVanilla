@@ -2393,18 +2393,18 @@ function PallyPower_Report()
                 blessings = "Nothing"
             end
             if PallyPower_AuraAssignments[name] and PallyPower_AuraAssignments[name] ~= -1 then
-                blessings = blessings.." --- Aura: "..PallyPower_AuraID[PallyPower_AuraAssignments[name]]
+                blessings = blessings..PALLYPOWER_REPORT_AURA_PREFIX..PallyPower_AuraID[PallyPower_AuraAssignments[name]]
             end
             if PallyPower_SealAssignments[name] and PallyPower_SealAssignments[name] ~= -1 then
-                blessings = blessings.." --- Seal: "..PallyPower_SealID[PallyPower_SealAssignments[name]]
+                blessings = blessings..PALLYPOWER_REPORT_SEAL_PREFIX..PallyPower_SealID[PallyPower_SealAssignments[name]]
             end
             if PallyPower_JudgementAssignments[name] ~= nil and PallyPower_JudgementAssignments[name] ~= -1 then
-                blessings = blessings.." --- Judgement: "..PallyPower_JudgementID[PallyPower_JudgementAssignments[name]]
+                blessings = blessings..PALLYPOWER_REPORT_JUDGEMENT_PREFIX..PallyPower_JudgementID[PallyPower_JudgementAssignments[name]]
             end
             if PallyPower_RFAssignments[name] == true then
-                blessings = blessings.." --- Righteous Fury"
+                blessings = blessings..PALLYPOWER_REPORT_RF
             elseif PallyPower_RFAssignments[name] == "off" then
-                blessings = blessings.." --- No Righteous Fury"
+                blessings = blessings..PALLYPOWER_REPORT_NO_RF
             end
             SendChatMessage(name .. ": " .. blessings, type)
             PP_Debug(name .. ": " .. blessings)
@@ -4661,7 +4661,7 @@ function PallyPowerGridButton_OnEnter(btn)
         if pallyName and PallyPower_AuraAssignments[pallyName] then
             local auraIndex = PallyPower_AuraAssignments[pallyName]
             if auraIndex >= 0 and PallyPower_AuraID[auraIndex] then
-                spellName = PallyPower_AuraID[auraIndex] .. " Aura"
+                spellName = PallyPower_AuraID[auraIndex] .. PALLYPOWER_TOOLTIP_AURA_SUFFIX
             end
         end
     -- Check if it's a Seal assignment (ClassS)
@@ -4671,7 +4671,7 @@ function PallyPowerGridButton_OnEnter(btn)
         if pallyName and PallyPower_SealAssignments[pallyName] then
             local sealIndex = PallyPower_SealAssignments[pallyName]
             if sealIndex >= 0 and PallyPower_SealID[sealIndex] then
-                spellName = "Seal of " .. PallyPower_SealID[sealIndex]
+                spellName = PALLYPOWER_TOOLTIP_SEAL_OF .. PallyPower_SealID[sealIndex]
             end
         end
     elseif class == "J" then
@@ -4681,9 +4681,9 @@ function PallyPowerGridButton_OnEnter(btn)
         local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
         if pallyName then
             if PallyPower_RFAssignments[pallyName] == true then
-                spellName = "Righteous Fury"
+                spellName = PALLYPOWER_TOOLTIP_RF
             elseif PallyPower_RFAssignments[pallyName] == "off" then
-                spellName = "No Righteous Fury"
+                spellName = PALLYPOWER_TOOLTIP_NO_RF
             end
         end
     -- It's a Blessing assignment (Class0-9)
@@ -4695,7 +4695,7 @@ function PallyPowerGridButton_OnEnter(btn)
             if pallyName and PallyPower_Assignments[pallyName] and PallyPower_Assignments[pallyName][classIndex] then
                 local blessingIndex = PallyPower_Assignments[pallyName][classIndex]
                 if blessingIndex >= 0 and PallyPower_BlessingID[blessingIndex] then
-                    spellName = "Blessing of " .. PallyPower_BlessingID[blessingIndex]
+                    spellName = PALLYPOWER_TOOLTIP_BLESSING_OF .. PallyPower_BlessingID[blessingIndex]
                 end
             end
         end
@@ -5646,7 +5646,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     if not PallyPower_HasEnoughMana(btn.buffID, blessingType) then
         SpellStopTargeting()
         PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-        PallyPower_ShowFeedback("Not enough mana to cast blessing", 1, 0, 0)
+        PallyPower_ShowFeedback(PALLYPOWER_FEEDBACK_NOT_ENOUGH_MANA, 1, 0, 0)
         return
     end
 
@@ -5885,22 +5885,22 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
     -- Build helpful error message based on failure reasons
     local errorMsg = ""
     if failureReasons["not enough mana"] and table.getn(failureReasons["not enough mana"]) > 0 then
-        errorMsg = "Not enough mana to cast blessing"
+        errorMsg = PALLYPOWER_FEEDBACK_NOT_ENOUGH_MANA
     elseif failureReasons["recast_blocked"] and table.getn(failureReasons["recast_blocked"]) > 0 then
         local names = table.concat(failureReasons["recast_blocked"], ", ")
-        errorMsg = "Recast blocked on " .. names .. " (hold Shift to bypass)"
+        errorMsg = string.format(PALLYPOWER_FEEDBACK_RECAST_BLOCKED, names)
     elseif failureReasons["out of range/LOS"] and table.getn(failureReasons["out of range/LOS"]) > 0 then
         local names = table.concat(failureReasons["out of range/LOS"], ", ")
-        errorMsg = names .. " out of range or line of sight"
+        errorMsg = string.format(PALLYPOWER_FEEDBACK_OUT_OF_RANGE, names)
     elseif failureReasons["dead/ghost"] and table.getn(failureReasons["dead/ghost"]) > 0 then
         local names = table.concat(failureReasons["dead/ghost"], ", ")
-        errorMsg = names .. " is dead or ghost"
+        errorMsg = string.format(PALLYPOWER_FEEDBACK_DEAD, names)
     elseif failureReasons["salvation on tank"] and table.getn(failureReasons["salvation on tank"]) > 0 then
         local names = table.concat(failureReasons["salvation on tank"], ", ")
-        errorMsg = "Won't cast Salvation on tank: " .. names
+        errorMsg = string.format(PALLYPOWER_FEEDBACK_SALVATION_TANK, names)
     elseif failureReasons["can't target"] and table.getn(failureReasons["can't target"]) > 0 then
         local names = table.concat(failureReasons["can't target"], ", ")
-        errorMsg = "Can't target: " .. names
+        errorMsg = string.format(PALLYPOWER_FEEDBACK_CANT_TARGET, names)
     else
         errorMsg = format(PallyPower_CouldntFind, PallyPower_BlessingID[btn.buffID], PallyPower_ClassID[btn.classID])
     end
