@@ -753,9 +753,8 @@ function PallyPower_JudgementUI_Init()
 
     local i = 1
     while getglobal("PallyPowerFramePlayer" .. i) do
+        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassA") then return end
         if not getglobal("PallyPowerFramePlayer" .. i .. "ClassJ") then return end
-        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassACapIcon0") then return end
-        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassJCapIcon0") then return end
         i = i + 1
     end
 
