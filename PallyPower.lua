@@ -2464,24 +2464,46 @@ function PallyPowerGrid_Update(tdiff)
             getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetText(name)
             getglobal("PallyPowerFramePlayer" .. i .. "InGroup"):SetText(PallyPower_GetPlayerGroupID(name))
 
-            -- Cooldown-ready summary (communicated via the legacy COOLDOWNS message).
-            if skills["HammerOfJustice"] ~= nil and skills["HammerOfJustice"] == true then
-                getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ"):SetTexture(PallyPower_HammerOfJusticeIcon)
-                getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ"):Show()
+            -- Utility cooldown summary (communicated via the legacy COOLDOWNS message).
+            -- Known ready states are green, known unavailable/cooldown states are red,
+            -- and unknown legacy states remain hidden.
+            local hojIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ")
+            if skills["HammerOfJustice"] ~= nil then
+                hojIcon:SetTexture(PallyPower_HammerOfJusticeIcon)
+                if skills["HammerOfJustice"] == true then
+                    hojIcon:SetVertexColor(0.25, 1, 0.25)
+                else
+                    hojIcon:SetVertexColor(1, 0.25, 0.25)
+                end
+                hojIcon:Show()
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ"):Hide()
+                hojIcon:Hide()
             end
-            if skills["LayOnHands"] ~= nil and skills["LayOnHands"] == true then
-                getglobal("PallyPowerFramePlayer" .. i .. "IconLH"):SetTexture(PallyPower_LayOnHandsIcon)
-                getglobal("PallyPowerFramePlayer" .. i .. "IconLH"):Show()
+
+            local lhIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconLH")
+            if skills["LayOnHands"] ~= nil then
+                lhIcon:SetTexture(PallyPower_LayOnHandsIcon)
+                if skills["LayOnHands"] == true then
+                    lhIcon:SetVertexColor(0.25, 1, 0.25)
+                else
+                    lhIcon:SetVertexColor(1, 0.25, 0.25)
+                end
+                lhIcon:Show()
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "IconLH"):Hide()
+                lhIcon:Hide()
             end
-            if skills["DivineIntervention"] ~= nil and skills["DivineIntervention"] == true then
-                getglobal("PallyPowerFramePlayer" .. i .. "IconDI"):SetTexture(PallyPower_DivineItervention)
-                getglobal("PallyPowerFramePlayer" .. i .. "IconDI"):Show()
+
+            local diIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconDI")
+            if skills["DivineIntervention"] ~= nil then
+                diIcon:SetTexture(PallyPower_DivineItervention)
+                if skills["DivineIntervention"] == true then
+                    diIcon:SetVertexColor(0.25, 1, 0.25)
+                else
+                    diIcon:SetVertexColor(1, 0.25, 0.25)
+                end
+                diIcon:Show()
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "IconDI"):Hide()
+                diIcon:Hide()
             end
 
             getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetText(skills["symbols"])
@@ -3571,19 +3593,13 @@ function PallyPower_ScanSpells()
         end
 
         if spellTexture == PallyPower_DivineItervention then
-            if GetSpellCooldown(i, BOOKTYPE_SPELL) == 0 then
-                RankInfo["DivineIntervention"] = true
-            end
+            RankInfo["DivineIntervention"] = (GetSpellCooldown(i, BOOKTYPE_SPELL) == 0)
         end
         if spellTexture == PallyPower_LayOnHandsIcon then
-            if GetSpellCooldown(i, BOOKTYPE_SPELL) == 0 then
-                RankInfo["LayOnHands"] = true
-            end
+            RankInfo["LayOnHands"] = (GetSpellCooldown(i, BOOKTYPE_SPELL) == 0)
         end
         if spellTexture == PallyPower_HammerOfJusticeIcon then
-            if GetSpellCooldown(i, BOOKTYPE_SPELL) == 0 then
-                RankInfo["HammerOfJustice"] = true
-            end
+            RankInfo["HammerOfJustice"] = (GetSpellCooldown(i, BOOKTYPE_SPELL) == 0)
         end
 
         if not spellRank or spellRank == "" then
@@ -4184,7 +4200,12 @@ function PallyPower_ParseMessage(sender, msg)
                 local hojAvailable = string.sub(cooldowns, 3, 3)
                 AllPallys[sender]["DivineIntervention"] = (diAvailable == "1")
                 AllPallys[sender]["LayOnHands"] = (lhAvailable == "1")
-                AllPallys[sender]["HammerOfJustice"] = (hojAvailable == "1")
+                if hojAvailable == "0" or hojAvailable == "1" then
+                    AllPallys[sender]["HammerOfJustice"] = (hojAvailable == "1")
+                else
+                    -- Older clients only send the original DI/LoH pair.
+                    AllPallys[sender]["HammerOfJustice"] = nil
+                end
             else
                 -- Legacy clients may send packets in a different order; request
                 -- their normal SELF state instead of assuming it already exists.
