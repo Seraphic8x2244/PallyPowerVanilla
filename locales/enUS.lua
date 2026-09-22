@@ -250,4 +250,22 @@ PALLYPOWER_TOOLTIP_PRESENT_ON_TARGET = "Present on target"
 PALLYPOWER_TOOLTIP_MISSING_FROM_TARGET = "Missing from target"
 PALLYPOWER_TOOLTIP_BLESSING_OF = "Blessing of "
 
+PALLYPOWER_TOOLTIP_AURA_SUFFIX = " Aura"
+PALLYPOWER_TOOLTIP_SEAL_OF = "Seal of "
+PALLYPOWER_TOOLTIP_RF = "Righteous Fury"
+PALLYPOWER_TOOLTIP_NO_RF = "No Righteous Fury"
+
+PALLYPOWER_REPORT_AURA_PREFIX = " --- Aura: "
+PALLYPOWER_REPORT_SEAL_PREFIX = " --- Seal: "
+PALLYPOWER_REPORT_JUDGEMENT_PREFIX = " --- Judgement: "
+PALLYPOWER_REPORT_RF = " --- Righteous Fury"
+PALLYPOWER_REPORT_NO_RF = " --- No Righteous Fury"
+
+PALLYPOWER_FEEDBACK_NOT_ENOUGH_MANA = "Not enough mana to cast blessing"
+PALLYPOWER_FEEDBACK_RECAST_BLOCKED = "Recast blocked on %s (hold Shift to bypass)"
+PALLYPOWER_FEEDBACK_OUT_OF_RANGE = "%s out of range or line of sight"
+PALLYPOWER_FEEDBACK_DEAD = "%s is dead or ghost"
+PALLYPOWER_FEEDBACK_SALVATION_TANK = "Won't cast Salvation on tank: %s"
+PALLYPOWER_FEEDBACK_CANT_TARGET = "Can't target: %s"
+
 --PALLYPOWER_HUNTER_FEIGN_DEATH = "Feign Death"
