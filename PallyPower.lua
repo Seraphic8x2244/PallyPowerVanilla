@@ -549,7 +549,7 @@ function PallyPower_JudgementFailedRefresh_OnEnter(btn)
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:SetText(PALLYPOWER_TOOLTIP_JUDGEMENT_REFRESH, 1, 1, 1)
     GameTooltip:AddLine(
-        "Enable on servers where dodged or parried attacks refresh Judgement duration. Misses never refresh.",
+        PALLYPOWER_TOOLTIP_JUDGEMENT_REFRESH_DESC,
         0.8, 0.8, 0.8, 1
     )
     GameTooltip:Show()
@@ -702,10 +702,10 @@ function PallyPower_JudgementButton_OnEnter(btn)
             local entry = capability[id]
             local rank = entry and tonumber(entry.rank) or 0
             local talent = entry and tonumber(entry.talent) or 0
-            local text = "Judgement of " .. PallyPower_JudgementID[id] .. ": "
+            local text = PALLYPOWER_TOOLTIP_JUDGEMENT_OF .. PallyPower_JudgementID[id] .. ": "
             if rank > 0 then
-                text = text .. "Seal Rank " .. rank
-                if id == 2 and talent > 0 then text = text .. " + Improved " .. talent .. "/3" end
+                text = text .. PALLYPOWER_TOOLTIP_SEAL_RANK .. rank
+                if id == 2 and talent > 0 then text = text .. " + " .. PALLYPOWER_TOOLTIP_IMPROVED .. talent .. "/3" end
                 GameTooltip:AddLine(text, 1, 1, 1)
             else
                 GameTooltip:AddLine(text .. PALLYPOWER_UI_UNAVAILABLE, 0.45, 0.45, 0.45)
@@ -726,12 +726,12 @@ function PallyPower_JudgementTracker_OnEnter(btn)
 
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:SetText(PALLYPOWER_TOOLTIP_JUDGEMENT_OF .. PallyPower_JudgementID[id], 1, 1, 1)
-    local durationText = "Expected duration: " .. tostring(PP_JudgementDurationFor(id)) .. " sec"
+    local durationText = PALLYPOWER_TOOLTIP_EXPECTED_DURATION .. tostring(PP_JudgementDurationFor(id)) .. PALLYPOWER_TOOLTIP_SECONDS_SUFFIX
     GameTooltip:AddLine(durationText, 0.8, 0.8, 0.8)
     if UnitExists("target") and UnitCanAttack("player", "target") then
         local present = PallyPower_TargetHasJudgement(id)
         GameTooltip:AddLine(
-            present and "Present on target" or "Missing from target",
+            present and PALLYPOWER_TOOLTIP_PRESENT_ON_TARGET or PALLYPOWER_TOOLTIP_MISSING_FROM_TARGET,
             present and 0 or 1,
             present and 1 or 0,
             0
@@ -2886,7 +2886,7 @@ function PallyPowerPlayerButton_OnEnter(plbtn)
     
     local blessingIndex = assignments[playerName]
     if blessingIndex >= 0 and PallyPower_BlessingID[blessingIndex] then
-        local spellName = "Blessing of " .. PallyPower_BlessingID[blessingIndex]
+        local spellName = PALLYPOWER_TOOLTIP_BLESSING_OF .. PallyPower_BlessingID[blessingIndex]
         GameTooltip:SetOwner(plbtn, "ANCHOR_RIGHT")
         GameTooltip:SetText(spellName, 1, 1, 1)
         GameTooltip:Show()
@@ -4341,7 +4341,7 @@ local function PP_AddCapabilityLine(texture, rank, talent, talentMax, showRank, 
     local text = PP_TooltipIcon(texture, 18)
 
     if showRank and rank and tonumber(rank) and tonumber(rank) > 0 then
-        text = text .. "  Rank " .. tostring(rank)
+        text = text .. "  " .. PALLYPOWER_TOOLTIP_RANK .. tostring(rank)
     end
 
     if talentRelevant then
@@ -4349,12 +4349,12 @@ local function PP_AddCapabilityLine(texture, rank, talent, talentMax, showRank, 
         local maxRank = tonumber(talentMax) or 0
         if talentRank > 0 then
             if maxRank > 0 then
-                text = text .. (showRank and ", " or "  ") .. "Improved " .. talentRank .. "/" .. maxRank
+                text = text .. (showRank and ", " or "  ") .. PALLYPOWER_TOOLTIP_IMPROVED .. talentRank .. "/" .. maxRank
             else
-                text = text .. (showRank and ", " or "  ") .. "Improved " .. talentRank
+                text = text .. (showRank and ", " or "  ") .. PALLYPOWER_TOOLTIP_IMPROVED .. talentRank
             end
         else
-            text = text .. (showRank and ", " or "  ") .. "Untalented"
+            text = text .. (showRank and ", " or "  ") .. PALLYPOWER_TOOLTIP_UNTALENTED
         end
     end
 
