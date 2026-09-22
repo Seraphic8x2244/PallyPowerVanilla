@@ -43,7 +43,7 @@
 
 ## Current Issues
 - Migration changes have not yet been tested in game.
-- Pre-existing legacy issue noted during audit: `PallyPower_ShowCredits()` references `PallyPower_Credits5`, but no matching locale definition exists in the v1.10.20 baseline or migrated locale. Not changed as part of this structural migration.
+- Pre-existing dead `PallyPower_Credits5` tooltip line identified for removal; contributor credits remain in README.
 
 ## Testing
 
@@ -76,7 +76,7 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 
 ## Ideas / Backlog
 - Revisit artwork hierarchy separately after this migration is stable.
-- Review the pre-existing `PallyPower_Credits5` reference separately.
+- Remove the dead `PallyPower_Credits5` tooltip line and refresh the Paladin-row XML comment.
 
 ## Deferred
 - Artwork flattening or renaming.
@@ -86,4 +86,4 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Communication protocol redesign.
 
 ## Exact Next Step
-User tests `1.11.0-dev` in game, checking the Aura/Judgement cleanup plus HoJ/LoH/DI utility icons: green when ready, red when not ready, and grey when cooldown state is unknown (including legacy two-bit HoJ state).
+Remove the dead `PallyPower_Credits5` tooltip line and update the Paladin summary XML comment to include HoJ; keep the existing HoJ icon path because PallyPower already uses `Spell_Holy_SealOfMight` as the Vanilla HoJ texture.
