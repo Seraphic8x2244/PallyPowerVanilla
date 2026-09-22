@@ -4,7 +4,7 @@
 - Branch: `dev`
 - Version: `1.11.0-dev`
 - Goal: Migrate PallyPowerVanilla to the VanillaTemplate development structure without changing runtime architecture or artwork hierarchy.
-- State: Structural migration, assignment-grid cleanup and Paladin utility cooldown-state tinting implemented and statically checked; awaiting in-game test.
+- State: First in-game migration/UI test passed; utility tint strength and Judgement rank reporting are under review.
 
 ## Recent Commits
 - `4bd4f50` - Stable v1.10.20 migration baseline on `master`.
@@ -48,10 +48,10 @@
 ## Testing
 
 ### Last Test
-- Version/commit: v1.10.20 / `4bd4f50`
-- Passed: Existing stable baseline only.
-- Failed: None recorded.
-- Not tested: All `1.11.0-dev` migration changes.
+- Version/commit: `1.11.0-dev` / current `dev`
+- Passed: Addon loads and runs in game; assignment-grid Aura/Judgement cleanup renders correctly; general UI is working.
+- Observed: HoJ/LoH/DI colour tint is visually too strong; Judgement tooltip/rank reporting does not match the correct Seal rank reporting.
+- Not yet fully verified: complete regression matrix including compatibility paths.
 
 ### Next Test
 Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
@@ -86,4 +86,4 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Communication protocol redesign.
 
 ## Exact Next Step
-User tests `1.11.0-dev` in game, checking the Aura/Judgement cleanup plus HoJ/LoH/DI utility icons: green when ready, red when not ready, grey when cooldown state is unknown. The Vanilla HoJ texture path remains `Spell_Holy_SealOfMight` intentionally.
+Soften HoJ/LoH/DI readiness tinting without fading the icons, trace Judgement capability rank data against Seal capability data, fix the incorrect Judgement rank source, then statically verify before user retest.
