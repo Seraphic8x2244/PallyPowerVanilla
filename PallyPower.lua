@@ -1018,9 +1018,9 @@ PallyPower_JudgementDebuffName = {
     [2] = "Judgement of the Crusader"
 }
 PallyPower_JudgementSealID = {
-    [0] = 2, -- Seal of Wisdom
-    [1] = 1, -- Seal of Light
-    [2] = 4  -- Seal of the Crusader
+    [0] = 0, -- Seal of Wisdom
+    [1] = 2, -- Seal of Light
+    [2] = 1  -- Seal of the Crusader
 }
 PallyPower_JudgementIcons = {}
 PP_JudgementNextScan = 0
@@ -2471,14 +2471,14 @@ function PallyPowerGrid_Update(tdiff)
             if skills["HammerOfJustice"] ~= nil then
                 hojIcon:SetTexture(PallyPower_HammerOfJusticeIcon)
                 if skills["HammerOfJustice"] == true then
-                    hojIcon:SetVertexColor(0.25, 1, 0.25)
+                    hojIcon:SetVertexColor(0.75, 1, 0.75)
                 else
-                    hojIcon:SetVertexColor(1, 0.25, 0.25)
+                    hojIcon:SetVertexColor(1, 0.75, 0.75)
                 end
                 hojIcon:Show()
             else
                 hojIcon:SetTexture(PallyPower_HammerOfJusticeIcon)
-                hojIcon:SetVertexColor(0.5, 0.5, 0.5)
+                hojIcon:SetVertexColor(0.75, 0.75, 0.75)
                 hojIcon:Show()
             end
 
@@ -2486,14 +2486,14 @@ function PallyPowerGrid_Update(tdiff)
             if skills["LayOnHands"] ~= nil then
                 lhIcon:SetTexture(PallyPower_LayOnHandsIcon)
                 if skills["LayOnHands"] == true then
-                    lhIcon:SetVertexColor(0.25, 1, 0.25)
+                    lhIcon:SetVertexColor(0.75, 1, 0.75)
                 else
-                    lhIcon:SetVertexColor(1, 0.25, 0.25)
+                    lhIcon:SetVertexColor(1, 0.75, 0.75)
                 end
                 lhIcon:Show()
             else
                 lhIcon:SetTexture(PallyPower_LayOnHandsIcon)
-                lhIcon:SetVertexColor(0.5, 0.5, 0.5)
+                lhIcon:SetVertexColor(0.75, 0.75, 0.75)
                 lhIcon:Show()
             end
 
@@ -2501,14 +2501,14 @@ function PallyPowerGrid_Update(tdiff)
             if skills["DivineIntervention"] ~= nil then
                 diIcon:SetTexture(PallyPower_DivineItervention)
                 if skills["DivineIntervention"] == true then
-                    diIcon:SetVertexColor(0.25, 1, 0.25)
+                    diIcon:SetVertexColor(0.75, 1, 0.75)
                 else
-                    diIcon:SetVertexColor(1, 0.25, 0.25)
+                    diIcon:SetVertexColor(1, 0.75, 0.75)
                 end
                 diIcon:Show()
             else
                 diIcon:SetTexture(PallyPower_DivineItervention)
-                diIcon:SetVertexColor(0.5, 0.5, 0.5)
+                diIcon:SetVertexColor(0.75, 0.75, 0.75)
                 diIcon:Show()
             end
 
