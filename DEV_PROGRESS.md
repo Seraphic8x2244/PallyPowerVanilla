@@ -33,7 +33,7 @@
 - Existing Nampower and UnitXP calls remain behind their existing capability/enable checks.
 
 ## Implemented / Awaiting Test
-- Paladin HoJ/LoH/DI icons now show green when ready and red when known unavailable/on cooldown; unknown legacy HoJ state remains hidden.
+- Paladin HoJ/LoH/DI icons now show green when ready, red when known unavailable/on cooldown, and grey when cooldown state is unknown.
 - Aura and Judgement capability micro-icon clusters removed; assignment icons and hover tooltips preserved.
 - Entire `1.11.0-dev` structural migration.
 - Version metadata centralization.
@@ -86,4 +86,4 @@ Install/run `dev` as `PallyPowerVanilla` on WoW 1.12.1 and verify:
 - Communication protocol redesign.
 
 ## Exact Next Step
-User tests `1.11.0-dev` in game, checking the Aura/Judgement cleanup plus HoJ/LoH/DI utility icons: green when ready, red when not ready, and no false HoJ state from legacy two-bit clients.
+User tests `1.11.0-dev` in game, checking the Aura/Judgement cleanup plus HoJ/LoH/DI utility icons: green when ready, red when not ready, and grey when cooldown state is unknown (including legacy two-bit HoJ state).
