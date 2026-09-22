@@ -4479,7 +4479,6 @@ function PallyPower_ShowCredits()
     GameTooltip:AddLine(PallyPower_Credits2 .. " " .. (ADDON_VERSION or PALLYPOWER_UI_UNKNOWN), 1, 1, 1)
     GameTooltip:AddLine(PallyPower_Credits3)
     GameTooltip:AddLine(PallyPower_Credits4, 0, 1, 0)
-    GameTooltip:AddLine(PallyPower_Credits5)
     GameTooltip:AddLine(tostring(PallyPower_ShowMemoryUsage()) .. PALLYPOWER_UI_MEMORY_SUFFIX)
     GameTooltip:Show()
 end
