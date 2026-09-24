@@ -9,4 +9,5 @@
 
 locales\enUS.lua
 PallyPower.lua
+PallyPowerUI.lua
 PallyPower.xml
