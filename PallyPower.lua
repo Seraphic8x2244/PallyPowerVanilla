@@ -4285,11 +4285,9 @@ local function PP_TooltipIcon(texture, size)
 end
 
 local function PP_GetPlayerIndexFromFrame(frame)
-    if not frame or not frame.GetName then return nil end
-    local frameName = frame:GetName()
-    if not frameName then return nil end
-    local _, _, index = string.find(frameName, "PallyPowerFramePlayer(%d+)")
-    return tonumber(index)
+    if not frame then return nil end
+    local row = frame.ppRow or frame
+    return row and row.ppIndex
 end
 
 local function PP_GetPlayerNameByIndex(index)
