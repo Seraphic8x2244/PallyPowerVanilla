@@ -420,7 +420,10 @@ function PallyPowerUI.CreatePPPaladinRowSkill(frame, id)
 end
 
 function PallyPowerUI.CreatePPPaladinRowAssignment(frame, suffix)
-	return PallyPowerUI.CreatePPAssignmentCellTemplate("$parentClass" .. suffix, frame)
+	local cell = PallyPowerUI.CreatePPAssignmentCellTemplate("$parentClass" .. suffix, frame)
+	cell.ppRow = frame
+	cell.ppClass = suffix
+	return cell
 end
 
 function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
