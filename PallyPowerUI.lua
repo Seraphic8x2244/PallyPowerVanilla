@@ -1,6 +1,6 @@
 -- PallyPowerVanilla UI construction helpers.
--- Stage 3: standalone UI and Advanced Options are constructed here while the
--- larger Buff Bar and Assignment sections remain XML-backed.
+-- Stage 4: standalone UI, Advanced Options and the Buff Bar are constructed
+-- here while the Assignment section remains XML-backed.
 
 PallyPowerUI = PallyPowerUI or {}
 
@@ -867,6 +867,7 @@ function PallyPowerUI.CreateAdvancedOptionsCheckButton(frame, name, x, y, onShow
 end
 
 function PallyPowerUI.CreateAdvancedOptionsUI()
+PallyPowerUI.CreateBuffBarUI()
 	local frame = PallyPowerUI.CreateFrame("Frame", "PallyPower_OptionsFrame", UIParent)
 	local button
 	local slider
@@ -1203,6 +1204,134 @@ function PallyPowerUI.CreateAdvancedOptionsUI()
 		PallyPower_SetFrameBackdropColor(this)
 	end)
 	PallyPower_SetFrameBackdropColor(frame)
+
+	return frame
+end
+
+-- ============================================================================
+-- STAGE 4 BUFF BAR UI
+-- ============================================================================
+
+function PallyPowerUI.CreateBuffBarUI()
+	local frame = PallyPowerUI.CreateFrame("Frame", "PallyPowerBuffBar", UIParent)
+	local title
+	local region
+	local button
+	local statusBar
+	local previous
+	local i
+
+	PallyPowerUI.SetSize(frame, 90, 390)
+	PallyPowerUI.SetPoint(frame, "LEFT", UIParent, "LEFT", 0, 0)
+	frame:SetToplevel(true)
+	frame:SetMovable(true)
+	frame:SetFrameStrata("LOW")
+	frame:EnableMouse(true)
+
+	title = PallyPowerUI.CreateFrame("Button", "$parentTitle", frame)
+	PallyPowerUI.SetSize(title, 300, 16)
+	PallyPowerUI.SetPoint(title, "TOPLEFT", frame, "TOPLEFT", 0, 0)
+	PallyPowerUI.SetBackdrop(
+		title,
+		"Interface\\Tooltips\\UI-Tooltip-Background",
+		"Interface\\Tooltips\\UI-Tooltip-Border",
+		true, 8, 8, 2, 2, 3, 2
+	)
+
+	region = PallyPowerUI.CreateFontString(title, "$parentText", "OVERLAY", "GameFontNormal")
+	PallyPowerUI.SetSize(region, 86, 18)
+	PallyPowerUI.SetPoint(region, "CENTER", title, "CENTER", 0, 0)
+	region:SetText(PALLYPOWER_UI_TITLE)
+	region:SetJustifyH("CENTER")
+	PallyPowerUI.SetFontStyle(region, 14)
+
+	title:SetScript("OnEnter", function()
+		PallyPower_ShowVersionTooltip()
+	end)
+	title:SetScript("OnLeave", function()
+		HideUIPanel(GameTooltip)
+	end)
+	title:SetScript("OnMouseDown", function()
+		PallyPowerBuffBar_MouseDown(arg1)
+	end)
+	title:SetScript("OnMouseUp", function()
+		PallyPowerBuffBar_MouseUp()
+	end)
+
+	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentAura", frame)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", title, "BOTTOMLEFT", 0, 0)
+
+	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentRF", frame)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", PallyPowerBuffBarAura, "BOTTOMLEFT", 0, 0)
+	region = PallyPowerUI.CreateFontString(button, "$parentNoRF", "OVERLAY", "GameFontNormalLarge")
+	PallyPowerUI.SetSize(region, 24, 24)
+	PallyPowerUI.SetPoint(region, "CENTER", getglobal(button:GetName() .. "BuffIcon"), "CENTER", 0, 0)
+	region:SetText("X")
+	region:SetJustifyH("CENTER")
+	region:SetJustifyV("MIDDLE")
+	PallyPowerUI.SetFontStyle(region, 20, "THICK")
+	region:SetTextColor(1, 0, 0)
+	region:Hide()
+
+	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentSeal", frame)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", PallyPowerBuffBarAura, "BOTTOMLEFT", 0, 0)
+
+	button = PallyPowerUI.CreatePPBuffBarCombinedSelfTemplate("$parentSelfCombined", frame)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", title, "BOTTOMLEFT", 0, 0)
+	button:Hide()
+
+	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentJudgement", frame)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", PallyPowerBuffBarSeal, "BOTTOMLEFT", 0, 0)
+	button:Hide()
+
+	region = PallyPowerUI.CreateFontString(button, "$parentTime", "OVERLAY", "GameFontHighlightSmall")
+	PallyPowerUI.SetSize(region, 50, 15)
+	PallyPowerUI.SetPoint(region, "TOPRIGHT", button, "TOPRIGHT", -6, -4)
+	region:SetText("")
+	region:SetJustifyH("CENTER")
+	region:SetJustifyV("MIDDLE")
+	PallyPowerUI.SetFontStyle(region, 11)
+
+	region = PallyPowerUI.CreateFontString(button, "$parentDebug", "OVERLAY", "GameFontNormalSmall")
+	PallyPowerUI.SetSize(region, 78, 12)
+	PallyPowerUI.SetPoint(region, "LEFT", button, "RIGHT", 4, 0)
+	region:SetText("")
+	region:SetJustifyH("LEFT")
+	region:SetTextColor(1, 1, 1)
+
+	statusBar = PallyPowerUI.CreateFrame("StatusBar", "$parentDurationBar", button)
+	PallyPowerUI.SetSize(statusBar, 62, 4)
+	PallyPowerUI.SetPoint(statusBar, "BOTTOMRIGHT", button, "BOTTOMRIGHT", 2, 5)
+	statusBar:SetMinMaxValues(0, 1)
+	statusBar:SetValue(0)
+	statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	statusBar:SetStatusBarColor(1, 1, 1)
+
+	button:SetScript("OnClick", function()
+	end)
+	button:SetScript("OnEnter", function()
+		PallyPower_JudgementTracker_OnEnter(this)
+	end)
+	button:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+
+	for i = 1, 10 do
+		button = PallyPowerUI.CreatePPBuffBarBlessingTemplate("$parentBuff" .. i, frame)
+		if i == 1 then
+			PallyPowerUI.SetPoint(button, "TOPLEFT", title, "BOTTOMLEFT", 0, 0)
+		else
+			PallyPowerUI.SetPoint(button, "TOPLEFT", previous, "BOTTOMLEFT", 0, 0)
+		end
+		previous = button
+	end
+
+	button = PallyPowerUI.CreatePPResizeGripTemplate("$parentResizeButton", frame)
+	PallyPowerUI.SetPoint(button, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 1, -1)
+
+	frame:SetScript("OnUpdate", function()
+		PallyPower_OnUpdate(arg1)
+	end)
 
 	return frame
 end
