@@ -2,6 +2,13 @@
 -- Stage 6: all addon-owned UI is constructed here; PallyPower.xml has been removed.
 
 PallyPowerUI = PallyPowerUI or {}
+PallyPowerUIRefs = {
+	playerRows = {},
+	classIcons = {},
+	classGroups = {},
+	specialGroups = {},
+	buffButtons = {},
+}
 
 function PallyPowerUI.ResolveName(parent, name)
 	if not name then
@@ -110,6 +117,7 @@ function PallyPowerUI.CreatePPAssignmentCellTemplate(name, parent)
 	icon = PallyPowerUI.CreateTexture(button, "$parentIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.SetSize(icon, 32, 32)
 	PallyPowerUI.SetPoint(icon, "TOPLEFT", button, "TOPLEFT", 24, -20)
+	button.ppIcon = icon
 
 	button:SetScript("OnLoad", function()
 		PallyPowerGridButton_OnLoad(this)
@@ -150,6 +158,8 @@ function PallyPowerUI.CreatePPPlayerOverrideTemplate(name, parent)
 	icon = PallyPowerUI.CreateTexture(button, "$parentIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.SetSize(icon, 12, 12)
 	PallyPowerUI.SetPoint(icon, "TOPRIGHT", text, "TOPRIGHT", -2, 0)
+	button.ppText = text
+	button.ppIcon = icon
 
 	button:SetScript("OnLoad", function()
 		this:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
@@ -183,10 +193,13 @@ function PallyPowerUI.CreatePPClassColumnTemplate(name, parent)
 	line = PallyPowerUI.CreateTexture(frame, "$parentLine", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
 	PallyPowerUI.SetSize(line, 2, 212)
 	PallyPowerUI.SetPoint(line, "TOPLEFT", frame, "TOPLEFT", 0, 0)
+	frame.ppLine = line
+	frame.playerButtons = {}
 
 	for i = 1, 15 do
 		button = PallyPowerUI.CreatePPPlayerOverrideTemplate("$parentPlayerButton" .. i, frame)
 		PallyPowerUI.SetPoint(button, "TOPLEFT", frame, "TOPLEFT", 3, -13 * (i - 1))
+		frame.playerButtons[i] = button
 	end
 
 	return frame
@@ -201,6 +214,7 @@ function PallyPowerUI.CreatePPSpecialColumnTemplate(name, parent)
 	line = PallyPowerUI.CreateTexture(frame, "$parentLine", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
 	PallyPowerUI.SetSize(line, 2, 212)
 	PallyPowerUI.SetPoint(line, "TOPLEFT", frame, "TOPLEFT", 0, 0)
+	frame.ppLine = line
 
 	return frame
 end
@@ -224,6 +238,7 @@ function PallyPowerUI.CreatePPBuffBarBlessingTemplate(name, parent)
 	region:SetText("10:00")
 	region:SetJustifyH("RIGHT")
 	PallyPowerUI.SetFontStyle(region, 11)
+	button.ppTime = region
 
 	region = PallyPowerUI.CreateFontString(button, "$parentTime2", "OVERLAY", "GameFontNormalSmall")
 	PallyPowerUI.SetSize(region, 28, 10)
@@ -231,20 +246,24 @@ function PallyPowerUI.CreatePPBuffBarBlessingTemplate(name, parent)
 	region:SetText("10:00")
 	region:SetJustifyH("RIGHT")
 	PallyPowerUI.SetFontStyle(region, 11)
+	button.ppTime2 = region
 
 	region = PallyPowerUI.CreateFontString(button, "$parentText", "OVERLAY", "GameFontHighlightSmall")
 	PallyPowerUI.SetSize(region, 28, 10)
 	PallyPowerUI.SetPoint(region, "BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 1)
 	region:SetText("99")
 	region:SetJustifyH("RIGHT")
+	button.ppText = region
 
 	region = PallyPowerUI.CreateTexture(button, "$parentClassIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Paladin")
 	PallyPowerUI.SetSize(region, 24, 24)
 	PallyPowerUI.SetPoint(region, "LEFT", button, "LEFT", 3, 0)
+	button.ppClassIcon = region
 
 	region = PallyPowerUI.CreateTexture(button, "$parentBuffIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.SetSize(region, 24, 24)
 	PallyPowerUI.SetPoint(region, "LEFT", button, "LEFT", 33, 0)
+	button.ppBuffIcon = region
 
 	button:SetScript("OnLoad", function()
 		PallyPowerBuffButton_OnLoad(this)
@@ -380,12 +399,14 @@ function PallyPowerUI.CreatePPPaladinRowRankIcon(frame, id, x, textureFile)
 	local icon = PallyPowerUI.CreateTexture(frame, "$parentIcon" .. id, "OVERLAY", textureFile)
 	PallyPowerUI.SetSize(icon, 16, 16)
 	PallyPowerUI.SetPoint(icon, "TOPLEFT", frame, "TOPLEFT", x, -52)
+	frame.ppRankIcons = frame.ppRankIcons or {}
+	frame.ppRankIcons[id] = icon
 	return icon
 end
 
 function PallyPowerUI.CreatePPPaladinRowSkill(frame, id)
 	local skill = PallyPowerUI.CreateFontString(frame, "$parentSkill" .. id, "OVERLAY", "GameFontNormalSmall")
-	local icon = getglobal(frame:GetName() .. "Icon" .. id)
+	local icon = frame.ppRankIcons and frame.ppRankIcons[id]
 	PallyPowerUI.SetSize(skill, 26, 16)
 	PallyPowerUI.SetPoint(skill, "CENTER", icon, "CENTER", 0, 0)
 	skill:SetText("")
@@ -393,6 +414,8 @@ function PallyPowerUI.CreatePPPaladinRowSkill(frame, id)
 	skill:SetJustifyV("MIDDLE")
 	PallyPowerUI.SetFontStyle(skill, nil, "THICK")
 	skill:SetTextColor(1, 1, 1)
+	frame.ppSkills = frame.ppSkills or {}
+	frame.ppSkills[id] = skill
 	return skill
 end
 
@@ -414,12 +437,14 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 4, -3)
 	region:SetText("SomePally$parent")
 	region:SetJustifyH("LEFT")
+	frame.ppName = region
 
 	region = PallyPowerUI.CreateFontString(frame, "$parentSymbols", "OVERLAY", "GameFontHighlightSmall")
 	PallyPowerUI.SetSize(region, 24, 16)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 82, -27)
 	region:SetText("999")
 	region:SetJustifyH("RIGHT")
+	frame.ppSymbols = region
 
 	region = PallyPowerUI.CreateTexture(frame, "$parentSymbolIcon", "OVERLAY", "Interface\\Icons\\INV_Misc_SymbolofKings_01")
 	PallyPowerUI.SetSize(region, 16, 16)
@@ -467,18 +492,23 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 103, -4)
 	region:SetText("")
 	region:SetJustifyH("RIGHT")
+	frame.ppInGroup = region
 
 	region = PallyPowerUI.CreateTexture(frame, "$parentIconHOJ", "OVERLAY", "Interface\\Icons\\Spell_Holy_SealOfMight")
 	PallyPowerUI.SetSize(region, 16, 16)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 4, -27)
+	frame.ppHOJ = region
 
 	region = PallyPowerUI.CreateTexture(frame, "$parentIconLH", "OVERLAY", "Interface\\Icons\\Spell_Holy_LayOnHands")
 	PallyPowerUI.SetSize(region, 16, 16)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 24, -27)
+	frame.ppLH = region
 
 	region = PallyPowerUI.CreateTexture(frame, "$parentIconDI", "OVERLAY", "Interface\\Icons\\Spell_Nature_TimeStop")
 	PallyPowerUI.SetSize(region, 16, 16)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 44, -27)
+	frame.ppDI = region
+	frame.ppAssignments = {}
 
 	region = PallyPowerUI.CreateFrame("Button", "$parentBlessingHover", frame)
 	PallyPowerUI.SetSize(region, 124, 20)
@@ -492,6 +522,8 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	end)
 
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "A")
+	frame.ppAssignments.A = cell
+	cell.ppRow = frame
 	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame, "TOPLEFT", 129, -10)
 	cell:SetScript("OnEnter", function()
 		PallyPower_ShowAuraCapabilities(this)
@@ -501,7 +533,9 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	end)
 
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "R")
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", getglobal(frame:GetName() .. "ClassA"), "TOPLEFT", 82, 0)
+	frame.ppAssignments.R = cell
+	cell.ppRow = frame
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.A, "TOPLEFT", 82, 0)
 	region = PallyPowerUI.CreateFontString(cell, "$parentNoRF", "OVERLAY", "GameFontNormalLarge")
 	PallyPowerUI.SetSize(region, 24, 24)
 	PallyPowerUI.SetPoint(region, "CENTER", getglobal(cell:GetName() .. "Icon"), "CENTER", 0, 0)
@@ -511,9 +545,12 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	PallyPowerUI.SetFontStyle(region, 20, "THICK")
 	region:SetTextColor(1, 0, 0)
 	region:Hide()
+	cell.ppNoRF = region
 
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "S")
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", getglobal(frame:GetName() .. "ClassA"), "TOPLEFT", 164, 0)
+	frame.ppAssignments.S = cell
+	cell.ppRow = frame
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.A, "TOPLEFT", 164, 0)
 	cell:SetScript("OnEnter", function()
 		PallyPower_ShowAllSealCapabilities(this)
 	end)
@@ -522,7 +559,9 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	end)
 
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "J")
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", getglobal(frame:GetName() .. "ClassA"), "TOPLEFT", 246, 0)
+	frame.ppAssignments.J = cell
+	cell.ppRow = frame
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.A, "TOPLEFT", 246, 0)
 	cell:SetScript("OnEnter", function()
 		PallyPower_ShowSealCapabilities(this)
 	end)
@@ -531,10 +570,14 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	end)
 
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "0")
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", getglobal(frame:GetName() .. "ClassA"), "TOPLEFT", 328, 0)
+	frame.ppAssignments[0] = cell
+	cell.ppRow = frame
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.A, "TOPLEFT", 328, 0)
 	previous = cell
 	for i = 1, 9 do
 		cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, tostring(i))
+		frame.ppAssignments[i] = cell
+		cell.ppRow = frame
 		PallyPowerUI.SetPoint(cell, "TOPLEFT", previous, "TOPRIGHT", 2, 0)
 		previous = cell
 	end
@@ -680,6 +723,7 @@ function PallyPowerUI.CreateAssignmentUI()
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineA, "TOPLEFT", 26, -12)
+	PallyPowerUIRefs.classIcons.A = region
 
 	region = PallyPowerUI.CreateTexture(
 		frame, "$parentClassR", "ARTWORK",
@@ -687,6 +731,7 @@ function PallyPowerUI.CreateAssignmentUI()
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineR, "TOPLEFT", 26, -12)
+	PallyPowerUIRefs.classIcons.R = region
 
 	region = PallyPowerUI.CreateTexture(
 		frame, "$parentClassS", "ARTWORK",
@@ -694,6 +739,7 @@ function PallyPowerUI.CreateAssignmentUI()
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineS, "TOPLEFT", 26, -12)
+	PallyPowerUIRefs.classIcons.S = region
 
 	region = PallyPowerUI.CreateTexture(
 		frame, "$parentClassJ", "ARTWORK",
@@ -701,6 +747,7 @@ function PallyPowerUI.CreateAssignmentUI()
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineJ, "TOPLEFT", 26, -12)
+	PallyPowerUIRefs.classIcons.J = region
 
 	for i = 0, 9 do
 		region = PallyPowerUI.CreateTexture(frame, "$parentClass" .. i, "ARTWORK", classTextures[i + 1])
@@ -710,10 +757,11 @@ function PallyPowerUI.CreateAssignmentUI()
 		else
 			PallyPowerUI.SetPoint(
 				region, "TOPLEFT",
-				getglobal(frame:GetName() .. "Class" .. (i - 1)),
+				PallyPowerUIRefs.classIcons[i - 1],
 				"TOPLEFT", 82, 0
 			)
 		end
+		PallyPowerUIRefs.classIcons[i] = region
 	end
 
 	PallyPowerUI.CreateAssignmentEyeButton(
@@ -869,15 +917,19 @@ function PallyPowerUI.CreateAssignmentUI()
 
 	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupA", frame)
 	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassA, "BOTTOMLEFT", -26, -12)
+	PallyPowerUIRefs.specialGroups.A = group
 
 	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupR", frame)
 	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassR, "BOTTOMLEFT", -26, -12)
+	PallyPowerUIRefs.specialGroups.R = group
 
 	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupS", frame)
 	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassS, "BOTTOMLEFT", -26, -12)
+	PallyPowerUIRefs.specialGroups.S = group
 
 	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupJ", frame)
 	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassJ, "BOTTOMLEFT", -26, -12)
+	PallyPowerUIRefs.specialGroups.J = group
 
 	checkButton = PallyPowerUI.CreateFrame("CheckButton", "$parentJudgementFailedRefresh", frame, "UICheckButtonTemplate")
 	PallyPowerUI.SetSize(checkButton, 20, 20)
@@ -896,19 +948,21 @@ function PallyPowerUI.CreateAssignmentUI()
 		group = PallyPowerUI.CreatePPClassColumnTemplate("$parentClassGroup" .. i, frame)
 		PallyPowerUI.SetPoint(
 			group, "TOPLEFT",
-			getglobal(frame:GetName() .. "Class" .. (i - 1)),
+			PallyPowerUIRefs.classIcons[i - 1],
 			"BOTTOMLEFT", -26, -12
 		)
+		PallyPowerUIRefs.classGroups[i] = group
 	end
 
 	for i = 1, 12 do
 		row = PallyPowerUI.CreatePPPaladinRowTemplate("$parentPlayer" .. i, frame)
+		PallyPowerUIRefs.playerRows[i] = row
 		if i == 1 then
-			PallyPowerUI.SetPoint(row, "TOPLEFT", PallyPowerFrameClassGroup1, "BOTTOM", -336, -174)
+			PallyPowerUI.SetPoint(row, "TOPLEFT", PallyPowerUIRefs.classGroups[1], "BOTTOM", -336, -174)
 		else
 			PallyPowerUI.SetPoint(
 				row, "TOPLEFT",
-				getglobal(frame:GetName() .. "Player" .. (i - 1)),
+				PallyPowerUIRefs.playerRows[i - 1],
 				"BOTTOMLEFT", 0, 0
 			)
 		end
@@ -1721,6 +1775,7 @@ function PallyPowerUI.CreateBuffBarUI()
 
 	for i = 1, 10 do
 		button = PallyPowerUI.CreatePPBuffBarBlessingTemplate("$parentBuff" .. i, frame)
+		PallyPowerUIRefs.buffButtons[i] = button
 		if i == 1 then
 			PallyPowerUI.SetPoint(button, "TOPLEFT", title, "BOTTOMLEFT", 0, 0)
 		else
