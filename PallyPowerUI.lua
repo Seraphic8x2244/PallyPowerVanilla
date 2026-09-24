@@ -1216,17 +1216,17 @@ function PallyPowerUI.CreateAdvancedOptionsScanEditBox(frame, suffix, y, optionK
 	editBox:SetFontObject(ChatFontNormal)
 
 	left = PallyPowerUI.CreateTexture(editBox, "$parentLeft", "BACKGROUND", "Interface\\Common\\Common-Input-Border")
-	PallyPowerUI.SetSize(left, -30, y)
+	PallyPowerUI.SetSize(left, 8, 20)
 	PallyPowerUI.SetPoint(left, "LEFT", editBox, "LEFT", 0, 0)
 	left:SetTexCoord(0, 0.0625, 0, 0.625)
 
 	right = PallyPowerUI.CreateTexture(editBox, "$parentRight", "BACKGROUND", "Interface\\Common\\Common-Input-Border")
-	PallyPowerUI.SetSize(right, -30, y)
+	PallyPowerUI.SetSize(right, 8, 20)
 	PallyPowerUI.SetPoint(right, "RIGHT", editBox, "RIGHT", 0, 0)
 	right:SetTexCoord(0.9375, 1, 0, 0.625)
 
 	middle = PallyPowerUI.CreateTexture(editBox, "$parentMiddle", "BACKGROUND", "Interface\\Common\\Common-Input-Border")
-	PallyPowerUI.SetSize(middle, -30, y)
+	PallyPowerUI.SetSize(middle, 10, 20)
 	PallyPowerUI.SetPoint(middle, "LEFT", left, "RIGHT", 0, 0)
 	PallyPowerUI.SetPoint(middle, "RIGHT", right, "LEFT", 0, 0)
 	middle:SetTexCoord(0.0625, 0.9375, 0, 0.625)
