@@ -1208,7 +1208,6 @@ function PallyPowerUI.CreateAdvancedOptionsUI()
 end
 
 function PallyPowerUI.CreateStage2StandaloneUI()
-PallyPowerUI.CreateAdvancedOptionsUI()
 	PallyPowerUI.CreateScalingFrame()
 	PallyPowerUI.CreateMinimapPresetUI()
 	PallyPowerUI.CreateWarningDialog()
@@ -1216,3 +1215,4 @@ PallyPowerUI.CreateAdvancedOptionsUI()
 end
 
 PallyPowerUI.CreateStage2StandaloneUI()
+PallyPowerUI.CreateAdvancedOptionsUI()
