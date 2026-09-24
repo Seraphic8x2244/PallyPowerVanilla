@@ -1,6 +1,5 @@
 -- PallyPowerVanilla UI construction helpers.
--- Stage 5: all live addon-owned UI, including Assignment, is constructed here.
--- PallyPower.xml remains loaded only for the six Assignment virtual templates.
+-- Stage 6: all addon-owned UI is constructed here; PallyPower.xml has been removed.
 
 PallyPowerUI = PallyPowerUI or {}
 
@@ -54,9 +53,8 @@ end
 -- ============================================================================
 -- STAGE 2 TEMPLATE FACTORIES
 -- ============================================================================
--- These functions mirror the nine addon-owned virtual XML templates. The six
--- Assignment virtual XML templates intentionally remain defined through Stage 5;
--- Stage 6 owns their removal with the XML loader.
+-- These functions mirror the nine addon-owned virtual XML templates from the
+-- frozen parity baseline. The XML definitions are removed; Lua factories own them.
 
 function PallyPowerUI.SetBackdrop(frame, bgFile, edgeFile, tile, tileSize, edgeSize, left, right, top, bottom)
 	frame:SetBackdrop({
