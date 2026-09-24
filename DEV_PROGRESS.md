@@ -2,14 +2,15 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.1-dev`
+- Version: `1.11.2-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
-- Current implementation head before Stage 7 work: `1188304105d38fd4172acc9c43b8f6f47ea6c30f`
-- Current branch head before this Stage 7 handoff update: `8a9df831f5c7c74d6c3f9e9a24e8d33d8882bee6`
+- Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
+- Current Stage 7 test build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
+- Branch head before this handoff update: `8ec82172c986e1e2f6725f45ac5dc3123feed46b`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
-- Current scope boundary: This is a UI construction/refactor project only. Preserve runtime behaviour, appearance, compatibility contracts, data formats and optional-extension semantics unless a later request explicitly changes them.
+- Current scope boundary: Stage 7 naming/reference cleanup only. Preserve runtime behaviour, appearance, compatibility globals, data/protocol formats and optional-extension semantics. Do not combine naming cleanup with callback modernization or feature changes.
 
 ## Current Design / Development Contract
 
@@ -83,7 +84,7 @@
 - The user has explicitly approved replacing addon-owned XML UI with Lua.
 - This migration is parity-first, not a visual redesign or feature rewrite.
 - The XML-free UI must be runtime-tested before legacy naming/getglobal cleanup starts.
-- After the XML-free baseline passes runtime testing, a second refactor phase may replace repeated generated-name/global lookups with Lua-owned frame tables/references.
+- Stage 7 now replaces repeated generated-name/global lookups with Lua-owned frame references/tables in small runtime-tested slices.
 - During naming cleanup, retain compatibility aliases for any global whose external compatibility status is uncertain.
 - Keep the familiar PallyPower workflow and compatibility focus.
 - Aura/Judgement assignment micro-icon clusters remain removed while assignment icons/tooltips remain.
@@ -91,6 +92,10 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `8ec8217` - Fix and clarify the new addon build-versioning rule in `dev_rulebook.md`; each new testable build must increment the numeric TOC version.
+- `03f988f` - Bump the Stage 7 testable build to `1.11.2-dev`; runtime Lua is unchanged from `ceec82c`.
+- `ceec82c` - Remove the last player-row name parsing from the first Stage 7 indexed-reference slice.
+- `9c73559` through `259437c` / `524664a` / `31d82e1` - Add and consume Lua-owned indexed references for player rows, class columns/player buttons and Buff Bar blessing buttons while preserving named globals and legacy behavior.
 - `1188304` - Fix the pre-existing Advanced Options Scan1/Scan2 input-border distortion by replacing malformed negative texture dimensions with Vanilla `Common-Input-Border` geometry only.
 - `51847fc` - Accept Stage 6 after the full AQ40 parity run and unblock the previously deferred scan EditBox border fix.
 - `ca5c7cb` - Record the corrected XML-free startup success and the broader AQ40 runtime gate that remained pending.
@@ -142,8 +147,10 @@
 - The Assignment migration preserves `PallyPowerFrame`, the ten class columns, four special columns, twelve Paladin row families, assignment cells, capability-hover regions, quick controls, eye controls, Judgement failed-refresh control, resize behavior, generated child globals and existing dynamic `getglobal()` naming contracts.
 - `PallyPower_OnLoad()` is still executed against the intended main Assignment frame by temporarily binding global `this` to the Lua-created `PallyPowerFrame`; the root `OnEvent`, mouse, hide and title `OnUpdate` handlers retain the legacy `event`/`this`/`arg1` semantics.
 - `PallyPower.xml` and all nine custom virtual XML template definitions are now removed; the TOC loads `locales/enUS.lua`, `PallyPower.lua` and `PallyPowerUI.lua` only.
-- `Bindings.xml` remains intentionally separate and unchanged; no naming/getglobal cleanup has begun.
+- `Bindings.xml` remains intentionally separate and unchanged.
+- Stage 7 first slice is implemented: `PallyPowerUIRefs` owns deterministic references for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons; legacy named globals are still created unchanged as compatibility aliases.
 - Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` subsequently passed focused startup testing and a full AQ40 raid parity run; Stage 6 is now user-accepted.
+- Stage 7 first-slice test build `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`) is implemented and compiler-checked but has not yet been tested in game.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
@@ -190,23 +197,32 @@
 - Canonical real Lua 5.0.2 compiler validation passed for exact corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`) in VanillaTemplate run `36034849466`, job `107752246481`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `7356b0da541792025e6616c2f7a15af83223b668`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`.
 - Focused scan-border fix `1188304105d38fd4172acc9c43b8f6f47ea6c30f` changes only the three `Common-Input-Border` texture sizes inside `CreateAdvancedOptionsScanEditBox()`: left/right to `8x20` and middle to `10x20`. EditBox size, anchors, option keys, scripts, focus behavior and persistence code are unchanged. These dimensions match Blizzard's Vanilla input-border geometry and later PallyPower sources.
 - Canonical real Lua 5.0.2 compiler validation passed for exact scan-border runtime `1188304105d38fd4172acc9c43b8f6f47ea6c30f` in VanillaTemplate run `36072313858`, job `107875827489`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `9011850d46ccb77b4d51000933e8e1f9be373d72`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR `#8` was closed and branch `validate-pallypower-scan-border` was reset to VanillaTemplate baseline `b37a6c56c15a58d8001771b3e4947643e74753c1`.
+- Stage 7 first-slice static audit reduced `PallyPower.lua` `getglobal()` call sites from 115 at the pre-slice audit to 34, with **zero** remaining indexed `PallyPowerFramePlayer...`, `PallyPowerFrameClass...` or `PallyPowerBuffBarBuff...` lookups. `PallyPowerUI.lua` has 7 remaining unrelated `getglobal()` sites. Player-row identity for the migrated capability/assignment paths no longer parses generated frame names.
+- All legacy generated/named globals for the migrated families are still created by the Lua constructors, preserving compatibility aliases while internal code consumes direct references.
+- Canonical real Lua 5.0.2 compiler validation passed for Stage 7 Lua implementation `ceec82cbbee32d430101b2f76dd4b1d4232c1a20` in VanillaTemplate run `36073299444`, job `107878884438`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `7579ef9aaca44ebd90b4d70e7feb11292a1d4192`, `PallyPowerUI.lua` `688b596811cc10d40922a22969d633e606d41aac`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR `#9` was closed and `validate-pallypower-stage7-refs` was reset to VanillaTemplate baseline `b37a6c56c15a58d8001771b3e4947643e74753c1`.
+- Test build `03f988f66b912381585a5b487ed16ad7a68b14da` changes only the TOC version after that compiler-checked Lua payload, so it carries the same checked Lua blobs with runtime metadata/version now `1.11.2-dev`.
 
 ## Current Issues
-- No Stage 6 XML-to-Lua parity regression is currently known. Exact runtime implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` passed startup and broad AQ40 raid use with no behavioral differences noticed by the user.
-- No known post-parity UI defect remains from the previously deferred Scan1/Scan2 border issue; fix `1188304105d38fd4172acc9c43b8f6f47ea6c30f` is compiler-checked and user-verified.
+- No Stage 6 parity regression is known; Stage 6 remains accepted on `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`.
+- The Advanced Options Scan1/Scan2 border correction remains user-verified fixed on `1188304105d38fd4172acc9c43b8f6f47ea6c30f`.
+- Stage 7 first slice is compiler-checked but runtime-untested. Do not continue to another naming/reference slice until test build `03f988f66b912381585a5b487ed16ad7a68b14da` is user-verified.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
 
 ### Last Runtime Test
-- Version/commit: `1.11.1-dev` / runtime implementation `1188304105d38fd4172acc9c43b8f6f47ea6c30f`; later handoff commit `8a9df831f5c7c74d6c3f9e9a24e8d33d8882bee6` changed documentation only.
+- Version/commit: `1.11.1-dev` / runtime implementation `1188304105d38fd4172acc9c43b8f6f47ea6c30f`.
 - Focus: Advanced Options Scan1/Scan2 post-parity border correction.
 - Result: user confirms the Advanced Options issue is fixed in game.
-- Acceptance: the deferred scan EditBox visual defect is closed. Stage 7 may now begin.
+- Acceptance: the deferred scan EditBox visual defect is closed.
 
 ### Next Runtime Test
-- Stage 7 runtime test is not yet defined because no Stage 7 runtime delta has been implemented.
-- After the first Stage 7 naming/reference refactor slice, test only the indexed families changed by that slice plus normal startup/reload.
+- Version/build: `1.11.2-dev` / `03f988f66b912381585a5b487ed16ad7a68b14da`; Stage 7 Lua implementation is `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`.
+- Confirm clean login/load and `/reload` with no Lua/UI errors.
+- Assignment UI: verify Paladin rows populate names, group IDs, capability/utility icons and blessing/aura/seal/RF/Judgement assignments normally; hover capability/assignment tooltips and exercise normal assignment clicks. Check the per-class individual player override rows populate names/icons/colours and remain interactive.
+- Buff Bar: verify blessing buttons populate class/blessing icons, counts and both timer texts normally; switch vertical/horizontal layout; exercise normal blessing-button clicks/hotkeys and confirm hidden/unused buttons stay hidden.
+- Compatibility focus: named/global UI behavior should look identical to the accepted pre-Stage-7 build. A full AQ40 repeat is not required if these changed indexed paths receive representative group/raid coverage.
+- Stop on any difference and report the exact path; do not continue Stage 7 until this build is accepted.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -313,10 +329,10 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — IN PROGRESS
-- Stage 6 and the deferred Scan1/Scan2 correction are user-accepted, so Stage 7 is unblocked.
-- First perform a narrow access-pattern audit of the existing 118 `getglobal()` call sites / 55 frozen dynamic expressions, then replace only clear repeated indexed UI families with Lua-owned references/tables where practical.
-- Likely structures include indexed player rows, class columns and Buff Bar button arrays, but design the exact tables from actual access patterns rather than imposing a speculative abstraction.
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SLICE IMPLEMENTED / AWAITING RUNTIME TEST
+- First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
+- Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
+- All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
 - Keep compatibility globals/aliases wherever external use is possible or uncertain.
 - Do not combine this stage with behaviour, data-model or protocol changes.
 - Runtime-test again before treating this cleaner internal architecture as stable.
@@ -340,4 +356,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Begin Stage 7 with a narrow lookup audit only. Inventory the current dynamic `getglobal()` call sites in `PallyPower.lua` by family and access pattern, then implement the smallest coherent reference-table slice for repeated indexed UI families (expected candidates: player rows, class columns, Buff Bar buttons). Preserve every existing named global as a compatibility alias, do not change behavior/data/protocol, and do not modernize legacy callback semantics in the same slice. Run the real Lua 5.0.2 compiler check and define a focused runtime regression test for exactly the families changed.
+Runtime-test exact Stage 7 build `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`) using the Stage 7 checklist above. The changed scope is player-row/class-column/class-player-button/Buff-Bar indexed references only; verify those paths plus clean startup/reload. If the build passes, record it as the Stage 7 first-slice tested baseline before auditing or implementing any further naming/getglobal cleanup. Do not start the next Stage 7 slice before this runtime acceptance.
