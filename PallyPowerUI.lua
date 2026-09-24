@@ -1747,6 +1747,27 @@ function PallyPowerUI.CreateStage2StandaloneUI()
 	PallyPowerUI.CreateSavePresetDialog()
 end
 
-PallyPowerUI.CreateStage2StandaloneUI()
-PallyPowerUI.CreateAdvancedOptionsUI()
-PallyPowerUI.CreateAssignmentUI()
+function PallyPowerUI.CreateAllUI()
+	local ok
+	local err
+
+	ok, err = pcall(PallyPowerUI.CreateStage2StandaloneUI)
+	if not ok then
+		DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI standalone construction failed:|r " .. tostring(err))
+		return
+	end
+
+	ok, err = pcall(PallyPowerUI.CreateAdvancedOptionsUI)
+	if not ok then
+		DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI advanced/buff construction failed:|r " .. tostring(err))
+		return
+	end
+
+	ok, err = pcall(PallyPowerUI.CreateAssignmentUI)
+	if not ok then
+		DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI assignment construction failed:|r " .. tostring(err))
+		return
+	end
+end
+
+PallyPowerUI.CreateAllUI()
