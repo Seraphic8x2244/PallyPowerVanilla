@@ -1741,10 +1741,26 @@ function PallyPowerUI.CreateBuffBarUI()
 end
 
 function PallyPowerUI.CreateStage2StandaloneUI()
-	PallyPowerUI.CreateScalingFrame()
-	PallyPowerUI.CreateMinimapPresetUI()
-	PallyPowerUI.CreateWarningDialog()
-	PallyPowerUI.CreateSavePresetDialog()
+	local failed = false
+	local function createDiagnostic(label, constructor)
+		local ok
+		local err
+
+		ok, err = pcall(constructor)
+		if not ok then
+			failed = true
+			DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI " .. label .. " construction failed:|r " .. tostring(err))
+		end
+	end
+
+	createDiagnostic("scaling frame", PallyPowerUI.CreateScalingFrame)
+	createDiagnostic("minimap/preset", PallyPowerUI.CreateMinimapPresetUI)
+	createDiagnostic("warning dialog", PallyPowerUI.CreateWarningDialog)
+	createDiagnostic("save dialog", PallyPowerUI.CreateSavePresetDialog)
+
+	if failed then
+		error("standalone sub-construction failed")
+	end
 end
 
 function PallyPowerUI.CreateAllUI()
