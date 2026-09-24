@@ -1,6 +1,6 @@
 -- PallyPowerVanilla UI construction helpers.
--- Stage 2: small standalone UI sections are now constructed here while the
--- larger Buff Bar, Assignment and Advanced Options sections remain XML-backed.
+-- Stage 3: standalone UI and Advanced Options are constructed here while the
+-- larger Buff Bar and Assignment sections remain XML-backed.
 
 PallyPowerUI = PallyPowerUI or {}
 
@@ -777,7 +777,438 @@ function PallyPowerUI.CreateSavePresetDialog()
 	return frame
 end
 
+-- ============================================================================
+-- STAGE 3 ADVANCED OPTIONS UI
+-- ============================================================================
+
+function PallyPowerUI.CreateAdvancedOptionsLabel(frame, name, inherits, text, width, height, point, x, y, justifyH, r, g, b)
+	local label = PallyPowerUI.CreateFontString(frame, name, "OVERLAY", inherits)
+
+	PallyPowerUI.SetSize(label, width, height)
+	PallyPowerUI.SetPoint(label, point, frame, point, x, y)
+	if text then
+		label:SetText(text)
+	end
+	if justifyH then
+		label:SetJustifyH(justifyH)
+	end
+	if r then
+		label:SetTextColor(r, g, b)
+	end
+
+	return label
+end
+
+function PallyPowerUI.CreateAdvancedOptionsScanEditBox(frame, suffix, y, optionKey, focusOther)
+	local editBox = PallyPowerUI.CreateFrame("EditBox", "$parent" .. suffix, frame)
+	local left
+	local right
+	local middle
+
+	PallyPowerUI.SetSize(editBox, 34, 20)
+	PallyPowerUI.SetPoint(editBox, "TOPRIGHT", frame, "TOPRIGHT", -30, y)
+	editBox:EnableMouse(true)
+	editBox:SetMaxLetters(8)
+	editBox:SetNumeric(1)
+	editBox:SetFontObject(ChatFontNormal)
+
+	left = PallyPowerUI.CreateTexture(editBox, "$parentLeft", "BACKGROUND", "Interface\\Common\\Common-Input-Border")
+	PallyPowerUI.SetSize(left, -30, y)
+	PallyPowerUI.SetPoint(left, "LEFT", editBox, "LEFT", 0, 0)
+	left:SetTexCoord(0, 0.0625, 0, 0.625)
+
+	right = PallyPowerUI.CreateTexture(editBox, "$parentRight", "BACKGROUND", "Interface\\Common\\Common-Input-Border")
+	PallyPowerUI.SetSize(right, -30, y)
+	PallyPowerUI.SetPoint(right, "RIGHT", editBox, "RIGHT", 0, 0)
+	right:SetTexCoord(0.9375, 1, 0, 0.625)
+
+	middle = PallyPowerUI.CreateTexture(editBox, "$parentMiddle", "BACKGROUND", "Interface\\Common\\Common-Input-Border")
+	PallyPowerUI.SetSize(middle, -30, y)
+	PallyPowerUI.SetPoint(middle, "LEFT", left, "RIGHT", 0, 0)
+	PallyPowerUI.SetPoint(middle, "RIGHT", right, "LEFT", 0, 0)
+	middle:SetTexCoord(0.0625, 0.9375, 0, 0.625)
+
+	editBox:SetScript("OnShow", function()
+		this:SetNumeric(1)
+		this:SetText(PP_PerUser[optionKey])
+	end)
+	editBox:SetScript("OnTabPressed", function()
+		focusOther()
+	end)
+	editBox:SetScript("OnEditFocusLost", function()
+		this:HighlightText(0, 0)
+	end)
+	editBox:SetScript("OnChar", function()
+	end)
+	editBox:SetScript("OnEnterPressed", function()
+		focusOther()
+	end)
+	editBox:SetScript("OnEscapePressed", function()
+		this:GetParent():Hide()
+	end)
+	editBox:SetScript("OnTextChanged", function()
+		if this:GetNumber() > 0 then
+			PallyPower_SetOption(optionKey, this:GetNumber())
+		end
+	end)
+
+	return editBox
+end
+
+function PallyPowerUI.CreateAdvancedOptionsCheckButton(frame, name, x, y, onShow, onClick)
+	local button = PallyPowerUI.CreateFrame("CheckButton", name, frame, "OptionsCheckButtonTemplate")
+
+	PallyPowerUI.SetSize(button, 20, 20)
+	PallyPowerUI.SetPoint(button, "TOPRIGHT", frame, "TOPRIGHT", x, y)
+	button:SetScript("OnShow", onShow)
+	button:SetScript("OnClick", onClick)
+
+	return button
+end
+
+function PallyPowerUI.CreateAdvancedOptionsUI()
+	local frame = PallyPowerUI.CreateFrame("Frame", "PallyPower_OptionsFrame", UIParent)
+	local button
+	local slider
+
+	PallyPowerUI.SetSize(frame, 400, 490)
+	PallyPowerUI.SetPoint(frame, "CENTER", UIParent, "CENTER", 0, 65)
+	frame:SetToplevel(true)
+	frame:SetMovable(true)
+	frame:EnableMouse(true)
+	frame:SetFrameStrata("DIALOG")
+	frame:Hide()
+	PallyPowerUI.SetBackdrop(
+		frame,
+		"Interface\\Tooltips\\UI-Tooltip-Background",
+		"Interface\\Tooltips\\UI-Tooltip-Border",
+		true, 16, 16, 5, 5, 5, 5
+	)
+
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentTitle", "GameFontNormalLarge", PALLYPOWER_UI_ADVANCED_TITLE,
+		300, 16, "TOP", 0, -10, nil, 0.96, 0.55, 0.73
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_AdvancedMinimapHeader", "GameFontNormal", PALLYPOWER_UI_SECTION_MINIMAP,
+		180, 16, "TOPLEFT", 10, -38, "LEFT", 0.96, 0.55, 0.73
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_AdvancedVisualHeader", "GameFontNormal", PALLYPOWER_UI_SECTION_VISUAL,
+		180, 16, "TOPLEFT", 10, -125, "LEFT", 0.96, 0.55, 0.73
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_AdvancedLayoutHeader", "GameFontNormal", PALLYPOWER_UI_SECTION_LAYOUT,
+		180, 16, "TOPLEFT", 10, -224, "LEFT", 0.96, 0.55, 0.73
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_AdvancedScanningHeader", "GameFontNormal", PALLYPOWER_UI_SECTION_SCANNING,
+		180, 16, "TOPLEFT", 10, -337, "LEFT", 0.96, 0.55, 0.73
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_NampowerLabel", "GameFontHighlight", PALLYPOWER_UI_NAMPOWER,
+		180, 16, "TOPLEFT", 18, -440, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_NampowerState", "GameFontNormal", nil,
+		150, 16, "TOPRIGHT", -30, -440, "RIGHT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_UnitXPLabel", "GameFontHighlight", PALLYPOWER_UI_UNITXP_SP3,
+		180, 16, "TOPLEFT", 18, -465, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "PP_UI_UnitXPState", "GameFontNormal", nil,
+		150, 16, "TOPRIGHT", -30, -465, "RIGHT"
+	)
+
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption1", "GameFontHighlight", PALLYPOWER_UI_SCAN_UNITFRAMES_EVERY,
+		300, 16, "TOPLEFT", 18, -365, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption2", "GameFontHighlight", PALLYPOWER_UI_UNITS_SCANNED_PER_FRAME,
+		300, 16, "TOPLEFT", 18, -390, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption3", "GameFontHighlight", PALLYPOWER_OPTIONS_FEEDBACK_CHAT,
+		200, 16, "TOPLEFT", 7, -75, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption4", "GameFontHighlight", PALLYPOWER_OPTIONS_SMARTBUFFS,
+		200, 16, "TOPLEFT", 7, -100, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption5", "GameFontHighlight", PALLYPOWER_OPTIONS_LOCK,
+		300, 16, "TOPLEFT", 7, -125, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption6", "GameFontHighlight", PALLYPOWER_OPTIONS_RF,
+		300, 16, "TOPLEFT", 7, -150, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption7", "GameFontHighlight", PALLYPOWER_OPTIONS_AURA,
+		300, 16, "TOPLEFT", 7, -175, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption7a", "GameFontHighlight", PALLYPOWER_OPTIONS_SEAL,
+		300, 16, "TOPLEFT", 7, -200, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption8", "GameFontHighlight", PALLYPOWER_UI_SHOW_BUTTON,
+		300, 16, "TOPLEFT", 18, -62, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption9", "GameFontHighlight", PALLYPOWER_UI_BUTTON_POSITION,
+		300, 16, "TOPLEFT", 18, -87, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption10", "GameFontHighlight", PALLYPOWER_OPTIONS_PLAY_SOUND,
+		300, 16, "TOPLEFT", 7, -275, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption11", "GameFontHighlight", PALLYPOWER_OPTIONS_HORIZONTAL_LAYOUT,
+		300, 16, "TOPLEFT", 7, -300, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption12", "GameFontHighlight", PALLYPOWER_UI_HIDE_BLIZZARD_AURA_FRAME,
+		300, 16, "TOPLEFT", 18, -204, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption13", "GameFontHighlight", PALLYPOWER_OPTIONS_USE_UNITXP_SP3_LOS,
+		300, 16, "TOPLEFT", 7, -350, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption14", "GameFontHighlight", PALLYPOWER_OPTIONS_USE_HDICONS,
+		300, 16, "TOPLEFT", 18, -149, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentCombineSelfBuffsLabel", "GameFontHighlight", PALLYPOWER_UI_COMBINE_SELF_BUFFS,
+		260, 16, "TOPLEFT", 18, -252, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentSelfBuffsAboveHeaderLabel", "GameFontHighlight", PALLYPOWER_UI_SELF_BUFFS_ABOVE_HEADER,
+		260, 16, "TOPLEFT", 18, -277, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentJudgementAboveHeaderLabel", "GameFontHighlight", PALLYPOWER_UI_JUDGEMENT_ABOVE_HEADER,
+		260, 16, "TOPLEFT", 18, -302, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentVerboseJudgementRefreshLabel", "GameFontHighlight", PALLYPOWER_UI_VERBOSE_JUDGEMENT_REFRESH,
+		260, 16, "TOPLEFT", 18, -415, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentOption15", "GameFontHighlight", PALLYPOWER_OPTIONS_TRANSPARENCY,
+		300, 16, "TOPLEFT", 18, -174, "LEFT"
+	)
+
+	button = PallyPowerUI.CreateFrame("Button", "$parentCloseButton", frame, "UIPanelCloseButton")
+	PallyPowerUI.SetPoint(button, "TOPRIGHT", frame, "TOPRIGHT", 2, 2)
+
+	PallyPowerUI.CreateAdvancedOptionsScanEditBox(
+		frame, "Scan1", -363, "scanfreq",
+		function() PallyPower_OptionsFrameScan2:SetFocus() end
+	)
+	PallyPowerUI.CreateAdvancedOptionsScanEditBox(
+		frame, "Scan2", -388, "scanperframe",
+		function() PallyPower_OptionsFrameScan1:SetFocus() end
+	)
+
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "$parentCombineSelfBuffs", -30, -250,
+		function()
+			if PP_PerUser.combineselfbuffs then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PallyPower_CombineSelfBuffsOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "$parentSelfBuffsAboveHeader", -30, -275,
+		function()
+			if PP_PerUser.selfbuffsaboveheader then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PallyPower_SelfBuffsAboveHeaderOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "$parentJudgementAboveHeader", -30, -300,
+		function()
+			if PP_PerUser.judgementaboveheader then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PallyPower_JudgementAboveHeaderOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "$parentVerboseJudgementRefresh", -30, -413,
+		function()
+			if PP_PerUser.verbose_judgement_refresh then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PallyPower_VerboseJudgementRefreshOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "$parentFeedback", -5, -75,
+		function()
+			if PP_PerUser.chatfeedback then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.chatfeedback = this:GetChecked()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "$parentSmart", -5, -100,
+		function()
+			if PP_PerUser.smartbuffs then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.smartbuffs = this:GetChecked()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "FramesLockedOptionChk", -5, -125,
+		function()
+			if PP_PerUser.frameslocked then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.frameslocked = this:GetChecked()
+			PallyPower_FramesLockedOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "RighteousFuryOptionChk", -5, -150,
+		function()
+			if PP_PerUser.showrfbutton then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.showrfbutton = this:GetChecked()
+			PallyPower_RighteousFuryOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "AuraOptionChk", -5, -175,
+		function()
+			if PP_PerUser.showaurabutton then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.showaurabutton = this:GetChecked()
+			PallyPower_AuraOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "SealOptionChk", -5, -200,
+		function()
+			if PP_PerUser.showsealbutton then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.showsealbutton = this:GetChecked()
+			PallyPower_SealOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "MinimapButtonOptionChk", -30, -62,
+		function()
+			if PP_PerUser.minimapbuttonshow then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.minimapbuttonshow = this:GetChecked()
+			PallyPower_MinimapButtonOption()
+		end
+	)
+
+	slider = PallyPowerUI.CreateFrame("Slider", "MinimapButtonOptionSlider", frame, "OptionsSliderTemplate")
+	PallyPowerUI.SetSize(slider, 210, 16)
+	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -87)
+	slider:SetScript("OnLoad", function()
+		MinimapButtonOptionSlider:SetMinMaxValues(0, 360)
+		MinimapButtonOptionSlider:SetValueStep(1)
+	end)
+	slider:SetScript("OnValueChanged", function()
+		PP_PerUser.minimapbuttonpos = MinimapButtonOptionSlider:GetValue()
+		PallyPower_MinimapButton_UpdatePosition()
+	end)
+	MinimapButtonOptionSlider:SetMinMaxValues(0, 360)
+	MinimapButtonOptionSlider:SetValueStep(1)
+
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "PlaySoundOptionChk", -5, -275,
+		function()
+			if PP_PerUser.playsoundwhen0 then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.playsoundwhen0 = this:GetChecked()
+			PallyPower_PlaySoundOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "HorizontalLayoutOptionChk", -5, -300,
+		function()
+			if PP_PerUser.horizontal then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.horizontal = this:GetChecked()
+			PallyPower_HorizontalLayoutOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "HideBlizzardFrameOptionChk", -30, -204,
+		function()
+			if PP_PerUser.hideblizzaura then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.hideblizzaura = this:GetChecked()
+			PallyPower_HideBlizzardAuraFrameOption()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "UseUnitXPSP3OptionChk", -5, -350,
+		function()
+			if PP_PerUser.useunitxp_sp3 then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.useunitxp_sp3 = this:GetChecked()
+			PallyPower_UseUnitXPSP3Option()
+		end
+	)
+	PallyPowerUI.CreateAdvancedOptionsCheckButton(
+		frame, "UseHDIconsOptionChk", -30, -149,
+		function()
+			if PP_PerUser.usehdicons then this:SetChecked(true) else this:SetChecked(false) end
+		end,
+		function()
+			PP_PerUser.usehdicons = this:GetChecked()
+			PallyPower_UseHDIconsOption()
+		end
+	)
+
+	slider = PallyPowerUI.CreateFrame("Slider", "TransparencyOptionSlider", frame, "OptionsSliderTemplate")
+	PallyPowerUI.SetSize(slider, 210, 16)
+	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -174)
+	slider:SetScript("OnLoad", function()
+		TransparencyOptionSlider:SetMinMaxValues(0, 1)
+		TransparencyOptionSlider:SetValueStep(0.05)
+	end)
+	slider:SetScript("OnValueChanged", function()
+		PP_PerUser.transparency = TransparencyOptionSlider:GetValue()
+		PallyPower_AdjustTransparency()
+	end)
+	TransparencyOptionSlider:SetMinMaxValues(0, 1)
+	TransparencyOptionSlider:SetValueStep(0.05)
+
+	frame:SetScript("OnLoad", function()
+		PallyPower_SetFrameBackdropColor(this)
+	end)
+	PallyPower_SetFrameBackdropColor(frame)
+
+	return frame
+end
+
 function PallyPowerUI.CreateStage2StandaloneUI()
+PallyPowerUI.CreateAdvancedOptionsUI()
 	PallyPowerUI.CreateScalingFrame()
 	PallyPowerUI.CreateMinimapPresetUI()
 	PallyPowerUI.CreateWarningDialog()
