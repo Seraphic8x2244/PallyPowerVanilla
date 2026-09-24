@@ -3,7 +3,7 @@
 ## Current
 - Branch: `dev`
 - Version: `1.11.0-dev`
-- Current Stage 4 implementation head before this handoff update: `87dbe794ce50e915d8e0a31c263c23d48b1c6dfe`
+- Current Stage 5 implementation head before this handoff update: `ac0c28b2fe913b5ea0f313bf011e678a6923c6e1`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
 - Current scope boundary: This is a UI construction/refactor project only. Preserve runtime behaviour, appearance, compatibility contracts, data formats and optional-extension semantics unless a later request explicitly changes them.
@@ -11,7 +11,7 @@
 ## Current Design / Development Contract
 
 ### Architecture / Ownership
-- Current runtime is mixed Lua/XML: `PallyPower.lua` owns core logic, `PallyPowerUI.lua` constructs the Stage 2 standalone UI, Stage 3 Advanced Options UI and Stage 4 Buff Bar, and `PallyPower.xml` now owns only the Assignment UI section plus the six virtual templates still required by it.
+- Current runtime construction is Lua-backed for all live addon-owned UI: `PallyPower.lua` owns core logic and `PallyPowerUI.lua` constructs the Stage 2 standalone UI, Stage 3 Advanced Options UI, Stage 4 Buff Bar and Stage 5 Assignment UI. `PallyPower.xml` remains loaded only as a temporary container for the six retained Assignment virtual-template definitions pending Stage 6 removal.
 - Target architecture for the first migration phase:
   - `locales/enUS.lua`
   - `PallyPower.lua`
@@ -71,9 +71,9 @@
   - Minimap/presets: about 23 lines.
   - Warning dialog: about 18 lines.
   - Save-preset dialog: about 41 lines.
-- `PallyPowerFrame` XML `OnLoad` currently calls `PallyPower_OnLoad()`, which registers the main event set on that frame. Lua construction must preserve the effective startup order and ensure that call still runs with the intended frame as `this`.
+- At the frozen XML baseline, `PallyPowerFrame` `OnLoad` called `PallyPower_OnLoad()`, which registers the main event set on that frame. Stage 5 preserves that contract by temporarily binding global `this` to the Lua-created `PallyPowerFrame` for the constructor-time `PallyPower_OnLoad()` call, then restoring the prior `this` value.
 - Blizzard-owned templates such as `OptionsCheckButtonTemplate`, `OptionsSliderTemplate`, `UIDropDownMenuTemplate`, `UIPanelCloseButton` and `GameMenuButtonTemplate` may continue to be used through `CreateFrame(..., templateName)`.
-- Lua constructor/factory functions are not XML virtual templates. While any remaining XML object still uses `inherits="PP...Template"`, keep that virtual XML template definition available; do not remove it merely because an equivalent Lua factory exists. Remove a custom virtual XML template only when all of its XML consumers have also moved to Lua.
+- Lua constructor/factory functions are not XML virtual templates. The six Assignment virtual-template definitions remain intentionally in `PallyPower.xml` through the completed Stage 5 checkpoint even though all live Assignment consumers now construct from Lua; their removal is reserved for the Stage 6 XML-loader removal commit.
 - `PallyPower.lua` already has substantial top-level local usage. Avoid a single giant constructor block or a large increase in top-level locals; use scoped constructor/factory functions inside `PallyPowerUI.lua`.
 
 ### Active Decisions
@@ -88,6 +88,7 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `ac0c28b` - Migrate the Assignment UI from XML to Lua while retaining `PallyPower.xml` and the six Assignment virtual templates for the Stage 6 boundary.
 - `87dbe79` - Migrate the Buff Bar UI from XML to Lua and remove the three Buff-Bar-only XML virtual templates.
 - `4d55d79` - Separate the Stage 3 Advanced Options construction entry point from the Stage 2 standalone wrapper.
 - `02cbc11` - Migrate the Advanced Options UI from XML to Lua.
@@ -117,11 +118,14 @@
 - Stage 2 remains implemented at `1cd5026eae00e9ef0b405301a5f971d69f6e3fbb`.
 - Stage 3 remains implemented at `4d55d79d9c4fd908d31375f1d6b01c8e1e960b2c`; the implementation began at `02cbc118e88a654fe59ec9bd966717499fa4b094` and the follow-up commit cleanly separated the Stage 3 construction entry point from the Stage 2 wrapper.
 - Stage 4 is implemented at `87dbe794ce50e915d8e0a31c263c23d48b1c6dfe`.
-- `PallyPowerUI.lua` contains Lua factory/constructor equivalents for all nine addon-owned virtual XML templates and now constructs the Stage 2 standalone UI, Stage 3 Advanced Options UI and Stage 4 Buff Bar live from Lua.
+- Stage 5 is implemented at `ac0c28b2fe913b5ea0f313bf011e678a6923c6e1`.
+- `PallyPowerUI.lua` contains Lua factory/constructor equivalents for all nine addon-owned virtual XML templates and now constructs every live addon-owned UI section: Stage 2 standalone UI, Stage 3 Advanced Options, Stage 4 Buff Bar and Stage 5 Assignment UI.
 - The Buff Bar migration preserves the root/title globals, Aura/RF/Seal controls, hidden combined-self and Judgement controls, generated `PallyPowerBuffBarBuff1..10` families and their child names, status bar, inherited click/tooltip/mouse-wheel behavior, movement/scaling hooks, OnUpdate, layout anchors and visibility semantics.
-- The three Buff-Bar-only XML virtual template definitions were removed after their final XML consumers moved to Lua. `PallyPower.xml` now retains only the Assignment UI plus the six custom virtual template definitions still required by Assignment.
-- `PallyPower.xml` remains loaded through the TOC; `Bindings.xml` remains intentionally separate; no naming/getglobal cleanup has begun.
-- No Stage 2, Stage 3 or Stage 4 in-game smoke test was performed. This is permitted by the staged plan; the required hard runtime checkpoint remains the complete XML-free Stage 6 commit.
+- The Assignment migration preserves `PallyPowerFrame`, the ten class columns, four special columns, twelve Paladin row families, assignment cells, capability-hover regions, quick controls, eye controls, Judgement failed-refresh control, resize behavior, generated child globals and existing dynamic `getglobal()` naming contracts.
+- `PallyPower_OnLoad()` is still executed against the intended main Assignment frame by temporarily binding global `this` to the Lua-created `PallyPowerFrame`; the root `OnEvent`, mouse, hide and title `OnUpdate` handlers retain the legacy `event`/`this`/`arg1` semantics.
+- The three Buff-Bar-only XML virtual template definitions remain removed. `PallyPower.xml` now contains no live UI root; it retains only the six Assignment virtual-template definitions by deliberate Stage 5 scope, and it remains listed in the TOC until Stage 6.
+- `Bindings.xml` remains intentionally separate; no naming/getglobal cleanup has begun.
+- No Stage 2, Stage 3, Stage 4 or Stage 5 in-game smoke test was performed. This is permitted by the staged plan; the required hard runtime checkpoint remains the complete XML-free Stage 6 commit.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
@@ -147,11 +151,15 @@
 - The Stage 4 delta from handoff `3ebcbf62a72f4b50e03d87bd3da143a9e633bc30` through implementation `87dbe794ce50e915d8e0a31c263c23d48b1c6dfe` changes only `PallyPowerUI.lua` and `PallyPower.xml`; it does not modify `PallyPower.lua`, locales, TOC metadata, SavedVariables, protocol, keybindings, Nampower or UnitXP logic.
 - Canonical real Lua 5.0.2 compiler validation passed for the exact Stage 4 runtime Lua payload at `87dbe794ce50e915d8e0a31c263c23d48b1c6dfe` using VanillaTemplate `tools/lua50/check_lua50.sh`. Validation run `36017508901` completed successfully with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `c37dbf6b332cd8b3b40314fb959e514ec5b75f79`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`.
 - Temporary VanillaTemplate validation PR `#2` was closed and branch `validate-pallypower-stage4` was reset to baseline `9093fac60f210dedd87d5e2d0f265a97494f999f`; no validation workflow or checker payload was added to PallyPowerVanilla `dev`.
+- Focused Stage 5 parity review against `docs/XML_UI_PARITY_MANIFEST.md` passed for all 85 frozen Assignment-root object rows and all 15 script-bearing Assignment-root entries. The `PallyPowerFrame` XML root is absent, all ten class headers/groups, four special groups, twelve Paladin rows, generated assignment-cell/override children, quick controls, visibility controls, capability hooks, resize hooks and root/title callback contracts are represented in Lua, while all six Assignment virtual-template definitions remain in XML as required by the Stage 5 boundary.
+- The Stage 5 delta from handoff `459da65c364c49a28274013b8490cddc61030be8` through implementation `ac0c28b2fe913b5ea0f313bf011e678a6923c6e1` changes only `PallyPowerUI.lua` and `PallyPower.xml`; it does not modify `PallyPower.lua`, locales, TOC metadata, SavedVariables, protocol, keybindings, Nampower or UnitXP logic.
+- Canonical real Lua 5.0.2 compiler validation passed for the exact Stage 5 runtime Lua payload at `ac0c28b2fe913b5ea0f313bf011e678a6923c6e1` using VanillaTemplate `tools/lua50/check_lua50.sh`. Validation run `36019415153` completed successfully with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `ad65a7cb202a02b3329fa2c081f42c7a19519f89`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`.
+- Temporary VanillaTemplate validation PR `#3` was closed and branch `validate-pallypower-stage5` was reset to baseline `9093fac60f210dedd87d5e2d0f265a97494f999f`; no validation workflow or checker payload was added to PallyPowerVanilla `dev`.
 
 ## Current Issues
 - No known release-blocking runtime issues.
-- The live UI is intentionally mixed during the staged migration: the Stage 2 standalone sections, Stage 3 Advanced Options and Stage 4 Buff Bar are Lua-backed while only Assignment remains XML-backed.
-- Stages 2, 3 and 4 have passed their focused static parity reviews and the real Lua 5.0.2 compiler check but have not been tested in game.
+- All live addon-owned UI is now Lua-backed. `PallyPower.xml` is still intentionally loaded only for the six retained Assignment virtual-template definitions; Stage 6 owns their removal together with the XML TOC entry.
+- Stages 2, 3, 4 and 5 have passed their focused static parity reviews and the real Lua 5.0.2 compiler check but have not been tested in game.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
@@ -178,7 +186,13 @@
 - Static parity review: passed for all 39 frozen Buff Bar/template object rows and all 8 script-bearing Buff Bar/template entries.
 - Real Lua 5.0.2 compiler check: passed for all three runtime Lua files at implementation `87dbe794ce50e915d8e0a31c263c23d48b1c6dfe` in validation run `36017508901`.
 - In-game smoke test: not performed.
-- Blocking runtime test: none required at Stage 4; continue to Stage 5 without claiming runtime validation.
+- Blocking runtime test: none required at Stage 4; Stage 5 subsequently completed without claiming runtime validation.
+
+### Stage 5 Validation State
+- Static parity review: passed for all 85 frozen Assignment-root object rows and all 15 script-bearing Assignment-root entries.
+- Real Lua 5.0.2 compiler check: passed for all three runtime Lua files at implementation `ac0c28b2fe913b5ea0f313bf011e678a6923c6e1` in validation run `36019415153`.
+- In-game smoke test: not performed.
+- Blocking runtime test: none required at Stage 5; proceed only to the Stage 6 XML-loader/template removal and full static parity checkpoint, then stop for the required user runtime test.
 
 ### Required XML-Free Runtime Checkpoint
 After the complete addon-owned XML UI has been migrated and `PallyPower.xml` has been removed, but before naming/reference cleanup begins, runtime-test the exact XML-free commit for:
@@ -232,11 +246,12 @@ After generated-name/global lookup cleanup:
 - The three Buff-Bar-only XML virtual templates and the Buff Bar XML root were removed; Assignment XML and all templates it still consumes remain.
 - Focused manifest parity and the canonical Lua 5.0.2 compiler check passed; no Stage 4 in-game test was required or performed.
 
-### Stage 5 - Convert Assignment UI Last
-- Recreate `PallyPowerFrame`, ten class columns, four special columns, twelve Paladin rows, assignment cells, capability regions, quick controls and resize behaviour.
-- Preserve exact generated global names and `this`/`arg1` semantics during parity migration.
-- Ensure `PallyPower_OnLoad()` still registers events on the intended main frame.
-- This is the highest-risk stage and should be completed before removing the XML loader.
+### Stage 5 - Convert Assignment UI Last — COMPLETE at `ac0c28b`
+- `PallyPowerFrame`, ten class columns, four special columns, twelve Paladin rows, assignment cells, capability regions, quick controls and resize behaviour now construct from Lua.
+- Exact generated global names and the existing `this`/`arg1`/`event` callback contracts remain represented for the parity phase.
+- `PallyPower_OnLoad()` is invoked once with `this` bound to the intended Lua-created main frame so its event registration and initialization remain attached to `PallyPowerFrame`.
+- `PallyPower.xml` and the six Assignment virtual-template definitions remain deliberately present for Stage 6 removal; naming/getglobal cleanup has not begun.
+- Focused manifest parity and the canonical Lua 5.0.2 compiler check passed; no Stage 5 in-game test was required or performed.
 
 ### Stage 6 - Complete XML-Free Parity Baseline
 - Perform a full static parity review against the frozen XML manifest.
@@ -274,4 +289,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Start Stage 5 on `dev` from the Stage 4 implementation baseline `87dbe794ce50e915d8e0a31c263c23d48b1c6dfe`: migrate only the Assignment UI from `PallyPower.xml` into `PallyPowerUI.lua`, recreating `PallyPowerFrame`, ten class columns, four special columns, twelve Paladin rows, assignment cells, capability regions, quick controls and resize behavior while preserving every generated global/name used by current `getglobal()` code and the existing `this`/`arg1` callback semantics. Ensure `PallyPower_OnLoad()` still registers events on the intended main frame. Do not remove `PallyPower.xml` or any remaining virtual XML template until all Assignment XML consumers have been migrated, and do not begin naming/getglobal cleanup. After Stage 5, perform focused static parity against the frozen manifest and rerun the canonical real Lua 5.0.2 compiler check. The hard user runtime checkpoint remains the complete XML-free Stage 6 commit.
+Complete Stage 6 only on `dev` from Stage 5 implementation `ac0c28b2fe913b5ea0f313bf011e678a6923c6e1`: perform the full static parity review against `docs/XML_UI_PARITY_MANIFEST.md` across all migrated UI sections, verify every expected named object, dynamic `getglobal()` family, script/click-registration equivalent, Lua 5.0 syntax/local-pressure constraint and preserved `this`/`arg1`/`event` contract, then remove the six now-unused Assignment virtual-template definitions together with `PallyPower.xml` and its `PallyPowerVanilla.toc` entry. Keep `Bindings.xml`, do not change runtime behaviour or begin naming/getglobal cleanup, and rerun the canonical real Lua 5.0.2 compiler check on the exact XML-free runtime payload. Commit that XML-free parity baseline coherently, update this document, and stop for the required user in-game runtime checkpoint before any Stage 7 work.
