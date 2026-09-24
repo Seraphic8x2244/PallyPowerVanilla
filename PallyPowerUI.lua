@@ -1109,7 +1109,6 @@ function PallyPowerUI.CreateSavePresetDialog()
 	editBox:SetWidth(250)
 	editBox:SetHeight(32)
 	editBox:SetPoint("TOP", frame, "TOP", 0, -40)
-	editBox:SetHistoryLines(0)
 	editBox:SetMaxLetters(250)
 	editBox:SetFontObject(ChatFontNormal)
 
@@ -1741,49 +1740,12 @@ function PallyPowerUI.CreateBuffBarUI()
 end
 
 function PallyPowerUI.CreateStage2StandaloneUI()
-	local failed = false
-	local function createDiagnostic(label, constructor)
-		local ok
-		local err
-
-		ok, err = pcall(constructor)
-		if not ok then
-			failed = true
-			DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI " .. label .. " construction failed:|r " .. tostring(err))
-		end
-	end
-
-	createDiagnostic("scaling frame", PallyPowerUI.CreateScalingFrame)
-	createDiagnostic("minimap/preset", PallyPowerUI.CreateMinimapPresetUI)
-	createDiagnostic("warning dialog", PallyPowerUI.CreateWarningDialog)
-	createDiagnostic("save dialog", PallyPowerUI.CreateSavePresetDialog)
-
-	if failed then
-		error("standalone sub-construction failed")
-	end
+	PallyPowerUI.CreateScalingFrame()
+	PallyPowerUI.CreateMinimapPresetUI()
+	PallyPowerUI.CreateWarningDialog()
+	PallyPowerUI.CreateSavePresetDialog()
 end
 
-function PallyPowerUI.CreateAllUI()
-	local ok
-	local err
-
-	ok, err = pcall(PallyPowerUI.CreateStage2StandaloneUI)
-	if not ok then
-		DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI standalone construction failed:|r " .. tostring(err))
-		return
-	end
-
-	ok, err = pcall(PallyPowerUI.CreateAdvancedOptionsUI)
-	if not ok then
-		DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI advanced/buff construction failed:|r " .. tostring(err))
-		return
-	end
-
-	ok, err = pcall(PallyPowerUI.CreateAssignmentUI)
-	if not ok then
-		DEFAULT_CHAT_FRAME:AddMessage("|cffff4040PallyPower UI assignment construction failed:|r " .. tostring(err))
-		return
-	end
-end
-
-PallyPowerUI.CreateAllUI()
+PallyPowerUI.CreateStage2StandaloneUI()
+PallyPowerUI.CreateAdvancedOptionsUI()
+PallyPowerUI.CreateAssignmentUI()
