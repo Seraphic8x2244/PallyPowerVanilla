@@ -3,7 +3,7 @@
 ## Current
 - Branch: `dev`
 - Version: `1.11.0-dev`
-- Current Stage 1 implementation head before this handoff update: `f6ee37e4ed644dd1841d84918595530f5a2c36d6`
+- Current Stage 2 implementation head before this handoff update: `1cd5026eae00e9ef0b405301a5f971d69f6e3fbb`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
 - Current scope boundary: This is a UI construction/refactor project only. Preserve runtime behaviour, appearance, compatibility contracts, data formats and optional-extension semantics unless a later request explicitly changes them.
@@ -11,7 +11,7 @@
 ## Current Design / Development Contract
 
 ### Architecture / Ownership
-- Current runtime is mixed Lua/XML: `PallyPower.lua` owns core logic and `PallyPower.xml` owns most addon UI construction.
+- Current runtime is mixed Lua/XML: `PallyPower.lua` owns core logic, `PallyPowerUI.lua` now constructs the Stage 2 standalone UI, and `PallyPower.xml` still owns the large Advanced Options, Buff Bar and Assignment UI sections.
 - Target architecture for the first migration phase:
   - `locales/enUS.lua`
   - `PallyPower.lua`
@@ -47,7 +47,7 @@
 - `PallyPower.xml`: approximately 2,845 lines.
 - `PallyPower.lua`: approximately 6,962 lines.
 - Exact manifest counts: 9 custom virtual templates, 39 Frames, 77 Buttons, 19 CheckButtons, 2 Sliders, 3 EditBoxes, 1 StatusBar, 81 Textures and 59 FontStrings; 281 total UI objects, 277 named objects, and 149 XML script handlers.
-- `PallyPower.lua` currently creates only three frames directly, so this is a substantial UI-construction migration rather than a loader cleanup.
+- At the frozen pre-migration baseline, `PallyPower.lua` created only three frames directly, confirming that this is a substantial UI-construction migration rather than a loader cleanup.
 - Lua contains 118 `getglobal()` call sites; the frozen manifest records 55 distinct dynamic argument expressions, including generated families such as:
   - `PallyPowerFramePlayer..i.."Name"`
   - `PallyPowerFramePlayer..i.."ClassJIcon"`
@@ -88,6 +88,8 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `1cd5026` - Migrate the Stage 2 standalone UI to Lua and add Lua equivalents for all nine custom virtual templates.
+- `000fcc2` - Record the completed Stage 1 scaffold and Stage 2 handoff boundary.
 - `f6ee37e` - Freeze the XML UI parity manifest and add the Stage 1 Lua UI scaffold.
 - `c095033` - Document the staged XML-to-Lua migration plan.
 - `2c434b6` - Migrate development docs to the current VanillaTemplate workflow.
@@ -108,26 +110,33 @@
 - Stable `main` `1.11.0` was promoted after user approval of the tested development state.
 
 ## Implemented / Awaiting Runtime Test
-- Stage 1 is implemented at `f6ee37e4ed644dd1841d84918595530f5a2c36d6`: `docs/XML_UI_PARITY_MANIFEST.md` freezes the current XML object/script/name contract, and `PallyPowerUI.lua` provides the initial Lua 5.0-friendly helper namespace/constructors.
-- The TOC now loads `PallyPowerUI.lua` after `PallyPower.lua` and before the still-authoritative `PallyPower.xml`. The scaffold intentionally constructs no live frames yet.
-- The Stage 1 loader/helper delta has not been user runtime-tested. The required hard runtime checkpoint remains the complete XML-free Stage 6 commit; Stage 1 does not claim runtime validation.
-- No naming/getglobal cleanup has been implemented yet.
+- Stage 1 remains the frozen parity/scaffold baseline at `f6ee37e4ed644dd1841d84918595530f5a2c36d6`; `docs/XML_UI_PARITY_MANIFEST.md` remains unchanged and authoritative for the migration.
+- Stage 2 is implemented at `1cd5026eae00e9ef0b405301a5f971d69f6e3fbb`.
+- `PallyPowerUI.lua` now contains Lua factory/constructor equivalents for all nine addon-owned virtual XML templates while the corresponding virtual XML template definitions remain in `PallyPower.xml` for their still-XML-backed consumers.
+- The scaling frame, minimap/preset UI, warning dialog and save-preset dialog are now constructed live from Lua with the existing global names, `$parent` expansions, Blizzard template inheritance, scripts, click registration, sizing, anchors, backdrop/texture/font settings and visibility semantics preserved.
+- `PallyPower.xml` still owns the Advanced Options, Buff Bar and Assignment UI. `PallyPower.xml` remains in the TOC and no naming/getglobal cleanup has begun.
+- No Stage 2 in-game smoke test was performed. This is permitted by the staged plan; the required hard runtime checkpoint remains the complete XML-free Stage 6 commit.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
 ## Static / Automated Checks
 - Prior static audit found no stale legacy locale paths.
-- Prior static audit found no obvious Lua 5.1-only syntax such as `#`, `string.gmatch`, `table.pack`/`table.unpack`, or `goto`.
 - Remaining literal XML text values were identified as placeholders/sample values rather than untranslated UI labels.
 - Existing Nampower and UnitXP calls remain behind their existing capability/enable checks.
-- XML-to-Lua planning audit completed against the pre-Stage-1 `dev` state.
-- Stage 1 diff inspection at `f6ee37e` shows only the expected additions: `PallyPowerUI.lua`, one TOC loader line, and `docs/XML_UI_PARITY_MANIFEST.md`; `PallyPower.lua` and `PallyPower.xml` are unchanged.
-- Frozen manifest coverage accounts for all 281 XML UI objects, all 149 XML script handlers, all 8 explicit `RegisterForClicks` sites, and 55 distinct dynamic `getglobal()` argument expressions.
-- The Stage 1 helper scaffold has no obvious later-Lua syntax patterns (`#`, `goto`, `string.gmatch`, `table.pack`/`table.unpack`) and adds no top-level locals. A real Lua 5.0.2 compiler pass still remains required before the XML-free parity checkpoint.
+- Frozen manifest coverage remains 281 XML UI objects, 277 named objects, 149 XML script handlers, 8 explicit `RegisterForClicks` sites and 55 distinct dynamic `getglobal()` argument expressions.
+- Focused Stage 2 parity review against `docs/XML_UI_PARITY_MANIFEST.md` confirmed all nine Lua template factory equivalents are present and all nine matching virtual XML template definitions remain available because each still has XML inheritance consumers.
+- Focused Stage 2 parity review confirmed the four migrated standalone roots are absent from XML and recreated in Lua, including their explicit globals plus `$parent`-generated warning/save child globals.
+- The large Advanced Options, Buff Bar and Assignment frame roots remain XML-backed; the Stage 2 implementation diff changes only `PallyPowerUI.lua` and `PallyPower.xml`.
+- Stage 2 retained the existing scaling `OnUpdate`, minimap click/tooltip/dropdown initialization, warning/save dialog scripts and click registration semantics; constructor-time work corresponding to XML `OnLoad` is explicitly performed where required.
+- Stage 2 adds no naming/reference cleanup and does not modify `PallyPower.lua`, the TOC, locales, SavedVariables, protocol, keybindings, Nampower or UnitXP logic.
+- `PallyPowerUI.lua` has no obvious post-Lua-5.0 syntax patterns such as `#`, `goto`, `string.gmatch`, `table.pack` or `table.unpack`; new constructor locals are function-scoped rather than added as top-level locals.
+- Canonical real Lua 5.0.2 compiler validation passed for the exact Stage 2 Lua blobs using VanillaTemplate `tools/lua50/check_lua50.sh`: `PallyPower.lua` blob `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` blob `5af0a16be251864b069323edd73b511c0ffc4a30`, and `locales/enUS.lua` blob `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Validation run `36010438496` completed successfully with `Lua 5.0.2 syntax check passed: 3 file(s).`
+- The temporary VanillaTemplate validation branch was reset to the VanillaTemplate baseline after the successful check; no validation workflow was added to PallyPowerVanilla `dev`.
 
 ## Current Issues
 - No known release-blocking runtime issues.
-- The live UI remains XML-backed. Stage 1 scaffolding is complete; no live UI section has been migrated yet.
+- The live UI is intentionally mixed during the staged migration: the Stage 2 standalone sections are Lua-backed while Advanced Options, Buff Bar and Assignment remain XML-backed.
+- Stage 2 has passed static parity and the real Lua 5.0.2 compiler check but has not been tested in game.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
@@ -137,6 +146,12 @@
 - Passed: general addon/UI operation, Aura/Judgement cleanup, corrected Judgement ranks, and softened HoJ/LoH/DI status colours; the user reported most broader smoke checks working.
 - Failed: no known release-blocking failures.
 - Not tested/documented exhaustively: every optional client-extension / legacy-client combination.
+
+### Stage 2 Validation State
+- Static parity review: passed for the documented Stage 2 boundary.
+- Real Lua 5.0.2 compiler check: passed for all three runtime Lua files.
+- In-game smoke test: not performed.
+- Blocking runtime test: none required at Stage 2; continue to Stage 3 without claiming runtime validation.
 
 ### Required XML-Free Runtime Checkpoint
 After the complete addon-owned XML UI has been migrated and `PallyPower.xml` has been removed, but before naming/reference cleanup begins, runtime-test the exact XML-free commit for:
@@ -171,11 +186,12 @@ After generated-name/global lookup cleanup:
 - `PallyPowerUI.lua` is loaded but constructs no live UI; helper functions cover XML `$parent` name expansion plus basic frame/texture/font-string construction, sizing and anchoring.
 - No XML was removed or changed in Stage 1.
 
-### Stage 2 - Convert Custom Templates and Small Standalone UI
-- Convert the nine custom virtual XML templates into Lua constructor/factory functions.
-- Convert the scaling frame, warning dialog, save-preset dialog and minimap/preset UI first.
-- Preserve all generated names and existing script semantics exactly.
-- Static-check parity before moving to larger sections.
+### Stage 2 - Convert Custom Templates and Small Standalone UI — COMPLETE at `1cd5026`
+- Lua factory/constructor equivalents exist for all nine custom virtual templates.
+- Scaling frame, minimap/preset UI, warning dialog and save-preset dialog now construct live from Lua.
+- Existing global/generated names, `$parent` expansion, handlers, click registration, anchors, sizes and appearance contracts were preserved against the frozen manifest.
+- All nine custom virtual XML template definitions remain in `PallyPower.xml` because later XML sections still inherit from them.
+- Focused static parity and the canonical Lua 5.0.2 compiler check passed; no Stage 2 in-game test was required or performed.
 
 ### Stage 3 - Convert Advanced Options
 - Reproduce all Advanced Options labels, checkboxes, sliders, editboxes, Blizzard template inheritance and script handlers in Lua.
@@ -229,4 +245,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Start Stage 2 on `dev` from the Stage 1 implementation baseline `f6ee37e4ed644dd1841d84918595530f5a2c36d6`: implement Lua factory equivalents for the nine custom virtual templates and begin the small standalone UI migration (scaling frame, warning dialog, save-preset dialog, minimap/preset UI) against the frozen manifest. Keep each custom virtual XML template definition in place while any remaining XML consumer still inherits from it. Preserve all existing global/name and script contracts, perform focused static parity checks, and do not begin naming/getglobal cleanup before the complete XML-free commit passes the required user runtime test.
+Start Stage 3 on `dev` from the Stage 2 implementation baseline `1cd5026eae00e9ef0b405301a5f971d69f6e3fbb`: migrate only the Advanced Options UI from `PallyPower.xml` into `PallyPowerUI.lua`, preserving every existing control global/name, Blizzard template inheritance, `$parent` expansion, script handler, anchor, size, appearance, option persistence and Lua 5.0/WoW 1.12.1 runtime semantic. Keep every custom virtual XML template definition required by the still-XML-backed Buff Bar or Assignment UI, do not migrate those later sections yet, do not remove `PallyPower.xml`, and do not begin naming/getglobal cleanup. After Stage 3, perform focused static parity against the frozen manifest and rerun the canonical real Lua 5.0.2 compiler check. The hard user runtime checkpoint remains the complete XML-free Stage 6 commit.
