@@ -689,8 +689,8 @@ end
 
 function PallyPower_JudgementButton_OnEnter(btn)
     if not btn then return end
-    local _, _, pnum = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)ClassJ")
-    local pallyName = pnum and getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+    local row = btn.ppRow
+    local pallyName = row and row.ppName and row.ppName:GetText()
     if not pallyName then return end
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:SetText(pallyName .. PALLYPOWER_TOOLTIP_JUDGEMENT_SUFFIX, 1, 1, 1)
@@ -751,11 +751,11 @@ function PallyPower_JudgementUI_Init()
     if not PallyPowerFrameClassJ or not PallyPowerFrameClassGroupJ then return end
     if not PallyPowerBuffBarJudgement then return end
 
-    local i = 1
-    while getglobal("PallyPowerFramePlayer" .. i) do
-        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassA") then return end
-        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassJ") then return end
-        i = i + 1
+    local rows = PallyPowerUIRefs and PallyPowerUIRefs.playerRows
+    if not rows then return end
+    for i = 1, 12 do
+        local row = rows[i]
+        if not row or not row.ppAssignments or not row.ppAssignments.A or not row.ppAssignments.J then return end
     end
 
     if PallyPowerFrameJudgementFailedRefresh then
@@ -1881,14 +1881,11 @@ local function PP_UpdateBlessingTimerText()
     if not PallyPowerBuffBar or not PallyPowerBuffBar:IsVisible() then return end
 
     for i = 1, 10 do
-        local btn = getglobal("PallyPowerBuffBarBuff" .. i)
+        local btn = PallyPowerUIRefs.buffButtons[i]
         if btn and btn:IsVisible() and btn.classID ~= nil and btn.buffID ~= nil then
             local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
-            local timeText = getglobal(btn:GetName() .. "Time")
-            local time2Text = getglobal(btn:GetName() .. "Time2")
-
-            if timeText then timeText:SetText(PallyPower_FormatTime(primaryTimer)) end
-            if time2Text then time2Text:SetText(PallyPower_FormatTime(secondaryTimer)) end
+            if btn.ppTime then btn.ppTime:SetText(PallyPower_FormatTime(primaryTimer)) end
+            if btn.ppTime2 then btn.ppTime2:SetText(PallyPower_FormatTime(secondaryTimer)) end
         end
     end
 end
@@ -2447,11 +2444,11 @@ function PallyPowerGrid_Update(tdiff)
     end
 
     for i = 0, 9 do
-        getglobal("PallyPowerFrameClass" .. i):SetTexture(PallyPower_ClassTexture[i])
+        PallyPowerUIRefs.classIcons[i]:SetTexture(PallyPower_ClassTexture[i])
     end
-    getglobal("PallyPowerFrameClassA"):SetTexture(PallyPower_AuraMastery)
-    getglobal("PallyPowerFrameClassS"):SetTexture(PallyPower_AbilitySeal)
-    getglobal("PallyPowerFrameClassR"):SetTexture(PallyPower_RighteousFury)
+    PallyPowerUIRefs.classIcons.A:SetTexture(PallyPower_AuraMastery)
+    PallyPowerUIRefs.classIcons.S:SetTexture(PallyPower_AbilitySeal)
+    PallyPowerUIRefs.classIcons.R:SetTexture(PallyPower_RighteousFury)
     if PallyPowerFrameClassJ then PallyPowerFrameClassJ:SetTexture("Interface\\Icons\\Spell_Holy_RighteousFury") end
 
     -- Pally 1 is always myself
@@ -2461,13 +2458,14 @@ function PallyPowerGrid_Update(tdiff)
     if PallyPowerFrame:IsVisible() then
         PallyPowerFrame:SetScale((PP_PerUser.uiscale or 1) * PP_PerUser.scalemain)
         for name, skills in AllPallys do
-            getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetText(name)
-            getglobal("PallyPowerFramePlayer" .. i .. "InGroup"):SetText(PallyPower_GetPlayerGroupID(name))
+            local row = PallyPowerUIRefs.playerRows[i]
+            row.ppName:SetText(name)
+            row.ppInGroup:SetText(PallyPower_GetPlayerGroupID(name))
 
             -- Utility cooldown summary (communicated via the legacy COOLDOWNS message).
             -- Known ready states are green, known unavailable/cooldown states are red,
             -- and unknown legacy states remain hidden.
-            local hojIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ")
+            local hojIcon = row.ppHOJ
             if skills["HammerOfJustice"] ~= nil then
                 hojIcon:SetTexture(PallyPower_HammerOfJusticeIcon)
                 if skills["HammerOfJustice"] == true then
@@ -2482,7 +2480,7 @@ function PallyPowerGrid_Update(tdiff)
                 hojIcon:Show()
             end
 
-            local lhIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconLH")
+            local lhIcon = row.ppLH
             if skills["LayOnHands"] ~= nil then
                 lhIcon:SetTexture(PallyPower_LayOnHandsIcon)
                 if skills["LayOnHands"] == true then
@@ -2497,7 +2495,7 @@ function PallyPowerGrid_Update(tdiff)
                 lhIcon:Show()
             end
 
-            local diIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconDI")
+            local diIcon = row.ppDI
             if skills["DivineIntervention"] ~= nil then
                 diIcon:SetTexture(PallyPower_DivineItervention)
                 if skills["DivineIntervention"] == true then
@@ -2512,54 +2510,52 @@ function PallyPowerGrid_Update(tdiff)
                 diIcon:Show()
             end
 
-            getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetText(skills["symbols"])
-            getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetTextColor(1, 1, 0.5)
+            row.ppSymbols:SetText(skills["symbols"])
+            row.ppSymbols:SetTextColor(1, 1, 0.5)
             -- Paladin identity uses the class colour consistently; control state is
             -- represented by assignment availability rather than recolouring the name.
-            getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetTextColor(0.96, 0.55, 0.73)
+            row.ppName:SetTextColor(0.96, 0.55, 0.73)
             for id = 0, 5 do -- Blessings Icons and skills
                 if (skills[id]) then
-                    getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Show()
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Show()
+                    row.ppRankIcons[id]:Show()
+                    row.ppSkills[id]:Show()
                     local rank = tonumber(skills[id]["rank"]) or 0
                     local talent = tonumber(skills[id]["talent"]) or 0
                     local capabilityText = tostring(rank)
                     if talent > 0 then capabilityText = capabilityText .. "+" .. talent end
-                    getglobal(
-                        "PallyPowerFramePlayer" .. i .. "Skill" .. id
-                    ):SetText(capabilityText)
+                    row.ppSkills[id]:SetText(capabilityText)
                 else
-                    getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Hide()
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Hide()
+                    row.ppRankIcons[id]:Hide()
+                    row.ppSkills[id]:Hide()
                 end
             end
             for id = 0, 9 do
                 if (PallyPower_Assignments[name]) then
-                    getglobal("PallyPowerFramePlayer" .. i .. "Class" .. id .. "Icon"):SetTexture(
+                    row.ppAssignments[id].ppIcon:SetTexture(
                         BlessingIcon[PallyPower_Assignments[name][id]]
                     )
                 else
-                    getglobal("PallyPowerFramePlayer" .. i .. "Class" .. id .. "Icon"):SetTexture(nil)
+                    row.ppAssignments[id].ppIcon:SetTexture(nil)
                 end
             end
             if (PallyPower_AuraAssignments[name]) then
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassAIcon"):SetTexture(
+                row.ppAssignments.A.ppIcon:SetTexture(
                     AuraIcons[PallyPower_AuraAssignments[name]]
                 )
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassAIcon"):SetTexture(nil)
+                row.ppAssignments.A.ppIcon:SetTexture(nil)
             end
             if (PallyPower_SealAssignments[name]) then
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassSIcon"):SetTexture(
+                row.ppAssignments.S.ppIcon:SetTexture(
                     SealIcons[PallyPower_SealAssignments[name]]
                 )
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassSIcon"):SetTexture(nil)
+                row.ppAssignments.S.ppIcon:SetTexture(nil)
             end
-            local judgementButton = getglobal("PallyPowerFramePlayer" .. i .. "ClassJ")
+            local judgementButton = row.ppAssignments.J
             if judgementButton then
                 local assignedJudgement = PallyPower_JudgementAssignments[name]
-                local judgementIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassJIcon")
+                local judgementIcon = judgementButton.ppIcon
                 if judgementIcon then
                     if assignedJudgement ~= nil and assignedJudgement >= 0 then
                         judgementIcon:SetTexture(PallyPower_JudgementIcons[assignedJudgement])
@@ -2575,9 +2571,9 @@ function PallyPowerGrid_Update(tdiff)
                     judgementButton:SetAlpha(1)
                 end
             end
-            local rfCell = getglobal("PallyPowerFramePlayer" .. i .. "ClassR")
-            local rfIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassRIcon")
-            local rfNo = getglobal("PallyPowerFramePlayer" .. i .. "ClassRNoRF")
+            local rfCell = row.ppAssignments.R
+            local rfIcon = rfCell.ppIcon
+            local rfNo = rfCell.ppNoRF
             local rfState = PallyPower_RFAssignments[name]
             if rfCell then
                 rfCell:SetAlpha((PallyPower_RFCapabilities[name] == false and rfState ~= "off") and 0.35 or 1)
@@ -2604,12 +2600,12 @@ function PallyPowerGrid_Update(tdiff)
         for ii = 1, PALLYPOWER_MAXCLASSES do
             currentPlayer = 0
 
-            local fname = "PallyPowerFrameClassGroup" .. ii
+            local group = PallyPowerUIRefs.classGroups[ii]
 
             for jj = 1, PALLYPOWER_MAXPERCLASS do
-                local pbnt = fname .. "PlayerButton" .. jj
-                getglobal(pbnt):SetFrameStrata("BACKGROUND")
-                getglobal(pbnt):SetAlpha(0)
+                local pbnt = group.playerButtons[jj]
+                pbnt:SetFrameStrata("BACKGROUND")
+                pbnt:SetAlpha(0)
             end    
             
             if CurrentBuffs[ii - 1] then
@@ -2621,30 +2617,30 @@ function PallyPowerGrid_Update(tdiff)
                         break
                     end
 
-                    local pbnt = fname .. "PlayerButton" .. (currentPlayer + 1) -- Index is based on 1
+                    local pbnt = group.playerButtons[currentPlayer + 1] -- Index is based on 1
 
                     if unit then
                         local shortname = stats.name
                         if string.find(unit,"pet") then
-                            getglobal(pbnt .. "Text"):SetText(shortname) --"|T132242:0|t "..shortname
+                            pbnt.ppText:SetText(shortname) --"|T132242:0|t "..shortname
                         else
-                            getglobal(pbnt .. "Text"):SetText(shortname)
+                            pbnt.ppText:SetText(shortname)
                         end
                         local blessing = GetNormalBlessings(player,ii - 1, shortname) --class 0 == button 1
                         if blessing ~= -1 then
-                            getglobal(pbnt .. "Icon"):SetTexture(BuffIconSmall[blessing])
+                            pbnt.ppIcon:SetTexture(BuffIconSmall[blessing])
                         else
-                            getglobal(pbnt .. "Icon"):SetTexture("")
+                            pbnt.ppIcon:SetTexture("")
                         end
                         local nameColor = PP_BuffBarClassColors[ii - 1] or {1, 1, 1}
-                        getglobal(pbnt .. "Text"):SetTextColor(nameColor[1], nameColor[2], nameColor[3])
-                        getglobal(pbnt):SetFrameStrata("DIALOG")
-                        getglobal(pbnt):SetAlpha(1)        
+                        pbnt.ppText:SetTextColor(nameColor[1], nameColor[2], nameColor[3])
+                        pbnt:SetFrameStrata("DIALOG")
+                        pbnt:SetAlpha(1)
                         currentPlayer = currentPlayer + 1
                     else
-                        getglobal(pbnt .. "Icon"):SetTexture("")
-                        getglobal(pbnt):SetFrameStrata("BACKGROUND")
-                        getglobal(pbnt):SetAlpha(0)
+                        pbnt.ppIcon:SetTexture("")
+                        pbnt:SetFrameStrata("BACKGROUND")
+                        pbnt:SetAlpha(0)
                     end
 
                 end
@@ -2656,20 +2652,20 @@ function PallyPowerGrid_Update(tdiff)
         end           
 
         PallyPowerFrame:SetHeight(10 + 14 + 34 + 52 + (numPallys * 76) + 10 + (13 * numMaxClass)) -- Reduced footer by 12px: keeps multi-Paladin growth unchanged while tightening the bottom control band
-        getglobal("PallyPowerFramePlayer1"):ClearAllPoints()
-        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", PallyPowerFrame, "TOPLEFT", 8, -90 - 13 * numMaxClass)
+        PallyPowerUIRefs.playerRows[1]:ClearAllPoints()
+        PallyPowerUIRefs.playerRows[1]:SetPoint("TOPLEFT", PallyPowerFrame, "TOPLEFT", 8, -90 - 13 * numMaxClass)
 		for i = 1, PALLYPOWER_MAXCLASSES do
-			getglobal("PallyPowerFrameClassGroup" .. i .. "Line"):SetHeight( 2 + 13 * numMaxClass)
-        end        
-        getglobal("PallyPowerFrameClassGroupALine"):SetHeight( 2 + 13 * numMaxClass)
-        getglobal("PallyPowerFrameClassGroupSLine"):SetHeight( 2 + 13 * numMaxClass)
-        getglobal("PallyPowerFrameClassGroupRLine"):SetHeight( 2 + 13 * numMaxClass)
-        if PallyPowerFrameClassGroupJLine then PallyPowerFrameClassGroupJLine:SetHeight(2 + 13 * numMaxClass) end
-            for i = 1, 12 do
+			PallyPowerUIRefs.classGroups[i].ppLine:SetHeight(2 + 13 * numMaxClass)
+        end
+        PallyPowerUIRefs.specialGroups.A.ppLine:SetHeight(2 + 13 * numMaxClass)
+        PallyPowerUIRefs.specialGroups.S.ppLine:SetHeight(2 + 13 * numMaxClass)
+        PallyPowerUIRefs.specialGroups.R.ppLine:SetHeight(2 + 13 * numMaxClass)
+        PallyPowerUIRefs.specialGroups.J.ppLine:SetHeight(2 + 13 * numMaxClass)
+        for i = 1, 12 do
             if i <= numPallys then
-                getglobal("PallyPowerFramePlayer" .. i):Show()
+                PallyPowerUIRefs.playerRows[i]:Show()
             else
-                getglobal("PallyPowerFramePlayer" .. i):Hide()
+                PallyPowerUIRefs.playerRows[i]:Hide()
             end
         end
     end
@@ -2868,11 +2864,11 @@ end
 local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
     if not btn then return end
 
-    local classIcon = getglobal(btn:GetName() .. "ClassIcon")
-    local buffIcon = getglobal(btn:GetName() .. "BuffIcon")
-    local timeText = getglobal(btn:GetName() .. "Time")
-    local time2Text = getglobal(btn:GetName() .. "Time2")
-    local countText = getglobal(btn:GetName() .. "Text")
+    local classIcon = btn.ppClassIcon
+    local buffIcon = btn.ppBuffIcon
+    local timeText = btn.ppTime
+    local time2Text = btn.ppTime2
+    local countText = btn.ppText
 
     if horizontal then
         btn:SetWidth(PP_UI.BUFF_SHORT)
@@ -3032,7 +3028,7 @@ function PallyPower_UpdateLayout()
     if showAura then PallyPowerBuffBarSelfCombinedAura:Show() else PallyPowerBuffBarSelfCombinedAura:Hide() end
     if showRF then PallyPowerBuffBarSelfCombinedRF:Show() else PallyPowerBuffBarSelfCombinedRF:Hide() end
     if showSeal then PallyPowerBuffBarSelfCombinedSeal:Show() else PallyPowerBuffBarSelfCombinedSeal:Hide() end
-    for i = 1, 10 do PallyPower_ApplyBlessingButtonGeometry(getglobal("PallyPowerBuffBarBuff" .. i), horizontal) end
+    for i = 1, 10 do PallyPower_ApplyBlessingButtonGeometry(PallyPowerUIRefs.buffButtons[i], horizontal) end
     local selfSpecials = {}
     if PP_PerUser.combineselfbuffs == true then
         if showAura or showRF or showSeal then table.insert(selfSpecials, PallyPowerBuffBarSelfCombined) end
@@ -3068,7 +3064,7 @@ function PallyPower_UpdateLayout()
         end
     end
 
-    local firstBlessing = PallyPowerBuffBarBuff1
+    local firstBlessing = PallyPowerUIRefs.buffButtons[1]
     PallyPowerBuffBarTitle:ClearAllPoints()
     local previous = nil
 
@@ -3096,7 +3092,7 @@ function PallyPower_UpdateLayout()
         previous = button
     end
     PP_AnchorAfter(firstBlessing, previous)
-    for i = 2, 10 do local button=getglobal("PallyPowerBuffBarBuff"..i); local previous=getglobal("PallyPowerBuffBarBuff"..(i-1)); PP_AnchorAfter(button, previous); button:Hide() end
+    for i = 2, 10 do local button=PallyPowerUIRefs.buffButtons[i]; local previous=PallyPowerUIRefs.buffButtons[i - 1]; PP_AnchorAfter(button, previous); button:Hide() end
     return table.getn(above) + table.getn(below)
 end
 
@@ -3227,17 +3223,15 @@ function PallyPower_UpdateUI()
             local assign = PallyPower_Assignments[namePlayer]
             for class = 0, 9 do
                 if (assign[class] and assign[class] ~= -1) then
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "ClassIcon"):SetTexture(
-                        PallyPower_ClassTexture[class]
-                    )
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "BuffIcon"):SetTexture(BlessingIcon[assign[class]])
+                    local btn = PallyPowerUIRefs.buffButtons[BuffNum]
+                    btn.ppClassIcon:SetTexture(PallyPower_ClassTexture[class])
+                    btn.ppBuffIcon:SetTexture(BlessingIcon[assign[class]])
 
-                    local btn = getglobal("PallyPowerBuffBarBuff" .. BuffNum)
                     btn.classID = class
                     btn.buffID = assign[class]
-                    local countText = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text")
-                    local timeText = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time")
-                    local time2Text = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2")
+                    local countText = btn.ppText
+                    local timeText = btn.ppTime
+                    local time2Text = btn.ppTime2
                     local classColor = PP_BuffBarClassColors[class]
                     if classColor then
                         if timeText then timeText:SetTextColor(classColor[1], classColor[2], classColor[3]) end
@@ -3306,10 +3300,10 @@ function PallyPower_UpdateUI()
                     end
 
                     local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time"):SetText(PallyPower_FormatTime(primaryTimer))
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2"):SetText(PallyPower_FormatTime(secondaryTimer))
+                    btn.ppTime:SetText(PallyPower_FormatTime(primaryTimer))
+                    btn.ppTime2:SetText(PallyPower_FormatTime(secondaryTimer))
 
-                    local counter = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text")
+                    local counter = btn.ppText
                     if nneed == 0 then
                         counter:SetText("")
                         counter:Hide()
@@ -3339,7 +3333,7 @@ function PallyPower_UpdateUI()
             end
         end
         for rest = BuffNum, 10 do
-            local btn = getglobal("PallyPowerBuffBarBuff" .. rest)
+            local btn = PallyPowerUIRefs.buffButtons[rest]
             btn.classID = {}
             btn.buffID = {}
             btn.need = {}
