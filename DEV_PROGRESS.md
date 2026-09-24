@@ -3,7 +3,8 @@
 ## Current
 - Branch: `dev`
 - Version: `1.11.1-dev`
-- Current Stage 6 corrected implementation head before this handoff update: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
+- Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
+- Branch head before recording AQ40 acceptance: `ca5c7cbc01fbff51d54df7c3dc7761a8b2cd51f2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
 - Current scope boundary: This is a UI construction/refactor project only. Preserve runtime behaviour, appearance, compatibility contracts, data formats and optional-extension semantics unless a later request explicitly changes them.
@@ -88,6 +89,7 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `ca5c7cb` - Record the corrected XML-free startup success and the broader AQ40 runtime gate that remained pending.
 - `69ebb9d` - Fix the XML-free save-dialog startup failure by omitting the invalid Lua `SetHistoryLines(0)` replay, remove temporary startup diagnostics, and bump development version to `1.11.1-dev`.
 - `f071281` - Narrow temporary Stage 6 diagnostics to the four standalone constructors after the first diagnostic run identified the standalone phase.
 - `52f6d2d` - Add temporary Stage 6 startup diagnostics that catch and print the first failing root UI-construction phase/error directly to chat.
@@ -117,6 +119,7 @@
 - HoJ/LoH/DI ready/unavailable/unknown state tinting works with the softened colours.
 - Obsolete contributor tooltip text is removed; contributor credits remain in README.
 - Stable `main` `1.11.0` was promoted after user approval of the tested development state.
+- Stage 6 XML-free parity is user-accepted on exact runtime implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`). During a full AQ40 raid the user reported that PallyPower behaved exactly as before and no differences or regressions were noticed throughout the run. This is the required broad real-raid parity acceptance; it does not claim that every optional DLL/client combination was separately exercised.
 
 ## Implemented / Awaiting Runtime Test
 - Stage 1 remains the frozen parity/scaffold baseline at `f6ee37e4ed644dd1841d84918595530f5a2c36d6`; `docs/XML_UI_PARITY_MANIFEST.md` remains unchanged and authoritative for the migration.
@@ -135,7 +138,7 @@
 - `PallyPower_OnLoad()` is still executed against the intended main Assignment frame by temporarily binding global `this` to the Lua-created `PallyPowerFrame`; the root `OnEvent`, mouse, hide and title `OnUpdate` handlers retain the legacy `event`/`this`/`arg1` semantics.
 - `PallyPower.xml` and all nine custom virtual XML template definitions are now removed; the TOC loads `locales/enUS.lua`, `PallyPower.lua` and `PallyPowerUI.lua` only.
 - `Bindings.xml` remains intentionally separate and unchanged; no naming/getglobal cleanup has begun.
-- Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` is not yet user-tested.
+- Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` subsequently passed focused startup testing and a full AQ40 raid parity run; Stage 6 is now user-accepted.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
@@ -182,20 +185,18 @@
 - Canonical real Lua 5.0.2 compiler validation passed for exact corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`) in VanillaTemplate run `36034849466`, job `107752246481`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `7356b0da541792025e6616c2f7a15af83223b668`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`.
 
 ## Current Issues
-- The first XML-free Stage 6 runtime checkpoint failed on branch head `d5feca644fbe4774ff6b201364fbcaa309d9034f` / runtime implementation `a526f5486cf421b35506bab5cb50068a75bb1a6e`: addon loaded, but no PallyPower UI was visible and `/pp` did not work.
-- The second startup blocker was identified from diagnostic runtime output as the save-dialog `SetHistoryLines(0)` replay and is fixed in `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`.
-- Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` has passed both the real Lua 5.0.2 compiler check and the focused in-game startup retest. Full raid/runtime coverage is still pending.
-- Stages 2 through 6 and both startup corrections have passed the applicable static/compiler checks; runtime acceptance is still outstanding.
-- Stage 7 naming/getglobal cleanup remains blocked until the user explicitly accepts the exact corrected XML-free Stage 6 runtime implementation.
+- No Stage 6 XML-to-Lua parity regression is currently known. Exact runtime implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` passed startup and broad AQ40 raid use with no behavioral differences noticed by the user.
+- The pre-existing Advanced Options scan-frequency EditBox border textures still stretch vertically because the legacy XML supplied malformed negative texture dimensions and the parity migration reproduced them. Stage 6 acceptance now unblocks a focused correction.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
 
 ### Last Runtime Test
-- Version/commit: `1.11.1-dev` / runtime implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`; docs-only handoff head at the time of recording is later.
-- Passed: clean startup after the save-dialog fix, PallyPower UI visible, `/pp` working, and initial visual inspection indicates the XML-free UI looks correct.
-- Pending: broader Stage 6 runtime checkpoint, including AQ40 raid behavior and the remaining interaction/compatibility checklist.
-- Known pre-existing UI defect observed during this test: Advanced Options scan-frequency EditBox border textures render as tall vertical stretches. Current Lua parity code at `CreateAdvancedOptionsScanEditBox()` carries the old negative size values (`SetSize(..., -30, y)` where `y` is the negative vertical anchor offset). Treat this as a separate post-parity UI bug; do not alter it before Stage 6 acceptance.
+- Version/commit: `1.11.1-dev` / exact runtime implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`.
+- Environment/use: full AQ40 raid after the focused startup retest.
+- Result: user reports PallyPower worked exactly as before for the whole AQ40 and no differences or regressions were noticed.
+- Acceptance: this satisfies the broad Stage 6 XML-free parity gate and Stage 6 is explicitly accepted on this exact runtime implementation.
+- Remaining unrelated known defect: Advanced Options scan-frequency EditBox border textures stretch vertically; this predates the migration and is now eligible for a focused post-parity fix.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -231,7 +232,8 @@
 - Corrective implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` removes the invalid zero-history Lua setter, removes temporary diagnostic wrappers, and bumps version to `1.11.1-dev`.
 - Corrective real Lua 5.0.2 compiler check: passed for all three runtime Lua files in validation run `36034849466`, job `107752246481`, with `Lua 5.0.2 syntax check passed: 3 file(s).`
 - Focused startup retest: passed on exact corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`): UI visible and `/pp` working.
-- Blocking runtime test: complete the broader Required XML-Free Runtime Checkpoint during the planned AQ40 test. Stage 7 remains blocked until that exact corrected XML-free runtime is explicitly accepted.
+- Broad AQ40 runtime checkpoint: passed on exact runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`; the user reports normal full-raid use behaved exactly as before with no differences noticed.
+- Stage 6 acceptance: **ACCEPTED** on `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`. Stage 7 is no longer blocked by the Stage 6 gate, but the now-unblocked pre-existing scan EditBox border defect should be corrected first as the next focused task.
 
 ### Required XML-Free Runtime Checkpoint
 After the complete addon-owned XML UI has been migrated and `PallyPower.xml` has been removed, but before naming/reference cleanup begins, runtime-test the exact XML-free commit for:
@@ -292,14 +294,14 @@ After generated-name/global lookup cleanup:
 - `PallyPower.xml` and the six Assignment virtual-template definitions remain deliberately present for Stage 6 removal; naming/getglobal cleanup has not begun.
 - Focused manifest parity and the canonical Lua 5.0.2 compiler check passed; no Stage 5 in-game test was required or performed.
 
-### Stage 6 - Complete XML-Free Parity Baseline — BASELINE `a526f54`, startup corrections through `69ebb9d` awaiting retest
+### Stage 6 - Complete XML-Free Parity Baseline — COMPLETE / USER-ACCEPTED at runtime `69ebb9d`
 - Full static parity review passed against the frozen XML manifest across all migrated UI sections.
 - All expected named-object families and all 55 frozen dynamic lookup expressions remain represented without naming/getglobal cleanup.
 - All frozen script-handler and click-registration contracts are represented in Lua, including legacy `this` / `arg1` / `event` semantics.
 - `PallyPower.xml` and the final six Assignment virtual-template definitions were removed together with the XML TOC loader entry.
 - `Bindings.xml` remains intentionally unchanged for normal Vanilla keybinding discovery.
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
-- The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, and now passes the focused startup retest with visible UI and working `/pp`. Continue the broader Stage 6 runtime checkpoint in AQ40; Stage 7 remains blocked.
+- The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
 ### Stage 7 - Post-Validation Naming / Reference Refactor
 - After the XML-free commit passes runtime testing, replace repeated string-built/global UI lookups with Lua-owned frame references/tables where practical.
@@ -309,7 +311,6 @@ After generated-name/global lookup cleanup:
 - Runtime-test again before treating this cleaner internal architecture as stable.
 
 ## Deferred / Out of Scope
-- Fix the pre-existing Advanced Options scan-frequency EditBox border-texture distortion after Stage 6 parity acceptance. Current parity code reproduces the old negative size values in `CreateAdvancedOptionsScanEditBox()`; do not mix this visual cleanup into the XML-free acceptance checkpoint.
 - Artwork flattening or renaming.
 - SavedVariables redesign.
 - Communication protocol redesign.
@@ -328,4 +329,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Have the user complete the broader Required XML-Free Runtime Checkpoint on exact corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`) during the planned AQ40 test. Startup is now verified: UI visible and `/pp` working. Record any raid/runtime regressions against that exact implementation. Do not fix the known pre-existing Advanced Options scan EditBox texture distortion until Stage 6 parity is explicitly accepted, and do not begin Stage 7 naming/getglobal cleanup before that acceptance.
+Stage 6 is accepted. Before beginning Stage 7 naming/getglobal cleanup, fix only the pre-existing Advanced Options scan-frequency EditBox border-texture distortion in `CreateAdvancedOptionsScanEditBox()`. Preserve the EditBox positions, values, focus behavior and option persistence; correct only the malformed border texture dimensions using the normal Vanilla `Common-Input-Border` geometry, then run the available Lua 5.0/static checks and request a focused in-game visual/interaction retest of Scan1/Scan2. Do not broaden this into other visual cleanup.
