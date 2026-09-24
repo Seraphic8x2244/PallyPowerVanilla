@@ -2,8 +2,8 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.0-dev`
-- Current Stage 6 diagnostic implementation head before this handoff update: `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd`
+- Version: `1.11.1-dev`
+- Current Stage 6 corrected implementation head before this handoff update: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
 - Current scope boundary: This is a UI construction/refactor project only. Preserve runtime behaviour, appearance, compatibility contracts, data formats and optional-extension semantics unless a later request explicitly changes them.
@@ -88,6 +88,8 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `69ebb9d` - Fix the XML-free save-dialog startup failure by omitting the invalid Lua `SetHistoryLines(0)` replay, remove temporary startup diagnostics, and bump development version to `1.11.1-dev`.
+- `f071281` - Narrow temporary Stage 6 diagnostics to the four standalone constructors after the first diagnostic run identified the standalone phase.
 - `52f6d2d` - Add temporary Stage 6 startup diagnostics that catch and print the first failing root UI-construction phase/error directly to chat.
 - `772472b` - Fix the XML-free Buff Bar constructor-time `OnLoad` context by binding legacy global `this` to the Lua-created blessing/special button during the manual replay.
 - `a526f54` - Complete the XML-free Stage 6 parity baseline by removing `PallyPower.xml` and its TOC entry while keeping runtime logic, names and lookup contracts unchanged.
@@ -124,14 +126,16 @@
 - Stage 5 is implemented at `ac0c28b2fe913b5ea0f313bf011e678a6923c6e1`.
 - Stage 6 XML-free baseline `a526f5486cf421b35506bab5cb50068a75bb1a6e` received its first user runtime test via branch head `d5feca644fbe4774ff6b201364fbcaa309d9034f` (docs-only delta after `a526f548`) and failed at startup parity: the addon was loaded, but no PallyPower UI was visible and `/pp` did not work.
 - Targeted parity fix `772472b1c2cb47827ad8e17e9f5720da19615f45` was user-retested via docs-only head `64036ac295d58726e591fcfec72472eb4267b85a` and did **not** restore startup: the addon still appeared in the in-game addon list, but no PallyPower UI was visible and `/pp` still did not work. Therefore the earlier Buff Bar `this` issue was real but not the only startup blocker.
-- Temporary diagnostic runtime `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` wraps the standalone, Advanced/Buff, and Assignment root constructors in `pcall` and prints the first failing phase plus exact error to `DEFAULT_CHAT_FRAME`. This is diagnostic-only and must be removed once the failing constructor is identified.
+- Diagnostic runtime `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` identified the failure inside the standalone phase; the user's full error then pinpointed `PallyPowerUI.lua:1112`, `PallyPowerSaveMenuNameEB:SetHistoryLines(0)`. XML accepted `historyLines="0"`, but the 1.12.1 Lua setter rejected the zero value at runtime.
+- A finer standalone diagnostic `f0712815e04f1bf997b00f95a99229138419499d` was prepared, but the exact failing line was already supplied by the user, so the diagnostic scaffolding was removed in the real fix rather than retained.
+- Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` removes only the invalid `SetHistoryLines(0)` replay, restores direct non-diagnostic construction, and bumps the addon to `1.11.1-dev`. It is awaiting the focused startup retest.
 - `PallyPowerUI.lua` contains Lua factory/constructor equivalents for all nine addon-owned virtual XML templates and constructs every addon-owned UI section: standalone UI, Advanced Options, Buff Bar and Assignment UI.
 - The Buff Bar migration preserves the root/title globals, Aura/RF/Seal controls, hidden combined-self and Judgement controls, generated `PallyPowerBuffBarBuff1..10` families and their child names, status bar, inherited click/tooltip/mouse-wheel behavior, movement/scaling hooks, OnUpdate, layout anchors and visibility semantics.
 - The Assignment migration preserves `PallyPowerFrame`, the ten class columns, four special columns, twelve Paladin row families, assignment cells, capability-hover regions, quick controls, eye controls, Judgement failed-refresh control, resize behavior, generated child globals and existing dynamic `getglobal()` naming contracts.
 - `PallyPower_OnLoad()` is still executed against the intended main Assignment frame by temporarily binding global `this` to the Lua-created `PallyPowerFrame`; the root `OnEvent`, mouse, hide and title `OnUpdate` handlers retain the legacy `event`/`this`/`arg1` semantics.
 - `PallyPower.xml` and all nine custom virtual XML template definitions are now removed; the TOC loads `locales/enUS.lua`, `PallyPower.lua` and `PallyPowerUI.lua` only.
 - `Bindings.xml` remains intentionally separate and unchanged; no naming/getglobal cleanup has begun.
-- Stages 2 through 5 were not tested independently in game. The first full XML-free Stage 6 runtime test was performed against branch head `d5feca644fbe4774ff6b201364fbcaa309d9034f`, whose runtime payload is identical to implementation `a526f5486cf421b35506bab5cb50068a75bb1a6e`; it failed before normal UI initialization. The corrective runtime implementation `772472b1c2cb47827ad8e17e9f5720da19615f45` is not yet user-tested.
+- Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` is not yet user-tested.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
@@ -173,22 +177,25 @@
 - After the failed XML-free runtime test, static diagnosis confirmed `PallyPowerBuffButton_OnLoad(btn)` still reads global `this` rather than `btn`, while both Lua Buff Bar factories replayed that handler directly without an XML-created `this` context. The `772472b` fix adds only scoped `oldThis` save/bind/restore around those two manual calls; the delta from `d5feca` to `772472b` is only 8 added lines in `PallyPowerUI.lua`, with no core/data/protocol/naming changes.
 - Canonical real Lua 5.0.2 compiler validation passed for the exact corrected runtime payload at `772472b1c2cb47827ad8e17e9f5720da19615f45` using VanillaTemplate `tools/lua50/check_lua50.sh`. Validation run `36028081406`, job `107729602032`, completed successfully with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `e8a298efbdcaf44150741018dabe42a7ee5404ad`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`.
 - Temporary VanillaTemplate validation PR `#5` was closed and branch `validate-pallypower-stage6-runtimefix` was reset to baseline `9093fac60f210dedd87d5e2d0f265a97494f999f`; no validation workflow or checker payload was added to PallyPowerVanilla `dev`.
+- Diagnostic runtime `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` passed the canonical Lua 5.0.2 checker in validation run `36033072945`, job `107746362682`.
+- User diagnostic output localized the remaining startup failure to the save-preset EditBox construction at former line 1112: `PallyPowerSaveMenuNameEB:SetHistoryLines(0)`. The XML source used `historyLines="0"`; the corrective Lua implementation now relies on the EditBox default instead of invoking the runtime setter with zero.
+- Canonical real Lua 5.0.2 compiler validation passed for exact corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`) in VanillaTemplate run `36034849466`, job `107752246481`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `7356b0da541792025e6616c2f7a15af83223b668`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`.
 
 ## Current Issues
 - The first XML-free Stage 6 runtime checkpoint failed on branch head `d5feca644fbe4774ff6b201364fbcaa309d9034f` / runtime implementation `a526f5486cf421b35506bab5cb50068a75bb1a6e`: addon loaded, but no PallyPower UI was visible and `/pp` did not work.
-- The first identified startup parity regression was fixed in `772472b1c2cb47827ad8e17e9f5720da19615f45`, but user retest showed startup still fails. Exact remaining failure is not yet identified.
-- Diagnostic runtime `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` is awaiting one focused user reload to capture the first failing construction phase/error.
-- Stages 2 through 6 and the corrective fix have passed the applicable static/compiler checks; runtime acceptance is still outstanding.
+- The second startup blocker was identified from diagnostic runtime output as the save-dialog `SetHistoryLines(0)` replay and is fixed in `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`.
+- Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` has passed the real Lua 5.0.2 compiler check but still needs the focused in-game startup retest.
+- Stages 2 through 6 and both startup corrections have passed the applicable static/compiler checks; runtime acceptance is still outstanding.
 - Stage 7 naming/getglobal cleanup remains blocked until the user explicitly accepts the exact corrected XML-free Stage 6 runtime implementation.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
 
 ### Last Runtime Test
-- Version/commit: `1.11.0-dev` / branch head `d5feca644fbe4774ff6b201364fbcaa309d9034f`; its runtime payload is exactly XML-free implementation `a526f5486cf421b35506bab5cb50068a75bb1a6e` because the later handoff commit changed only `DEV_PROGRESS.md`.
-- Passed: the game reported the addon as loaded.
-- Failed: no PallyPower UI was visible and `/pp` did not work, so the XML-free startup checkpoint failed before broader functionality could be exercised.
-- Diagnosis: Lua Buff Bar construction aborted while manually replaying `PallyPowerBuffButton_OnLoad(button)` without XML's implicit global `this` binding.
+- Version/commit: `1.11.0-dev` / docs head `58457c7e3393668835a3c7fec759d799cd70ef2d`; runtime payload was diagnostic implementation `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` because the later commit changed only `DEV_PROGRESS.md`.
+- Passed: the addon loaded far enough for the temporary diagnostic wrapper to report the failing construction phase in chat.
+- Failed: standalone UI construction aborted; the reported error pinpointed former `PallyPowerUI.lua:1112`, `PallyPowerSaveMenuNameEB:SetHistoryLines(0)` / `Usage: ...SetHistoryLines(numLines)`. UI visibility and `/pp` therefore still did not initialize.
+- Diagnosis: the XML save-preset EditBox used `historyLines="0"`, but replaying that metadata through the 1.12.1 Lua setter with zero is rejected. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` omits the setter and removes the diagnostic wrapper.
 - Not reached: the remainder of the Required XML-Free Runtime Checkpoint.
 
 ### Stage 2 Validation State
@@ -221,9 +228,10 @@
 - First in-game XML-free smoke test: failed on branch head `d5feca644fbe4774ff6b201364fbcaa309d9034f` / runtime payload `a526f5486cf421b35506bab5cb50068a75bb1a6e`; addon loaded, but UI visibility and `/pp` initialization failed.
 - Corrective implementation `772472b1c2cb47827ad8e17e9f5720da19615f45` restored XML-style `this` context for Buff Bar constructor-time `OnLoad` replay only; its real Lua 5.0.2 compiler check passed in validation run `36028081406`, job `107729602032`.
 - Second in-game startup test: failed on docs-only head `64036ac295d58726e591fcfec72472eb4267b85a` / runtime payload `772472b1c2cb47827ad8e17e9f5720da19615f45`; addon remained listed but no UI was visible and `/pp` still did not work.
-- Diagnostic implementation: `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd`, wrapping the three root constructor phases so the first runtime error is emitted directly to chat.
-- Diagnostic real Lua 5.0.2 compiler check: passed for all three runtime Lua files in validation run `36033072945`, job `107746362682`, with `Lua 5.0.2 syntax check passed: 3 file(s).`
-- Blocking runtime test: reload exact diagnostic implementation `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` and record the first red `PallyPower UI ... construction failed:` chat line verbatim. Do not continue Stage 7.
+- Diagnostic implementation `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` successfully localized the remaining failure to standalone construction; user output then pinpointed `PallyPowerSaveMenuNameEB:SetHistoryLines(0)` at former line 1112. Its real Lua 5.0.2 compiler check passed in validation run `36033072945`, job `107746362682`.
+- Corrective implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` removes the invalid zero-history Lua setter, removes temporary diagnostic wrappers, and bumps version to `1.11.1-dev`.
+- Corrective real Lua 5.0.2 compiler check: passed for all three runtime Lua files in validation run `36034849466`, job `107752246481`, with `Lua 5.0.2 syntax check passed: 3 file(s).`
+- Blocking runtime test: reload exact corrective implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`; first confirm clean startup, visible PallyPower UI and working `/pp`, then continue the broader XML-free checkpoint only if startup is restored. Do not continue Stage 7.
 
 ### Required XML-Free Runtime Checkpoint
 After the complete addon-owned XML UI has been migrated and `PallyPower.xml` has been removed, but before naming/reference cleanup begins, runtime-test the exact XML-free commit for:
@@ -284,14 +292,14 @@ After generated-name/global lookup cleanup:
 - `PallyPower.xml` and the six Assignment virtual-template definitions remain deliberately present for Stage 6 removal; naming/getglobal cleanup has not begun.
 - Focused manifest parity and the canonical Lua 5.0.2 compiler check passed; no Stage 5 in-game test was required or performed.
 
-### Stage 6 - Complete XML-Free Parity Baseline — BASELINE `a526f54`, startup parity fix `772472b` awaiting retest
+### Stage 6 - Complete XML-Free Parity Baseline — BASELINE `a526f54`, startup corrections through `69ebb9d` awaiting retest
 - Full static parity review passed against the frozen XML manifest across all migrated UI sections.
 - All expected named-object families and all 55 frozen dynamic lookup expressions remain represented without naming/getglobal cleanup.
 - All frozen script-handler and click-registration contracts are represented in Lua, including legacy `this` / `arg1` / `event` semantics.
 - `PallyPower.xml` and the final six Assignment virtual-template definitions were removed together with the XML TOC loader entry.
 - `Bindings.xml` remains intentionally unchanged for normal Vanilla keybinding discovery.
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
-- The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. The remaining blocker is now being isolated with temporary diagnostic runtime `52f6d2d`; it has passed the real Lua 5.0.2 compiler check but is not yet user-tested. Stop here for the focused diagnostic reload; Stage 7 remains blocked.
+- The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, and passes the real Lua 5.0.2 compiler check. Stop here for the focused startup retest; Stage 7 remains blocked.
 
 ### Stage 7 - Post-Validation Naming / Reference Refactor
 - After the XML-free commit passes runtime testing, replace repeated string-built/global UI lookups with Lua-owned frame references/tables where practical.
@@ -319,4 +327,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Stop development and have the user reload exact temporary diagnostic implementation `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` (`1.11.0-dev`). Ask for the first red chat message beginning `PallyPower UI ... construction failed:` verbatim. Use that exact phase/error to fix only the remaining XML-to-Lua startup parity regression, then remove the temporary diagnostic wrapper, rerun the real Lua 5.0.2 checker, and repeat the focused startup test (visible UI + working `/pp`) before continuing the broader XML-free checkpoint. Do not begin Stage 7 naming/getglobal cleanup.
+Stop development and have the user runtime-test exact corrective XML-free implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`). First verify clean load/`/reload`, visible PallyPower UI and a working `/pp`. If those startup checks pass, continue the remainder of the Required XML-Free Runtime Checkpoint above. If startup still fails, capture the exact Lua error and fix only that parity regression before continuing. Do not begin Stage 7 naming/getglobal cleanup until the corrected XML-free runtime checkpoint is explicitly accepted.
