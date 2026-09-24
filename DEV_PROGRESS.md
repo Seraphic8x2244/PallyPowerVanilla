@@ -4,7 +4,8 @@
 - Branch: `dev`
 - Version: `1.11.1-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
-- Branch head before recording AQ40 acceptance: `ca5c7cbc01fbff51d54df7c3dc7761a8b2cd51f2`
+- Current implementation head before this handoff update: `1188304105d38fd4172acc9c43b8f6f47ea6c30f`
+- Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
 - Current scope boundary: This is a UI construction/refactor project only. Preserve runtime behaviour, appearance, compatibility contracts, data formats and optional-extension semantics unless a later request explicitly changes them.
@@ -89,6 +90,8 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `1188304` - Fix the pre-existing Advanced Options Scan1/Scan2 input-border distortion by replacing malformed negative texture dimensions with Vanilla `Common-Input-Border` geometry only.
+- `51847fc` - Accept Stage 6 after the full AQ40 parity run and unblock the previously deferred scan EditBox border fix.
 - `ca5c7cb` - Record the corrected XML-free startup success and the broader AQ40 runtime gate that remained pending.
 - `69ebb9d` - Fix the XML-free save-dialog startup failure by omitting the invalid Lua `SetHistoryLines(0)` replay, remove temporary startup diagnostics, and bump development version to `1.11.1-dev`.
 - `f071281` - Narrow temporary Stage 6 diagnostics to the four standalone constructors after the first diagnostic run identified the standalone phase.
@@ -131,7 +134,7 @@
 - Targeted parity fix `772472b1c2cb47827ad8e17e9f5720da19615f45` was user-retested via docs-only head `64036ac295d58726e591fcfec72472eb4267b85a` and did **not** restore startup: the addon still appeared in the in-game addon list, but no PallyPower UI was visible and `/pp` still did not work. Therefore the earlier Buff Bar `this` issue was real but not the only startup blocker.
 - Diagnostic runtime `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` identified the failure inside the standalone phase; the user's full error then pinpointed `PallyPowerUI.lua:1112`, `PallyPowerSaveMenuNameEB:SetHistoryLines(0)`. XML accepted `historyLines="0"`, but the 1.12.1 Lua setter rejected the zero value at runtime.
 - A finer standalone diagnostic `f0712815e04f1bf997b00f95a99229138419499d` was prepared, but the exact failing line was already supplied by the user, so the diagnostic scaffolding was removed in the real fix rather than retained.
-- Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` removes only the invalid `SetHistoryLines(0)` replay, restores direct non-diagnostic construction, and bumps the addon to `1.11.1-dev`. Focused user retest passed the startup gate: the addon loads visibly, `/pp` works, and the migrated UI appears correct on initial inspection. Full Stage 6 runtime acceptance is still pending the user's AQ40 test.
+- Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` removes only the invalid `SetHistoryLines(0)` replay, restores direct non-diagnostic construction, and bumps the addon to `1.11.1-dev`. Focused user retest passed the startup gate: the addon loads visibly, `/pp` works, and the migrated UI appears correct on initial inspection. Stage 6 subsequently passed the AQ40 parity test and is user-accepted.
 - `PallyPowerUI.lua` contains Lua factory/constructor equivalents for all nine addon-owned virtual XML templates and constructs every addon-owned UI section: standalone UI, Advanced Options, Buff Bar and Assignment UI.
 - The Buff Bar migration preserves the root/title globals, Aura/RF/Seal controls, hidden combined-self and Judgement controls, generated `PallyPowerBuffBarBuff1..10` families and their child names, status bar, inherited click/tooltip/mouse-wheel behavior, movement/scaling hooks, OnUpdate, layout anchors and visibility semantics.
 - The Assignment migration preserves `PallyPowerFrame`, the ten class columns, four special columns, twelve Paladin row families, assignment cells, capability-hover regions, quick controls, eye controls, Judgement failed-refresh control, resize behavior, generated child globals and existing dynamic `getglobal()` naming contracts.
@@ -139,6 +142,7 @@
 - `PallyPower.xml` and all nine custom virtual XML template definitions are now removed; the TOC loads `locales/enUS.lua`, `PallyPower.lua` and `PallyPowerUI.lua` only.
 - `Bindings.xml` remains intentionally separate and unchanged; no naming/getglobal cleanup has begun.
 - Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` subsequently passed focused startup testing and a full AQ40 raid parity run; Stage 6 is now user-accepted.
+- Post-Stage-6 scan-border correction `1188304105d38fd4172acc9c43b8f6f47ea6c30f` is implemented and compiler-checked but still requires a focused in-game visual/interaction retest of Scan1/Scan2.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
@@ -183,10 +187,12 @@
 - Diagnostic runtime `52f6d2d10d7a8a8fa5a9f1ac3ef88c8a9ab61fdd` passed the canonical Lua 5.0.2 checker in validation run `36033072945`, job `107746362682`.
 - User diagnostic output localized the remaining startup failure to the save-preset EditBox construction at former line 1112: `PallyPowerSaveMenuNameEB:SetHistoryLines(0)`. The XML source used `historyLines="0"`; the corrective Lua implementation now relies on the EditBox default instead of invoking the runtime setter with zero.
 - Canonical real Lua 5.0.2 compiler validation passed for exact corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`) in VanillaTemplate run `36034849466`, job `107752246481`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `7356b0da541792025e6616c2f7a15af83223b668`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`.
+- Focused scan-border fix `1188304105d38fd4172acc9c43b8f6f47ea6c30f` changes only the three `Common-Input-Border` texture sizes inside `CreateAdvancedOptionsScanEditBox()`: left/right to `8x20` and middle to `10x20`. EditBox size, anchors, option keys, scripts, focus behavior and persistence code are unchanged. These dimensions match Blizzard's Vanilla input-border geometry and later PallyPower sources.
+- Canonical real Lua 5.0.2 compiler validation passed for exact scan-border runtime `1188304105d38fd4172acc9c43b8f6f47ea6c30f` in VanillaTemplate run `36072313858`, job `107875827489`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `c0901bb34370ccc36c217908f9cd91c9444c2425`, `PallyPowerUI.lua` `9011850d46ccb77b4d51000933e8e1f9be373d72`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR `#8` was closed and branch `validate-pallypower-scan-border` was reset to VanillaTemplate baseline `b37a6c56c15a58d8001771b3e4947643e74753c1`.
 
 ## Current Issues
 - No Stage 6 XML-to-Lua parity regression is currently known. Exact runtime implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` passed startup and broad AQ40 raid use with no behavioral differences noticed by the user.
-- The pre-existing Advanced Options scan-frequency EditBox border textures still stretch vertically because the legacy XML supplied malformed negative texture dimensions and the parity migration reproduced them. Stage 6 acceptance now unblocks a focused correction.
+- The pre-existing Advanced Options Scan1/Scan2 border distortion is corrected in `1188304105d38fd4172acc9c43b8f6f47ea6c30f` and has passed the real Lua 5.0.2 compiler check; focused in-game confirmation is still pending.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
@@ -197,6 +203,13 @@
 - Result: user reports PallyPower worked exactly as before for the whole AQ40 and no differences or regressions were noticed.
 - Acceptance: this satisfies the broad Stage 6 XML-free parity gate and Stage 6 is explicitly accepted on this exact runtime implementation.
 - Remaining unrelated known defect: Advanced Options scan-frequency EditBox border textures stretch vertically; this predates the migration and is now eligible for a focused post-parity fix.
+
+### Next Runtime Test
+- Runtime payload: `1.11.1-dev` / implementation `1188304105d38fd4172acc9c43b8f6f47ea6c30f`; any later handoff-only commit changes documentation only.
+- Open Advanced Options and confirm both Scan1/Scan2 numeric input borders are normal-height and no longer stretch vertically.
+- Enter valid values in each box, use Tab/Enter to move focus between them, close/reopen Advanced Options, and confirm values/interaction remain normal.
+- A reload check is useful to confirm the saved scan options still display normally after reconstruction.
+- This is a focused post-parity UI correction test; no full AQ40 regression repeat is required unless another behavior changes.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -329,4 +342,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Stage 6 is accepted. Before beginning Stage 7 naming/getglobal cleanup, fix only the pre-existing Advanced Options scan-frequency EditBox border-texture distortion in `CreateAdvancedOptionsScanEditBox()`. Preserve the EditBox positions, values, focus behavior and option persistence; correct only the malformed border texture dimensions using the normal Vanilla `Common-Input-Border` geometry, then run the available Lua 5.0/static checks and request a focused in-game visual/interaction retest of Scan1/Scan2. Do not broaden this into other visual cleanup.
+Have the user perform the focused Advanced Options Scan1/Scan2 runtime check on exact implementation `1188304105d38fd4172acc9c43b8f6f47ea6c30f` (`1.11.1-dev`): verify both input borders render at normal height, edit both values, exercise Tab/Enter focus switching, and confirm the values still display correctly after reopening the panel (and preferably after `/reload`). If that passes, record the correction as user-verified and then begin Stage 7 naming/getglobal cleanup. Do not begin unrelated visual cleanup.
