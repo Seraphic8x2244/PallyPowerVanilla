@@ -4559,14 +4559,13 @@ end
 
 function PallyPowerGridButton_OnClick(btn, mouseBtn)
     local nameplayer = UnitName("player")
-    local _, _, pnum, class = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class(.+)")
+    local class = btn.ppClass
     if class == "A" then class = PALLYPOWER_AURA_CLASS end
     if class == "S" then class = PALLYPOWER_SEAL_CLASS end
     if class == "R" then class = PALLYPOWER_RF_CLASS end
     if class == "J" then class = PALLYPOWER_JUDGEMENT_CLASS end
-    pnum = pnum + 0
     class = class + 0
-    pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+    pname = btn.ppRow.ppName:GetText()
     if not PallyPower_CanControl(pname) then
         return false
     end
@@ -4609,20 +4608,17 @@ function PallyPowerGridButton_OnLeave(btn)
 end
 
 function PallyPowerGridButton_OnEnter(btn)
-    local btnName = btn:GetName()
-    if not btnName then return end
-    
-    -- Parse button name: PallyPowerFramePlayer#Class# or PallyPowerFramePlayer#ClassA/S
-    local _, _, pnum, class = string.find(btnName, "PallyPowerFramePlayer(.+)Class(.+)")
-    if not class then return end
-    
+    local class = btn.ppClass
+    local row = btn.ppRow
+    if not class or not row or not row.ppName then return end
+    local pallyName = row.ppName:GetText()
+    if not pallyName then return end
+
     local spellName = nil
     
     -- Check if it's an Aura assignment (ClassA)
     if class == "A" then
-        -- Get the paladin name from the row
-        local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-        if pallyName and PallyPower_AuraAssignments[pallyName] then
+        if PallyPower_AuraAssignments[pallyName] then
             local auraIndex = PallyPower_AuraAssignments[pallyName]
             if auraIndex >= 0 and PallyPower_AuraID[auraIndex] then
                 spellName = PallyPower_AuraID[auraIndex] .. PALLYPOWER_TOOLTIP_AURA_SUFFIX
@@ -4630,9 +4626,7 @@ function PallyPowerGridButton_OnEnter(btn)
         end
     -- Check if it's a Seal assignment (ClassS)
     elseif class == "S" then
-        -- Get the paladin name from the row
-        local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-        if pallyName and PallyPower_SealAssignments[pallyName] then
+        if PallyPower_SealAssignments[pallyName] then
             local sealIndex = PallyPower_SealAssignments[pallyName]
             if sealIndex >= 0 and PallyPower_SealID[sealIndex] then
                 spellName = PALLYPOWER_TOOLTIP_SEAL_OF .. PallyPower_SealID[sealIndex]
@@ -4642,7 +4636,6 @@ function PallyPowerGridButton_OnEnter(btn)
         PallyPower_JudgementButton_OnEnter(btn)
         return
     elseif class == "R" then
-        local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
         if pallyName then
             if PallyPower_RFAssignments[pallyName] == true then
                 spellName = PALLYPOWER_TOOLTIP_RF
@@ -4654,9 +4647,7 @@ function PallyPowerGridButton_OnEnter(btn)
     else
         local classIndex = tonumber(class)
         if classIndex then
-            -- Get the paladin name from the row
-            local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-            if pallyName and PallyPower_Assignments[pallyName] and PallyPower_Assignments[pallyName][classIndex] then
+            if PallyPower_Assignments[pallyName] and PallyPower_Assignments[pallyName][classIndex] then
                 local blessingIndex = PallyPower_Assignments[pallyName][classIndex]
                 if blessingIndex >= 0 and PallyPower_BlessingID[blessingIndex] then
                     spellName = PALLYPOWER_TOOLTIP_BLESSING_OF .. PallyPower_BlessingID[blessingIndex]
@@ -5902,7 +5893,7 @@ function PallyPower_AutoBless(mousebutton)
 
     classbtn = lastClassBtn
     lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
-    local btn = getglobal("PallyPowerBuffBarBuff" .. classbtn)
+    local btn = PallyPowerUIRefs.buffButtons[classbtn]
 
     if (btn ~= nil and btn.classID and 
         PallyPower_Assignments[UnitName("player")][btn.classID] and 
@@ -6279,12 +6270,13 @@ function PallyPowerBuffBarButton_OnMouseWheel(btn, arg1)
 end
 
 function PallyPowerGridButton_OnMouseWheel(btn, arg1)
-    local _, _, pnum, class = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class(.+)")
+    local class = btn.ppClass
     if class == "A" then class = PALLYPOWER_AURA_CLASS end
     if class == "S" then class = PALLYPOWER_SEAL_CLASS end
-    pnum = pnum + 0
+    if class == "R" then class = PALLYPOWER_RF_CLASS end
+    if class == "J" then class = PALLYPOWER_JUDGEMENT_CLASS end
     class = class + 0
-    pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+    pname = btn.ppRow.ppName:GetText()
     if not PallyPower_CanControl(pname) then
         return false
     end
@@ -6325,9 +6317,9 @@ function PallyPower_AutoBuffAll() --Test
 
     -- Iterate through all buff buttons and simulate clicks
     for i = 1, 10 do
-        local btn = getglobal("PallyPowerBuffBarBuff" .. i)
+        local btn = PallyPowerUIRefs.buffButtons[i]
         if btn and btn:IsVisible() then
-            local nneed = getglobal("PallyPowerBuffBarBuff" .. i .. "Text"):GetText()
+            local nneed = btn.ppText:GetText()
             if nneed and nneed ~= "" and tonumber(nneed) > 0 then
                 -- Simulate a left-click to cast the greater blessing
                 PallyPowerBuffButton_OnClick(btn, "LeftButton")
