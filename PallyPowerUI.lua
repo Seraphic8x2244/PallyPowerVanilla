@@ -514,6 +514,7 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	frame.ppAssignments = {}
 
 	region = PallyPowerUI.CreateFrame("Button", "$parentBlessingHover", frame)
+	region.ppRow = frame
 	PallyPowerUI.SetSize(region, 124, 20)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 2, -48)
 	region:EnableMouse(true)
@@ -959,6 +960,7 @@ function PallyPowerUI.CreateAssignmentUI()
 
 	for i = 1, 12 do
 		row = PallyPowerUI.CreatePPPaladinRowTemplate("$parentPlayer" .. i, frame)
+		row.ppIndex = i
 		PallyPowerUIRefs.playerRows[i] = row
 		if i == 1 then
 			PallyPowerUI.SetPoint(row, "TOPLEFT", PallyPowerUIRefs.classGroups[1], "BOTTOM", -336, -174)
