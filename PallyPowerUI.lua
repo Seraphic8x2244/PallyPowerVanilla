@@ -208,6 +208,7 @@ end
 function PallyPowerUI.CreatePPBuffBarBlessingTemplate(name, parent)
 	local button = PallyPowerUI.CreateFrame("Button", name, parent)
 	local region
+	local oldThis
 
 	PallyPowerUI.SetSize(button, 90, 30)
 	PallyPowerUI.SetBackdrop(
@@ -262,7 +263,10 @@ function PallyPowerUI.CreatePPBuffBarBlessingTemplate(name, parent)
 		PallyPowerBuffBarButton_OnMouseWheel(this, arg1)
 	end)
 
+	oldThis = this
+	this = button
 	PallyPowerBuffButton_OnLoad(button)
+	this = oldThis
 	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	return button
 end
@@ -270,6 +274,7 @@ end
 function PallyPowerUI.CreatePPBuffBarSpecialTemplate(name, parent)
 	local button = PallyPowerUI.CreateFrame("Button", name, parent)
 	local icon
+	local oldThis
 
 	PallyPowerUI.SetSize(button, 90, 30)
 	PallyPowerUI.SetBackdrop(
@@ -294,7 +299,10 @@ function PallyPowerUI.CreatePPBuffBarSpecialTemplate(name, parent)
 		PallyPowerBuffBarButton_OnMouseWheel(this, arg1)
 	end)
 
+	oldThis = this
+	this = button
 	PallyPowerBuffButton_OnLoad(button)
+	this = oldThis
 	button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 	return button
 end
