@@ -1,6 +1,6 @@
 -- PallyPowerVanilla UI construction helpers.
--- Stage 4: standalone UI, Advanced Options and the Buff Bar are constructed
--- here while the Assignment section remains XML-backed.
+-- Stage 5: all live addon-owned UI, including Assignment, is constructed here.
+-- PallyPower.xml remains loaded only for the six Assignment virtual templates.
 
 PallyPowerUI = PallyPowerUI or {}
 
@@ -54,9 +54,9 @@ end
 -- ============================================================================
 -- STAGE 2 TEMPLATE FACTORIES
 -- ============================================================================
--- These functions mirror the nine addon-owned virtual XML templates. The XML
--- virtual templates intentionally remain defined while later XML objects still
--- inherit from them.
+-- These functions mirror the nine addon-owned virtual XML templates. The six
+-- Assignment virtual XML templates intentionally remain defined through Stage 5;
+-- Stage 6 owns their removal with the XML loader.
 
 function PallyPowerUI.SetBackdrop(frame, bgFile, edgeFile, tile, tileSize, edgeSize, left, right, top, bottom)
 	frame:SetBackdrop({
@@ -532,6 +532,404 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 		PallyPowerUI.SetPoint(cell, "TOPLEFT", previous, "TOPRIGHT", 2, 0)
 		previous = cell
 	end
+
+	return frame
+end
+
+
+-- ============================================================================
+-- STAGE 5 ASSIGNMENT UI
+-- ============================================================================
+
+function PallyPowerUI.CreateAssignmentToolbarButton(frame, name, x, textureFile, onClick)
+	local button = PallyPowerUI.CreateFrame("Button", name, frame)
+	local texture
+
+	PallyPowerUI.SetSize(button, 20, 20)
+	PallyPowerUI.SetPoint(button, "TOPRIGHT", frame, "TOPRIGHT", x, -6)
+
+	button:SetNormalTexture(textureFile)
+	texture = button:GetNormalTexture()
+	texture:ClearAllPoints()
+	PallyPowerUI.SetSize(texture, 18, 18)
+	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
+
+	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+	texture = button:GetHighlightTexture()
+	texture:SetBlendMode("ADD")
+
+	if onClick then
+		button:SetScript("OnClick", onClick)
+	end
+
+	return button
+end
+
+function PallyPowerUI.CreateAssignmentEyeButton(frame, name, relativeTo, onClick, tooltipText)
+	local button = PallyPowerUI.CreateFrame("Button", name, frame)
+	local icon
+
+	PallyPowerUI.SetSize(button, 18, 18)
+	PallyPowerUI.SetPoint(button, "BOTTOMRIGHT", relativeTo, "BOTTOMRIGHT", 1, -1)
+
+	icon = PallyPowerUI.CreateTexture(
+		button, "$parentIcon", "ARTWORK",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On"
+	)
+	PallyPowerUI.SetSize(icon, 18, 18)
+	PallyPowerUI.SetPoint(icon, "CENTER", button, "CENTER", 0, 0)
+
+	button:SetScript("OnClick", onClick)
+	button:SetScript("OnEnter", function()
+		PallyPower_VisibilityEye_OnEnter(this, tooltipText)
+	end)
+	button:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+
+	return button
+end
+
+function PallyPowerUI.CreateAssignmentUI()
+	local frame = PallyPowerUI.CreateFrame("Frame", "PallyPowerFrame", UIParent)
+	local region
+	local previous
+	local button
+	local checkButton
+	local label
+	local group
+	local row
+	local oldThis
+	local classTextures = {
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Warrior",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Rogue",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Priest",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Druid",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Paladin",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Hunter",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Mage",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Warlock",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Shaman",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Pet",
+	}
+	local i
+
+	PallyPowerUI.SetSize(frame, 1292, 980)
+	PallyPowerUI.SetPoint(frame, "TOPLEFT", UIParent, "BOTTOMLEFT", 400, 400)
+	frame:SetToplevel(true)
+	frame:SetMovable(true)
+	frame:EnableMouse(true)
+	frame:Hide()
+	PallyPowerUI.SetBackdrop(
+		frame,
+		"Interface\\Tooltips\\UI-Tooltip-Background",
+		"Interface\\Tooltips\\UI-Tooltip-Border",
+		true, 16, 16, 5, 5, 5, 5
+	)
+
+	region = PallyPowerUI.CreateTexture(frame, "$parentHeaderSeparator", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(region, 1, 2)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 7, -28)
+	PallyPowerUI.SetPoint(region, "TOPRIGHT", frame, "TOPRIGHT", -7, -28)
+
+	region = PallyPowerUI.CreateTexture(frame, "$parentFooterSeparator", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(region, 1, 2)
+	PallyPowerUI.SetPoint(region, "BOTTOMLEFT", frame, "BOTTOMLEFT", 7, 28)
+	PallyPowerUI.SetPoint(region, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -7, 28)
+
+	previous = PallyPowerUI.CreateTexture(frame, "$parentLineA", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(previous, 2, 56)
+	PallyPowerUI.SetPoint(previous, "TOPLEFT", frame, "TOPLEFT", 135, -30)
+
+	region = PallyPowerUI.CreateTexture(frame, "$parentLineR", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(region, 2, 56)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", previous, "TOPLEFT", 82, 0)
+	previous = region
+
+	region = PallyPowerUI.CreateTexture(frame, "$parentLineS", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(region, 2, 56)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", previous, "TOPLEFT", 82, 0)
+	previous = region
+
+	region = PallyPowerUI.CreateTexture(frame, "$parentLineJ", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(region, 2, 56)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", previous, "TOPLEFT", 82, 0)
+	previous = region
+
+	region = PallyPowerUI.CreateTexture(frame, "$parentLine2", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(region, 2, 56)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", previous, "TOPLEFT", 82, 0)
+	previous = region
+
+	for i = 3, 12 do
+		region = PallyPowerUI.CreateTexture(frame, "$parentLine" .. i, "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+		PallyPowerUI.SetSize(region, 2, 56)
+		PallyPowerUI.SetPoint(region, "TOPLEFT", previous, "TOPLEFT", 82, 0)
+		previous = region
+	end
+
+	region = PallyPowerUI.CreateTexture(
+		frame, "$parentClassA", "ARTWORK",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_AuraMastery"
+	)
+	PallyPowerUI.SetSize(region, 32, 32)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineA, "TOPLEFT", 26, -12)
+
+	region = PallyPowerUI.CreateTexture(
+		frame, "$parentClassR", "ARTWORK",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfFury"
+	)
+	PallyPowerUI.SetSize(region, 32, 32)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineR, "TOPLEFT", 26, -12)
+
+	region = PallyPowerUI.CreateTexture(
+		frame, "$parentClassS", "ARTWORK",
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Ability_Thunderbolt"
+	)
+	PallyPowerUI.SetSize(region, 32, 32)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineS, "TOPLEFT", 26, -12)
+
+	region = PallyPowerUI.CreateTexture(
+		frame, "$parentClassJ", "ARTWORK",
+		"Interface\\Icons\\Spell_Holy_RighteousFury"
+	)
+	PallyPowerUI.SetSize(region, 32, 32)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLineJ, "TOPLEFT", 26, -12)
+
+	for i = 0, 9 do
+		region = PallyPowerUI.CreateTexture(frame, "$parentClass" .. i, "ARTWORK", classTextures[i + 1])
+		PallyPowerUI.SetSize(region, 32, 32)
+		if i == 0 then
+			PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerFrameLine2, "TOPLEFT", 26, -12)
+		else
+			PallyPowerUI.SetPoint(
+				region, "TOPLEFT",
+				getglobal(frame:GetName() .. "Class" .. (i - 1)),
+				"TOPLEFT", 82, 0
+			)
+		end
+	end
+
+	PallyPowerUI.CreateAssignmentEyeButton(
+		frame, "$parentAuraEye", PallyPowerFrameClassA,
+		function() PallyPower_AuraEye_OnClick() end,
+		PALLYPOWER_TOOLTIP_AURA_ON_BUFF_BAR
+	)
+	PallyPowerUI.CreateAssignmentEyeButton(
+		frame, "$parentRFEye", PallyPowerFrameClassR,
+		function() PallyPower_RFEye_OnClick() end,
+		PALLYPOWER_TOOLTIP_RF_ON_BUFF_BAR
+	)
+	PallyPowerUI.CreateAssignmentEyeButton(
+		frame, "$parentSealEye", PallyPowerFrameClassS,
+		function() PallyPower_SealEye_OnClick() end,
+		PALLYPOWER_TOOLTIP_SEAL_ON_BUFF_BAR
+	)
+	PallyPowerUI.CreateAssignmentEyeButton(
+		frame, "$parentJudgementEye", PallyPowerFrameClassJ,
+		function() PallyPower_JudgementEye_OnClick() end,
+		PALLYPOWER_TOOLTIP_JUDGEMENT_ON_BUFF_BAR
+	)
+
+	button = PallyPowerUI.CreateFrame("Button", "$parentTitle", frame)
+	PallyPowerUI.SetSize(button, 640, 20)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", frame, "TOPLEFT", 8, -7)
+
+	label = PallyPowerUI.CreateFontString(button, "$parentText", "OVERLAY", "GameFontNormalLarge")
+	PallyPowerUI.SetSize(label, 420, 18)
+	PallyPowerUI.SetPoint(label, "LEFT", button, "LEFT", 8, 0)
+	label:SetText(PALLYPOWER_UI_ASSIGNMENTS_TITLE)
+	label:SetJustifyH("LEFT")
+
+	button:SetScript("OnEnter", function()
+		PallyPower_ShowVersionTooltip()
+	end)
+	button:SetScript("OnLeave", function()
+		HideUIPanel(GameTooltip)
+	end)
+	button:SetScript("OnMouseDown", function()
+		PallyPowerFrame_MouseDown(arg1)
+	end)
+	button:SetScript("OnMouseUp", function()
+		PallyPowerFrame_MouseUp()
+	end)
+	button:SetScript("OnUpdate", function()
+		PallyPowerGrid_Update(arg1)
+	end)
+
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "$parentCloseButton", -6,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\close.tga",
+		function() HideUIPanel(this:GetParent()) end
+	)
+
+	checkButton = PallyPowerUI.CreateFrame("CheckButton", "FreeAssignOptionChk", frame, "OptionsCheckButtonTemplate")
+	PallyPowerUI.SetSize(checkButton, 20, 20)
+	PallyPowerUI.SetPoint(checkButton, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", -104, 6)
+
+	label = PallyPowerUI.CreateFontString(checkButton, "PallyPowerFrameTitleFreeAssignText", "OVERLAY", "GameFontHighlightSmall")
+	PallyPowerUI.SetSize(label, 92, 16)
+	PallyPowerUI.SetPoint(label, "LEFT", checkButton, "RIGHT", 2, 0)
+	label:SetText(PALLYPOWER_FREEASSIGN)
+	label:SetJustifyH("LEFT")
+
+	checkButton:SetScript("OnShow", function()
+		if PP_PerUser.freeassign then this:SetChecked(true) else this:SetChecked(false) end
+	end)
+	checkButton:SetScript("OnClick", function()
+		PP_PerUser.freeassign = this:GetChecked()
+		PallyPower_FreeAssignOption()
+	end)
+	checkButton:SetScript("OnEnter", function()
+		GameTooltip:SetOwner(this, "ANCHOR_BOTTOM")
+		GameTooltip:SetText(PALLYPOWER_FREEASSIGN_DESC)
+		GameTooltip:Show()
+	end)
+	checkButton:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+
+	checkButton = PallyPowerUI.CreateFrame("CheckButton", "PP_UI_SmartButton", frame, "OptionsCheckButtonTemplate")
+	PallyPowerUI.SetSize(checkButton, 20, 20)
+	PallyPowerUI.SetPoint(checkButton, "BOTTOMRIGHT", FreeAssignOptionChk, "BOTTOMLEFT", -118, 0)
+
+	label = PallyPowerUI.CreateFontString(checkButton, "PP_UI_SmartLabel", "OVERLAY", "GameFontHighlightSmall")
+	PallyPowerUI.SetSize(label, 75, 16)
+	PallyPowerUI.SetPoint(label, "LEFT", checkButton, "RIGHT", 2, 0)
+	label:SetText(PALLYPOWER_OPTIONS_SMARTBUFFS)
+	label:SetJustifyH("LEFT")
+
+	checkButton:SetScript("OnShow", function()
+		this:SetChecked(PP_PerUser.smartbuffs)
+	end)
+	checkButton:SetScript("OnClick", function()
+		PallyPower_OptionsFrameSmart:SetChecked(this:GetChecked())
+		PallyPower_SmartBuffsOption()
+	end)
+
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "$parentRefresh", -29,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\rotate.tga",
+		function() PallyPower_Refresh() end
+	)
+
+	button = PallyPowerUI.CreatePPResizeGripTemplate("$parentResizeButton", frame)
+	PallyPowerUI.SetPoint(button, "BOTTOMRIGHT", frame, "BOTTOMRIGHT", 1, -1)
+
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "$parentClear", -52,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\bin.tga",
+		function() PallyPower_ConfirmClear() end
+	)
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "$parentOptions", -75,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\config.tga",
+		function() PallyPower_Options() end
+	)
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "$parentResetPosition", -98,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\position.tga",
+		function() PallyPower_ResetPosition() end
+	)
+
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "PP_UI_LockButton", -213,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\lock.tga"
+	)
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "PP_UI_VerboseButton", -190,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\text.tga"
+	)
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "PP_UI_SoundButton", -167,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\sound.tga"
+	)
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "PP_UI_OrientationButton", -144,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\orientation.tga"
+	)
+	PallyPowerUI.CreateAssignmentToolbarButton(
+		frame, "PP_UI_FeedbackButton", -121,
+		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\announce.tga"
+	)
+
+	button = PallyPowerUI.CreateFrame("Button", "$parentPresets", frame, "GameMenuButtonTemplate")
+	PallyPowerUI.SetSize(button, 86, 22)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", frame, "TOPLEFT", 28, -47)
+	button:SetText(PALLYPOWER_PRESETS)
+	button:SetScript("OnClick", function()
+		PallyPower_PresetsClick()
+	end)
+
+	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupA", frame)
+	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassA, "BOTTOMLEFT", -26, -12)
+
+	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupR", frame)
+	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassR, "BOTTOMLEFT", -26, -12)
+
+	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupS", frame)
+	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassS, "BOTTOMLEFT", -26, -12)
+
+	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupJ", frame)
+	PallyPowerUI.SetPoint(group, "TOPLEFT", PallyPowerFrameClassJ, "BOTTOMLEFT", -26, -12)
+
+	checkButton = PallyPowerUI.CreateFrame("CheckButton", "$parentJudgementFailedRefresh", frame, "UICheckButtonTemplate")
+	PallyPowerUI.SetSize(checkButton, 20, 20)
+	PallyPowerUI.SetPoint(checkButton, "TOPRIGHT", PallyPowerFrameClassJ, "TOPRIGHT", 9, 9)
+	checkButton:SetScript("OnClick", function()
+		PallyPower_JudgementFailedRefreshOption()
+	end)
+	checkButton:SetScript("OnEnter", function()
+		PallyPower_JudgementFailedRefresh_OnEnter(this)
+	end)
+	checkButton:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+
+	for i = 1, 10 do
+		group = PallyPowerUI.CreatePPClassColumnTemplate("$parentClassGroup" .. i, frame)
+		PallyPowerUI.SetPoint(
+			group, "TOPLEFT",
+			getglobal(frame:GetName() .. "Class" .. (i - 1)),
+			"BOTTOMLEFT", -26, -12
+		)
+	end
+
+	for i = 1, 12 do
+		row = PallyPowerUI.CreatePPPaladinRowTemplate("$parentPlayer" .. i, frame)
+		if i == 1 then
+			PallyPowerUI.SetPoint(row, "TOPLEFT", PallyPowerFrameClassGroup1, "BOTTOM", -336, -174)
+		else
+			PallyPowerUI.SetPoint(
+				row, "TOPLEFT",
+				getglobal(frame:GetName() .. "Player" .. (i - 1)),
+				"BOTTOMLEFT", 0, 0
+			)
+		end
+	end
+
+	frame:SetScript("OnEvent", function()
+		PallyPower_OnEvent(event, arg1)
+	end)
+	frame:SetScript("OnMouseUp", function()
+		PallyPowerFrame_MouseUp()
+	end)
+	frame:SetScript("OnMouseDown", function()
+		PallyPowerFrame_MouseDown(arg1)
+	end)
+	frame:SetScript("OnHide", function()
+		if this.isMoving then
+			this:StopMovingOrSizing()
+			this.isMoving = false
+		end
+	end)
+
+	-- XML supplied the implicit global 'this' while PallyPower_OnLoad() registered
+	-- events. Recreate that exact context once for the Lua-created main frame.
+	oldThis = this
+	this = frame
+	PallyPower_OnLoad()
+	this = oldThis
 
 	return frame
 end
@@ -1345,3 +1743,4 @@ end
 
 PallyPowerUI.CreateStage2StandaloneUI()
 PallyPowerUI.CreateAdvancedOptionsUI()
+PallyPowerUI.CreateAssignmentUI()
