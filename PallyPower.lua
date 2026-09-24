@@ -6273,8 +6273,6 @@ function PallyPowerGridButton_OnMouseWheel(btn, arg1)
     local class = btn.ppClass
     if class == "A" then class = PALLYPOWER_AURA_CLASS end
     if class == "S" then class = PALLYPOWER_SEAL_CLASS end
-    if class == "R" then class = PALLYPOWER_RF_CLASS end
-    if class == "J" then class = PALLYPOWER_JUDGEMENT_CLASS end
     class = class + 0
     pname = btn.ppRow.ppName:GetText()
     if not PallyPower_CanControl(pname) then
