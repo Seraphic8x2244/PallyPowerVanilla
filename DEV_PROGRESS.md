@@ -2,11 +2,12 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.2-dev`
+- Version: `1.11.3-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
-- Branch head before this handoff update: `1cbbd4f69b4870a1eba06f48a8cb6856c4465781`
+- Stage 7 second-slice runtime implementation: `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`)
+- Branch head before this handoff update: `4a31fcb795b5e01d23d8cfe55ba42d1596709014`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -92,6 +93,7 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `4a31fcb` - Add a direct `PallyPowerUIRefs.buffBar` root reference, replace the three fixed `getglobal("PallyPowerBuffBar")` visibility lookups, preserve the named global, and bump the testable build to `1.11.3-dev`.
 - `1cbbd4f` - Sync the canonical development rulebook, including the canonical Lua 5.0.2 compiler-check requirement; no addon runtime files changed.
 - `8ec8217` - Fix and clarify the new addon build-versioning rule in `dev_rulebook.md`; each new testable build must increment the numeric TOC version.
 - `03f988f` - Bump the Stage 7 testable build to `1.11.2-dev`; runtime Lua is unchanged from `ceec82c`.
@@ -151,6 +153,7 @@
 - `PallyPower.xml` and all nine custom virtual XML template definitions are now removed; the TOC loads `locales/enUS.lua`, `PallyPower.lua` and `PallyPowerUI.lua` only.
 - `Bindings.xml` remains intentionally separate and unchanged.
 - Stage 7 first slice is implemented: `PallyPowerUIRefs` owns deterministic references for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons; legacy named globals are still created unchanged as compatibility aliases.
+- Stage 7 second slice is implemented at `4a31fcb795b5e01d23d8cfe55ba42d1596709014`: `PallyPowerUIRefs.buffBar` now owns the Buff Bar root reference, and the three fixed root show/hide lookups use that direct reference. The constructor still creates global `PallyPowerBuffBar` unchanged for compatibility.
 - Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` subsequently passed focused startup testing and a full AQ40 raid parity run; Stage 6 is now user-accepted.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
@@ -202,12 +205,15 @@
 - All legacy generated/named globals for the migrated families are still created by the Lua constructors, preserving compatibility aliases while internal code consumes direct references.
 - Canonical real Lua 5.0.2 compiler validation passed for Stage 7 Lua implementation `ceec82cbbee32d430101b2f76dd4b1d4232c1a20` in VanillaTemplate run `36073299444`, job `107878884438`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `7579ef9aaca44ebd90b4d70e7feb11292a1d4192`, `PallyPowerUI.lua` `688b596811cc10d40922a22969d633e606d41aac`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR `#9` was closed and `validate-pallypower-stage7-refs` was reset to VanillaTemplate baseline `b37a6c56c15a58d8001771b3e4947643e74753c1`.
 - Test build `03f988f66b912381585a5b487ed16ad7a68b14da` changes only the TOC version after that compiler-checked Lua payload, so it carries the same checked Lua blobs with runtime metadata/version now `1.11.2-dev`.
+- Fresh Stage 7 audit at handoff `9d92831fb02006acbde6af0e2f6b9626c0478914` reconfirmed exactly 34 `getglobal()` call sites in `PallyPower.lua` and 7 in `PallyPowerUI.lua`. The smallest coherent repeated family was the fixed Buff Bar root lookup used three times for non-Paladin/test-mode visibility.
+- Second-slice runtime `4a31fcb795b5e01d23d8cfe55ba42d1596709014` replaces only those three core lookups with `PallyPowerUIRefs.buffBar`, adds the root reference when `PallyPowerBuffBar` is constructed, preserves the legacy named global, and bumps the TOC to `1.11.3-dev`. The remaining counts are 31 `getglobal()` call sites in `PallyPower.lua` and 7 in `PallyPowerUI.lua`, with zero remaining exact `getglobal("PallyPowerBuffBar")` sites.
+- Canonical real Lua 5.0.2 compiler validation passed for exact second-slice runtime `4a31fcb795b5e01d23d8cfe55ba42d1596709014` in VanillaTemplate run `36147538369`, job `108112335854`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `7ebf68682308051ae3d352be684470bf4b8b8c93`, `PallyPowerUI.lua` `eb196fb231a338ba998667943c6cf5a72798ae5e`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR `#10` was closed and `validate-pallypower-stage7-buffbar-root` was reset to VanillaTemplate baseline `b37a6c56c15a58d8001771b3e4947643e74753c1`.
 
 ## Current Issues
 - No Stage 6 parity regression is known; Stage 6 remains accepted on `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`.
 - The Advanced Options Scan1/Scan2 border correction remains user-verified fixed on `1188304105d38fd4172acc9c43b8f6f47ea6c30f`.
 - Stage 7 first slice is user-verified on `1.11.2-dev` / `03f988f66b912381585a5b487ed16ad7a68b14da`; no regression is currently known in the migrated indexed-reference families.
-- The next Stage 7 slice has not started. Remaining unrelated/global-name lookups must be audited before choosing another coherent family.
+- Stage 7 second slice is compiler-checked on `1.11.3-dev` / `4a31fcb795b5e01d23d8cfe55ba42d1596709014` but has not yet been runtime-tested. Do not begin a third naming/reference slice until this focused Buff Bar root-reference gate is accepted.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
@@ -219,8 +225,11 @@
 - Acceptance: Stage 7 first slice is user-verified. This does not separately claim every optional client-extension combination was exercised.
 
 ### Next Runtime Test
-- None yet: no second Stage 7 runtime delta has been implemented.
-- After the next narrow naming/reference slice, define a focused test only for the families changed by that slice plus clean startup/reload.
+- Version/build: `1.11.3-dev` / `4a31fcb795b5e01d23d8cfe55ba42d1596709014`.
+- Confirm clean login/load and `/reload` with no Lua/UI errors.
+- Focus the changed path on a non-Paladin character: the Assignment UI should remain available while the Buff Bar root is hidden normally; `/pp test prot` should show the Buff Bar; `/pp test off` should hide it again after real spell data is restored.
+- Compatibility expectation: the named global `PallyPowerBuffBar` is still created unchanged; no visual/layout, callback, data or protocol behaviour should differ.
+- Stop on any difference and report the exact path; do not continue Stage 7 until this build is accepted.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -327,13 +336,15 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SLICE USER-VERIFIED
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SLICE USER-VERIFIED / SECOND SLICE AWAITING RUNTIME TEST
 - First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
 - Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
 - All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
 - Keep compatibility globals/aliases wherever external use is possible or uncertain.
 - Do not combine this stage with behaviour, data-model or protocol changes.
-- First-slice runtime acceptance is complete on `1.11.2-dev`. Audit the remaining lookup families before choosing the next slice, and runtime-test each subsequent slice before treating it as stable.
+- First-slice runtime acceptance is complete on `1.11.2-dev`.
+- Second slice owns only the Buff Bar root reference: three fixed internal root visibility lookups now use `PallyPowerUIRefs.buffBar`, while global `PallyPowerBuffBar` remains available unchanged.
+- The second slice is compiler-checked on `1.11.3-dev` and remains runtime-untested. Do not choose or implement a third lookup family until the focused root-reference test passes.
 
 ## Deferred / Out of Scope
 - Artwork flattening or renaming.
@@ -354,4 +365,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Start the next Stage 7 slice only after a fresh audit of the remaining lookup sites: the first slice left 34 `getglobal()` call sites in `PallyPower.lua` and 7 in `PallyPowerUI.lua`, with the player-row/class-column/Buff-Bar indexed families already removed from internal lookup use. Group the remaining sites by actual access pattern, choose the smallest coherent repeated family, preserve all uncertain compatibility globals, and do not combine the slice with callback modernization or behavior/data/protocol changes. Before handing the next runtime state to the user, bump the TOC numeric version to the next development build (normally `1.11.3-dev`) and run the canonical real Lua 5.0.2 compiler check. Because this chat is already tool-heavy, resume that implementation in a fresh chat from this handoff rather than extending the current session.
+Runtime-test exact Stage 7 second-slice build `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`). Confirm clean startup/reload, then on a non-Paladin verify the normal hidden Buff Bar root, `/pp test prot` showing it, and `/pp test off` hiding it again. The changed scope is only the Buff Bar root reference; named compatibility global `PallyPowerBuffBar` must remain intact. If this passes, record the second slice as user-verified before auditing or implementing any third Stage 7 lookup family. Do not combine the acceptance step with callback modernization or behavior/data/protocol changes.
