@@ -17,7 +17,8 @@
 - Stage 7 sixth-slice runtime implementation: `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b` (`1.11.7-dev`)
 - Stage 7 sixth-slice user-tested build: `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b` (`1.11.7-dev`)
 - Stage 7 seventh-slice runtime implementation: `57ed6a69dd3660c3d0348b7e0288cc84d00d0836` (`1.11.8-dev`)
-- Branch head before this handoff update: `57ed6a69dd3660c3d0348b7e0288cc84d00d0836`
+- Stage 7 seventh-slice user-tested build: `57ed6a69dd3660c3d0348b7e0288cc84d00d0836` (`1.11.8-dev`)
+- Branch head before this handoff update: `8279c41ae4d6bc30544c897f4f39aa2ed2eaa489`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -252,7 +253,8 @@
 - Stage 7 fifth slice is compiler-checked and user-verified on `1.11.6-dev` / `98f0ecbdc7cb77749041d288b3b511cf6381b173`. Left-click cycling and right-click clearing both target the correct displayed player, and the Buff Bar correctly resolves the selected player override. The hover tooltip still resolves correctly after re-entering the player button.
 - Fifth-slice runtime observations exposed two legacy UX behaviors that are not caused by the `ppText` reference change: an already-open player override tooltip does not refresh immediately when the override changes and instead updates on re-entry; player-button mouse-wheel cycling appears nonfunctional in current runtime despite the registered handler. Do not treat either as a Stage 7 regression or fold a behavior fix into naming/reference cleanup.
 - Stage 7 sixth slice is compiler-checked and user-verified on `1.11.7-dev` / `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b`. RF cycling and the NoRF indicator both work in the assignment row and Buff Bar exactly as before; the constructor-reference change introduced no observed regression.
-- Stage 7 seventh slice is implemented and compiler-checked on `1.11.8-dev` / `57ed6a69dd3660c3d0348b7e0288cc84d00d0836` but is not yet user runtime-tested. It adds direct `PallyPowerUIRefs.buffSpecialButtons` entries for the existing Aura, RF and Seal Buff Bar buttons and replaces only the five fixed identity `getglobal()` comparisons in click/mouse-wheel routing. Named globals `PallyPowerBuffBarAura`, `PallyPowerBuffBarRF` and `PallyPowerBuffBarSeal` remain created unchanged.
+- Stage 7 seventh slice is compiler-checked and user-verified on `1.11.8-dev` / `57ed6a69dd3660c3d0348b7e0288cc84d00d0836`. RF, Aura and Seal button behavior all worked as expected, confirming the direct special-button identity references preserved click routing.
+- Runtime testing also confirmed mouse-wheel cycling is nonfunctional on the Buff Bar as well as player override buttons. Treat this as a broader pre-existing mouse-wheel/input issue, not a seventh-slice regression.
 - Remaining `getglobal()` lines after the seventh slice: 23 in `PallyPower.lua`, 0 in `PallyPowerUI.lua`.
 - Seventh-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36181282331`, job `108223996529`, validation commit `8e4a7d97d933d0dc3f2b1b60827fffc958fc1429`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `58c4b441cc47fb1d3e92b28d699804272b4c4566`, `PallyPowerUI.lua` `f59b2cacaf6eaa7e3c91e8fe669d41c7c1fdb052`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #15 was closed and its branch reset to the VanillaTemplate baseline afterward.
 - Sixth-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36167908788`, job `108180052218`, validation commit `b62e2c1d8984ef7b2e4a251306ea5fa84ca7b2e4`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `66972463993b7e77d158d9d2f809ffe14a296f82`, `PallyPowerUI.lua` `404cd584f512b68b5e1b6b4f9d691040c9b9a65d`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #14 was closed and its branch reset to the VanillaTemplate baseline afterward.
@@ -262,19 +264,13 @@
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.7-dev` / runtime build `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b`.
-- Environment/use: RF assignment cycling and NoRF indicator in the assignment row and Buff Bar.
-- Result: RF cycling, icons and NoRF indicator behavior all work as expected in both locations; the direct constructor icon references preserve runtime behavior.
-- Acceptance: Stage 7 sixth slice is user-verified.
+- Version/build: `1.11.8-dev` / runtime build `57ed6a69dd3660c3d0348b7e0288cc84d00d0836`.
+- Environment/use: Buff Bar RF/Aura/Seal controls.
+- Result: RF, Aura and Seal buttons all work as expected, so the direct special-button identity references preserve runtime routing. Mouse-wheel cycling did not work on any tested Buff Bar control, matching the previously observed nonfunctional player-button wheel path rather than indicating a Stage 7 regression.
+- Acceptance: Stage 7 seventh slice is user-verified for the changed identity-routing paths.
 
 ### Next Runtime Test
-- Version/build: `1.11.8-dev` / runtime `57ed6a69dd3660c3d0348b7e0288cc84d00d0836`.
-- Confirm clean login/load and `/reload` with no Lua/UI errors.
-- Buff Bar RF: with RF assigned on/off as appropriate, left/right click the RF control and confirm its existing cast/cancel behavior is unchanged.
-- Buff Bar Aura: left/right click the Aura control and confirm the assigned aura still casts exactly as before.
-- Buff Bar Seal: left/right click the Seal control and confirm the assigned seal still casts exactly as before.
-- Mouse-wheel the Buff Bar Aura and Seal controls and verify their assignment cycling still works as before; RF/title should remain excluded from that wheel path.
-- Compatibility expectation: named globals `PallyPowerBuffBarAura`, `PallyPowerBuffBarRF` and `PallyPowerBuffBarSeal` still exist unchanged.
+- None yet. Define a focused test only after the next narrow Stage 7 lookup family is implemented.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -381,7 +377,7 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SIX SLICES USER-VERIFIED / SEVENTH SLICE AWAITING RUNTIME TEST
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SEVEN SLICES USER-VERIFIED
 - First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
 - Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
 - All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
@@ -397,7 +393,7 @@ After generated-name/global lookup cleanup:
 - Fifth slice therefore changes only those three player-name reads in mouse-wheel, click and hover paths to `btn.ppText` / `plbtn.ppText`. All generated `...Text` globals remain intact for compatibility. The slice is compiler-checked and user-verified on `1.11.6-dev`; click/clear targeting and Buff Bar override resolution passed. Tooltip live-refresh and mouse-wheel cycling are legacy behavior observations, not fifth-slice regressions.
 - Sixth-slice audit deliberately leaves the two dynamic warning-localization lookups alone: current internal callers use `SAVE`/`DELETE`, but the dynamic global lookup remains an open compatibility surface and should not be narrowed to a hard-coded map during Stage 7.
 - Sixth slice instead owns the two remaining constructor icon-anchor lookups in `PallyPowerUI.lua`. The assignment RF NoRF overlay now anchors to the already-existing `cell.ppIcon`; the Buff Bar special-button factory stores its created icon as `button.ppBuffIcon`, and the RF NoRF overlay anchors to that direct reference. Generated icon globals remain intact. The slice is compiler-checked and user-verified on `1.11.7-dev`.
-- Seventh slice owns the five fixed Buff Bar RF/Aura/Seal identity comparisons used by special-button click routing and Buff Bar mouse-wheel class routing. `PallyPowerUIRefs.buffSpecialButtons` now retains the three constructor-owned button references; named globals remain intact. The slice is compiler-checked on `1.11.8-dev` and awaits focused runtime validation.
+- Seventh slice owns the five fixed Buff Bar RF/Aura/Seal identity comparisons used by special-button click routing and Buff Bar mouse-wheel class routing. `PallyPowerUIRefs.buffSpecialButtons` now retains the three constructor-owned button references; named globals remain intact. The slice is compiler-checked and user-verified on `1.11.8-dev`; all three button actions worked as expected. Mouse-wheel cycling remains a separate pre-existing input issue.
 - `PallyPowerUI.lua` remains at zero `getglobal()` calls. Remaining lookup groups are all in `PallyPower.lua`: tooltip/template-generated regions (8 lines), Judgement Buff Bar children (5), generated self-buff/special children and layout (8), and dynamic warning-localization lookup (2).
 
 ## Deferred / Out of Scope
@@ -412,7 +408,7 @@ After generated-name/global lookup cleanup:
 - Post-Stage-7 cleanup: audit duplicate `IsPally` / `PP_IsPally` state; `/pp test` exposes their mismatch on non-Paladins. Defer until the main naming/reference work is complete.
 - Post-Stage-7 feature-completeness cleanup: presets currently save Blessing/Aura/Seal assignments but do not persist the newer Righteous Fury or Judgement assignments. Add RF/Judgement preset persistence after the main naming/reference work.
 - Post-Stage-7 override UX cleanup: refresh the player override blessing tooltip immediately when an override changes while the pointer remains over that player button; current tooltip content updates only after leaving and re-entering.
-- Post-Stage-7 override input cleanup: investigate why player override buttons register an `OnMouseWheel` handler but mouse-wheel cycling is nonfunctional in current runtime, then either restore the intended behavior or remove/replace the dead path deliberately.
+- Post-Stage-7 mouse-wheel input cleanup: investigate why registered `OnMouseWheel` handlers are nonfunctional in current runtime across both player override buttons and Buff Bar controls, then restore intended cycling where supported or deliberately remove/replace the dead paths.
 - Post-Stage-7 RF visual cleanup: replace the current red `X` NoRF indicator with a red overlay/tint on the RF icon in both the assignment row and Buff Bar; preserve explicit `off` semantics while changing presentation only.
 
 ## Release / Promotion Notes
@@ -424,4 +420,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test exact seventh-slice build `57ed6a69dd3660c3d0348b7e0288cc84d00d0836` (`1.11.8-dev`) across the Buff Bar RF/Aura/Seal controls. Verify RF cast/cancel behavior, Aura casting, Seal casting, and Aura/Seal mouse-wheel assignment cycling remain unchanged; RF/title must remain excluded from the wheel path. If this passes, record the seventh slice as user-verified before auditing or implementing an eighth Stage 7 lookup family. Keep all deferred behavior/visual work out of Stage 7.
+Audit the remaining 23 `getglobal()` lines in `PallyPower.lua` and choose the smallest coherent repeated family for the eighth Stage 7 slice. `PallyPowerUI.lua` remains free of `getglobal()`. Preserve uncertain compatibility globals and keep all behavior/visual fixes deferred, including override tooltip live-refresh, the now-confirmed broader mouse-wheel input issue, the NoRF red-overlay change, `IsPally` / `PP_IsPally` cleanup, and RF/Judgement preset persistence. Before handing off the next testable runtime state, bump the TOC numeric version and run the canonical real Lua 5.0.2 compiler check.
