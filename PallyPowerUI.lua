@@ -9,6 +9,7 @@ PallyPowerUIRefs = {
 	specialGroups = {},
 	buffButtons = {},
 	buffSpecialButtons = {},
+	buffCombinedSelf = nil,
 	buffBar = nil,
 }
 
@@ -341,6 +342,7 @@ function PallyPowerUI.CreatePPBuffBarCombinedSelfButton(name, parent, x, texture
 	icon = PallyPowerUI.CreateTexture(button, "$parentBuffIcon", "OVERLAY", textureFile)
 	PallyPowerUI.SetSize(icon, 22, 22)
 	PallyPowerUI.SetPoint(icon, "CENTER", button, "CENTER", 0, 0)
+	button.ppBuffIcon = icon
 
 	if addNoRF then
 		noRF = PallyPowerUI.CreateFontString(button, "$parentNoRF", "OVERLAY", "GameFontNormalLarge")
@@ -352,6 +354,7 @@ function PallyPowerUI.CreatePPBuffBarCombinedSelfButton(name, parent, x, texture
 		PallyPowerUI.SetFontStyle(noRF, 20, "THICK")
 		noRF:SetTextColor(1, 0, 0)
 		noRF:Hide()
+		button.ppNoRF = noRF
 	end
 
 	button:SetScript("OnLoad", function()
@@ -376,19 +379,20 @@ function PallyPowerUI.CreatePPBuffBarCombinedSelfTemplate(name, parent)
 		true, 8, 8, 2, 2, 3, 2
 	)
 
-	PallyPowerUI.CreatePPBuffBarCombinedSelfButton(
+	frame.ppSlots = {}
+	frame.ppSlots.Aura = PallyPowerUI.CreatePPBuffBarCombinedSelfButton(
 		"$parentAura", frame, 1,
 		"Interface\\Icons\\Spell_Holy_DevotionAura",
 		function() return PallyPowerBuffBarAura end,
 		false
 	)
-	PallyPowerUI.CreatePPBuffBarCombinedSelfButton(
+	frame.ppSlots.RF = PallyPowerUI.CreatePPBuffBarCombinedSelfButton(
 		"$parentRF", frame, 31,
 		"Interface\\Icons\\Spell_Holy_SealOfFury",
 		function() return PallyPowerBuffBarRF end,
 		true
 	)
-	PallyPowerUI.CreatePPBuffBarCombinedSelfButton(
+	frame.ppSlots.Seal = PallyPowerUI.CreatePPBuffBarCombinedSelfButton(
 		"$parentSeal", frame, 61,
 		"Interface\\Icons\\Spell_Holy_SealOfWisdom",
 		function() return PallyPowerBuffBarSeal end,
@@ -1744,12 +1748,14 @@ function PallyPowerUI.CreateBuffBarUI()
 	PallyPowerUI.SetFontStyle(region, 20, "THICK")
 	region:SetTextColor(1, 0, 0)
 	region:Hide()
+	button.ppNoRF = region
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentSeal", frame)
 	PallyPowerUIRefs.buffSpecialButtons.Seal = button
 	PallyPowerUI.SetPoint(button, "TOPLEFT", PallyPowerBuffBarAura, "BOTTOMLEFT", 0, 0)
 
 	button = PallyPowerUI.CreatePPBuffBarCombinedSelfTemplate("$parentSelfCombined", frame)
+	PallyPowerUIRefs.buffCombinedSelf = button
 	PallyPowerUI.SetPoint(button, "TOPLEFT", title, "BOTTOMLEFT", 0, 0)
 	button:Hide()
 

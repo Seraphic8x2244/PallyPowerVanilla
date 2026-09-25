@@ -2951,23 +2951,32 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
     end
 end
 
+local function PP_GetCombinedSelfSlot(kind)
+    local combined = PallyPowerUIRefs.buffCombinedSelf
+    return combined and combined.ppSlots and combined.ppSlots[kind]
+end
+
 local function PP_SetSelfBuffIcon(kind, texture)
-    local separate = getglobal("PallyPowerBuffBar" .. kind .. "BuffIcon")
-    local combined = getglobal("PallyPowerBuffBarSelfCombined" .. kind .. "BuffIcon")
+    local separateButton = PallyPowerUIRefs.buffSpecialButtons[kind]
+    local combinedButton = PP_GetCombinedSelfSlot(kind)
+    local separate = separateButton and separateButton.ppBuffIcon
+    local combined = combinedButton and combinedButton.ppBuffIcon
     if separate then separate:SetTexture(texture) end
     if combined then combined:SetTexture(texture) end
 end
 
 local function PP_SetSelfBuffBackdrop(kind, r, g, b)
-    local separate = getglobal("PallyPowerBuffBar" .. kind)
-    local combined = getglobal("PallyPowerBuffBarSelfCombined" .. kind)
+    local separate = PallyPowerUIRefs.buffSpecialButtons[kind]
+    local combined = PP_GetCombinedSelfSlot(kind)
     if separate then separate:SetBackdropColor(r, g, b, PP_PerUser.transparency) end
     if combined then combined:SetBackdropColor(r, g, b, PP_PerUser.transparency) end
 end
 
 local function PP_SetRFNoOverlay(show)
-    local separate = getglobal("PallyPowerBuffBarRFNoRF")
-    local combined = getglobal("PallyPowerBuffBarSelfCombinedRFNoRF")
+    local separateButton = PallyPowerUIRefs.buffSpecialButtons.RF
+    local combinedButton = PP_GetCombinedSelfSlot("RF")
+    local separate = separateButton and separateButton.ppNoRF
+    local combined = combinedButton and combinedButton.ppNoRF
     if separate then if show then separate:Show() else separate:Hide() end end
     if combined then if show then combined:Show() else combined:Hide() end end
 end
@@ -2975,7 +2984,7 @@ end
 local function PallyPower_ApplyCombinedSelfGeometry(frame, horizontal)
     if not frame then return end
     frame:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
-    local slots = { getglobal(frame:GetName() .. "Aura"), getglobal(frame:GetName() .. "RF"), getglobal(frame:GetName() .. "Seal") }
+    local slots = { frame.ppSlots.Aura, frame.ppSlots.RF, frame.ppSlots.Seal }
     if horizontal then
         frame:SetWidth(PP_UI.BUFF_SHORT); frame:SetHeight(PP_UI.BUFF_LONG)
         for i, slot in slots do if slot then slot:SetWidth(26); slot:SetHeight(28); slot:ClearAllPoints(); slot:SetPoint("TOP", frame, "TOP", 0, -1 - ((i - 1) * 30)) end end
@@ -2996,7 +3005,7 @@ local function PallyPower_ApplySpecialButtonGeometry(btn, horizontal)
         btn:SetHeight(PP_UI.BUFF_SHORT)
     end
 
-    local icon = getglobal(btn:GetName() .. "BuffIcon")
+    local icon = btn.ppBuffIcon
     if icon then
         icon:SetWidth(PP_UI.BUFF_ICON)
         icon:SetHeight(PP_UI.BUFF_ICON)
