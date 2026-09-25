@@ -19,7 +19,8 @@
 - Stage 7 seventh-slice runtime implementation: `57ed6a69dd3660c3d0348b7e0288cc84d00d0836` (`1.11.8-dev`)
 - Stage 7 seventh-slice user-tested build: `57ed6a69dd3660c3d0348b7e0288cc84d00d0836` (`1.11.8-dev`)
 - Stage 7 eighth-slice runtime implementation: `915c61ac624e571e6d07cc092abefc4bd4003e7d` (`1.11.9-dev`)
-- Branch head before this handoff update: `915c61ac624e571e6d07cc092abefc4bd4003e7d`
+- Stage 7 eighth-slice user-tested build: `915c61ac624e571e6d07cc092abefc4bd4003e7d` (`1.11.9-dev`)
+- Branch head before this handoff update: `7b3621c3127295f39d246b0e9e3f959d2f8012a6`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -258,7 +259,7 @@
 - Stage 7 sixth slice is compiler-checked and user-verified on `1.11.7-dev` / `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b`. RF cycling and the NoRF indicator both work in the assignment row and Buff Bar exactly as before; the constructor-reference change introduced no observed regression.
 - Stage 7 seventh slice is compiler-checked and user-verified on `1.11.8-dev` / `57ed6a69dd3660c3d0348b7e0288cc84d00d0836`. RF, Aura and Seal button behavior all worked as expected, confirming the direct special-button identity references preserved click routing.
 - Runtime testing also confirmed mouse-wheel cycling is nonfunctional on the Buff Bar as well as player override buttons. Treat this as a broader pre-existing mouse-wheel/input issue, not a seventh-slice regression.
-- Stage 7 eighth slice is implemented and compiler-checked on `1.11.9-dev` / `915c61ac624e571e6d07cc092abefc4bd4003e7d` but is not yet user runtime-tested. The Judgement Buff Bar button is now retained as `PallyPowerUIRefs.buffSpecialButtons.Judgement`; its existing icon plus newly retained time/debug/duration-bar children are read directly instead of through five generated-name `getglobal()` calls. All generated Judgement globals remain created unchanged.
+- Stage 7 eighth slice is compiler-checked and user-verified on `1.11.9-dev` / `915c61ac624e571e6d07cc092abefc4bd4003e7d`. Judgement tracking behaved correctly in runtime, including the assigned icon and tracker display. The user also observed that the duration bar is visibly present again on this build. Because the slice was intended as reference-only cleanup and the previous generated global should have resolved the same StatusBar, record that as an observed improvement rather than an established causal fix until compared against the prior build if needed.
 - Remaining `getglobal()` lines after the eighth slice: 18 in `PallyPower.lua`, 0 in `PallyPowerUI.lua`.
 - Eighth-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36182659540`, job `108228502232`, validation commit `52d59c523bd4332914d939e3b48a9ac4d301432e`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `cc9eb05acbcd2b15cf82bd36add1810ffb74423d`, `PallyPowerUI.lua` `9594c27bc9ca9d3ac335f7456742442c86d3bce9`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #16 was closed and its branch reset to the VanillaTemplate baseline afterward.
 - Seventh-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36181282331`, job `108223996529`, validation commit `8e4a7d97d933d0dc3f2b1b60827fffc958fc1429`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `58c4b441cc47fb1d3e92b28d699804272b4c4566`, `PallyPowerUI.lua` `f59b2cacaf6eaa7e3c91e8fe669d41c7c1fdb052`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #15 was closed and its branch reset to the VanillaTemplate baseline afterward.
@@ -269,18 +270,13 @@
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.8-dev` / runtime build `57ed6a69dd3660c3d0348b7e0288cc84d00d0836`.
-- Environment/use: Buff Bar RF/Aura/Seal controls.
-- Result: RF, Aura and Seal buttons all work as expected, so the direct special-button identity references preserve runtime routing. Mouse-wheel cycling did not work on any tested Buff Bar control, matching the previously observed nonfunctional player-button wheel path rather than indicating a Stage 7 regression.
-- Acceptance: Stage 7 seventh slice is user-verified for the changed identity-routing paths.
+- Version/build: `1.11.9-dev` / runtime build `915c61ac624e571e6d07cc092abefc4bd4003e7d`.
+- Environment/use: Judgement Buff Bar tracker.
+- Result: Judgement behavior is good; assigned icon/tracker display work as expected, and the duration bar is visibly present again on this build. No eighth-slice regression was observed.
+- Acceptance: Stage 7 eighth slice is user-verified. The duration-bar return is noted as an observed improvement, not yet attributed causally to the reference cleanup.
 
 ### Next Runtime Test
-- Version/build: `1.11.9-dev` / runtime `915c61ac624e571e6d07cc092abefc4bd4003e7d`.
-- Confirm clean login/load and `/reload` with no Lua/UI errors.
-- Assign yourself a Judgement and verify the Buff Bar Judgement icon shows the correct assigned Judgement texture.
-- Apply that Judgement to a hostile target and verify the countdown text and duration bar appear, update normally, and hide/reset when the tracker expires or the assignment is cleared.
-- If verbose Judgement refresh feedback is enabled, verify the short debug label still appears/hides normally on tracked refresh events.
-- Compatibility expectation: generated globals such as `PallyPowerBuffBarJudgementBuffIcon`, `PallyPowerBuffBarJudgementTime`, `PallyPowerBuffBarJudgementDebug` and `PallyPowerBuffBarJudgementDurationBar` still exist unchanged.
+- None yet. Define a focused test only after the next narrow Stage 7 lookup family is implemented.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -387,7 +383,7 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SEVEN SLICES USER-VERIFIED / EIGHTH SLICE AWAITING RUNTIME TEST
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST EIGHT SLICES USER-VERIFIED
 - First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
 - Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
 - All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
@@ -404,7 +400,7 @@ After generated-name/global lookup cleanup:
 - Sixth-slice audit deliberately leaves the two dynamic warning-localization lookups alone: current internal callers use `SAVE`/`DELETE`, but the dynamic global lookup remains an open compatibility surface and should not be narrowed to a hard-coded map during Stage 7.
 - Sixth slice instead owns the two remaining constructor icon-anchor lookups in `PallyPowerUI.lua`. The assignment RF NoRF overlay now anchors to the already-existing `cell.ppIcon`; the Buff Bar special-button factory stores its created icon as `button.ppBuffIcon`, and the RF NoRF overlay anchors to that direct reference. Generated icon globals remain intact. The slice is compiler-checked and user-verified on `1.11.7-dev`.
 - Seventh slice owns the five fixed Buff Bar RF/Aura/Seal identity comparisons used by special-button click routing and Buff Bar mouse-wheel class routing. `PallyPowerUIRefs.buffSpecialButtons` now retains the three constructor-owned button references; named globals remain intact. The slice is compiler-checked and user-verified on `1.11.8-dev`; all three button actions worked as expected. Mouse-wheel cycling remains a separate pre-existing input issue.
-- Eighth slice owns the five Judgement Buff Bar child lookups: debug text, countdown text, duration bar at both access sites, and the Judgement icon. The Judgement button and its children are retained directly from construction while all generated globals remain intact. The separate Judgement target-scan tooltip lookup is deliberately not part of this slice.
+- Eighth slice owns the five Judgement Buff Bar child lookups: debug text, countdown text, duration bar at both access sites, and the Judgement icon. The Judgement button and its children are retained directly from construction while all generated globals remain intact. The separate Judgement target-scan tooltip lookup is deliberately not part of this slice. The slice is compiler-checked and user-verified on `1.11.9-dev`; the user also observed the duration bar visible again, recorded without claiming the reference cleanup intentionally fixed it.
 - `PallyPowerUI.lua` remains at zero `getglobal()` calls. Remaining lookup groups are all in `PallyPower.lua`: tooltip/template-generated regions including the Judgement target-scan tooltip (8 lines), generated self-buff/special children and layout (8), and dynamic warning-localization lookup (2).
 
 ## Deferred / Out of Scope
@@ -431,4 +427,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test exact eighth-slice build `915c61ac624e571e6d07cc092abefc4bd4003e7d` (`1.11.9-dev`) on the Judgement Buff Bar tracker. Verify assigned icon, countdown text, duration bar and optional verbose debug label all behave normally and clear/hide correctly. If this passes, record the eighth slice as user-verified before auditing or implementing a ninth Stage 7 lookup family. Keep all deferred behavior/visual work out of Stage 7.
+Audit the remaining 18 `getglobal()` lines in `PallyPower.lua` and choose the smallest coherent repeated family for the ninth Stage 7 slice. `PallyPowerUI.lua` remains free of `getglobal()`. Preserve uncertain compatibility globals and keep all deferred behavior/visual work out of Stage 7, including override tooltip live-refresh, the broader mouse-wheel input issue, the NoRF red-overlay change, `IsPally` / `PP_IsPally` cleanup, and RF/Judgement preset persistence. Before handing off the next testable runtime state, bump the TOC numeric version and run the canonical real Lua 5.0.2 compiler check.
