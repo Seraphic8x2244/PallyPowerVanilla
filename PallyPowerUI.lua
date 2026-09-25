@@ -116,6 +116,7 @@ function PallyPowerUI.CreatePPAssignmentCellTemplate(name, parent)
 	local icon
 
 	PallyPowerUI.SetSize(button, 80, 54)
+	button:EnableMouseWheel(true)
 
 	icon = PallyPowerUI.CreateTexture(button, "$parentIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.SetSize(icon, 32, 32)
@@ -151,6 +152,7 @@ function PallyPowerUI.CreatePPPlayerOverrideTemplate(name, parent)
 
 	PallyPowerUI.SetSize(button, 84, 13)
 	button:EnableMouse(true)
+	button:EnableMouseWheel(true)
 
 	text = PallyPowerUI.CreateFontString(button, "$parentText", "OVERLAY", "GameFontHighlightSmall")
 	PallyPowerUI.SetSize(text, 78, 13)
@@ -228,6 +230,7 @@ function PallyPowerUI.CreatePPBuffBarBlessingTemplate(name, parent)
 	local oldThis
 
 	PallyPowerUI.SetSize(button, 90, 30)
+	button:EnableMouseWheel(true)
 	PallyPowerUI.SetBackdrop(
 		button,
 		"Interface\\Tooltips\\UI-Tooltip-Background",
@@ -299,6 +302,7 @@ function PallyPowerUI.CreatePPBuffBarSpecialTemplate(name, parent)
 	local oldThis
 
 	PallyPowerUI.SetSize(button, 90, 30)
+	button:EnableMouseWheel(true)
 	PallyPowerUI.SetBackdrop(
 		button,
 		"Interface\\Tooltips\\UI-Tooltip-Background",
@@ -354,6 +358,14 @@ function PallyPowerUI.CreatePPBuffBarCombinedSelfButton(name, parent, x, texture
 		PallyPowerUI.SetFontStyle(noRF, 20, "THICK")
 		noRF:SetTextColor(1, 0, 0)
 		noRF:Hide()
+        button.ppLegacyNoRF = noRF
+
+        noRF = PallyPowerUI.CreateTexture(button, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+        PallyPowerUI.SetSize(noRF, 22, 22)
+        PallyPowerUI.SetPoint(noRF, "CENTER", icon, "CENTER", 0, 0)
+        noRF:SetVertexColor(1, 0, 0)
+        noRF:SetAlpha(0.45)
+        noRF:Hide()
 		button.ppNoRF = noRF
 	end
 
@@ -556,6 +568,14 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	PallyPowerUI.SetFontStyle(region, 20, "THICK")
 	region:SetTextColor(1, 0, 0)
 	region:Hide()
+    cell.ppLegacyNoRF = region
+
+    region = PallyPowerUI.CreateTexture(cell, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+    PallyPowerUI.SetSize(region, 32, 32)
+    PallyPowerUI.SetPoint(region, "CENTER", cell.ppIcon, "CENTER", 0, 0)
+    region:SetVertexColor(1, 0, 0)
+    region:SetAlpha(0.45)
+    region:Hide()
 	cell.ppNoRF = region
 
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "S")
@@ -1748,6 +1768,14 @@ function PallyPowerUI.CreateBuffBarUI()
 	PallyPowerUI.SetFontStyle(region, 20, "THICK")
 	region:SetTextColor(1, 0, 0)
 	region:Hide()
+    button.ppLegacyNoRF = region
+
+    region = PallyPowerUI.CreateTexture(button, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+    PallyPowerUI.SetSize(region, 24, 24)
+    PallyPowerUI.SetPoint(region, "CENTER", button.ppBuffIcon, "CENTER", 0, 0)
+    region:SetVertexColor(1, 0, 0)
+    region:SetAlpha(0.45)
+    region:Hide()
 	button.ppNoRF = region
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentSeal", frame)

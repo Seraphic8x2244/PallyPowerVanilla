@@ -2716,17 +2716,31 @@ function PallyPower_PerformPlayerCycle(delta, pname, class)
         blessing = -1
 	end
 
-    for test = blessing + 1, 6 do
-        if PallyPower_CanBuff(player, test) and (PallyPower_NeedsBuff(class, test) or IsShiftKeyDown()) then
+    if delta and delta > 0 then
+        -- Mouse-wheel up mirrors the grid/Buff Bar reverse-cycle direction.
+        local current = blessing
+        if current == -1 then current = 6 end
+        blessing = -1
+        for test = current - 1, -1, -1 do
             blessing = test
-            do
+            if test == -1 or (PallyPower_CanBuff(player, test) and (PallyPower_NeedsBuff(class, test) or IsShiftKeyDown())) then
                 break
             end
         end
-    end
+    else
+        -- Left-click and mouse-wheel down retain the existing forward cycle.
+        for test = blessing + 1, 6 do
+            if PallyPower_CanBuff(player, test) and (PallyPower_NeedsBuff(class, test) or IsShiftKeyDown()) then
+                blessing = test
+                do
+                    break
+                end
+            end
+        end
 
-    if (blessing == 6) then
-        blessing = -1
+        if (blessing == 6) then
+            blessing = -1
+        end
     end
 
     SetNormalBlessings(player, class, pname, blessing)
@@ -2738,6 +2752,8 @@ function PallyPowerPlayerButton_OnMouseWheel(btn, arg1)
         class = tonumber(class) - 1 --class 0 == button 1
         local pname = btn.ppText:GetText()
         PallyPower_PerformPlayerCycle(arg1, pname, class)
+        GameTooltip:Hide()
+        PallyPowerPlayerButton_OnEnter(btn)
     end
 end
 
@@ -2776,8 +2792,12 @@ function PallyPowerPlayerButton_OnClick(plbtn, mouseBtn)
                 PallyPower_NormalAssignments[UnitName("player")][class][pname] = -1
             end
             PP_NextScan = 0.1 --PallyPower_UpdateUI()
+            GameTooltip:Hide()
+            PallyPowerPlayerButton_OnEnter(plbtn)
         elseif mouseBtn == "LeftButton" then
             PallyPower_PerformPlayerCycle(nil, pname, class)
+            GameTooltip:Hide()
+            PallyPowerPlayerButton_OnEnter(plbtn)
         else
             if PallyPower_Tanks[pname] and PallyPower_Tanks[pname] == true then
                 PallyPower_Tanks[pname] = nil
@@ -3031,10 +3051,10 @@ function PallyPower_UpdateLayout()
     local hasSeal = PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1
     local hasJudgement = PallyPower_JudgementAssignments[namePlayer] ~= nil and PallyPower_JudgementAssignments[namePlayer] ~= -1
     local rfAssignmentState = PallyPower_RFAssignments[namePlayer]
-    local showRF = (PP_PerUser.showrfbutton == true and (rfAssignmentState == true or rfAssignmentState == "off")) and (IsPally == 1)
-    local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (IsPally == 1)
-    local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (IsPally == 1)
-    local showJudgement = (PP_PerUser.showjudgementbutton == true and hasJudgement == true and PallyPowerBuffBarJudgement ~= nil) and (IsPally == 1)
+    local showRF = (PP_PerUser.showrfbutton == true and (rfAssignmentState == true or rfAssignmentState == "off")) and (PP_IsPally == true)
+    local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (PP_IsPally == true)
+    local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (PP_IsPally == true)
+    local showJudgement = (PP_PerUser.showjudgementbutton == true and hasJudgement == true and PallyPowerBuffBarJudgement ~= nil) and (PP_IsPally == true)
     local separateSelf = { PallyPowerBuffBarAura, PallyPowerBuffBarRF, PallyPowerBuffBarSeal }
     for _, button in separateSelf do button:Hide(); PallyPower_ApplySpecialButtonGeometry(button, horizontal) end
     PallyPowerBuffBarJudgement:Hide(); PallyPower_ApplySpecialButtonGeometry(PallyPowerBuffBarJudgement, horizontal)
@@ -3128,16 +3148,15 @@ function PallyPower_UpdateUI()
     PP_SetSelfBuffIcon("RF", PallyPower_RighteousFury)
 
 
-    local pclass, eclass = UnitClass("player")
     local namePlayer = UnitName("player")
 
-    if eclass == "PALADIN" then
-        IsPally = 1
-    end
+    -- Keep the legacy compatibility global synchronized, but use PP_IsPally
+    -- as the single internal state source (including /pp test profiles).
+    IsPally = PP_IsPally and 1 or 0
 
     local specialButtonCount = 0
 
-    if ((IsPally == 1) or (GetNumRaidMembers() > 0 and GetNumPartyMembers() > 0)) then
+    if ((PP_IsPally == true) or (GetNumRaidMembers() > 0 and GetNumPartyMembers() > 0)) then
         if PP_PerUser.frameslocked == true then
             PallyPowerBuffBarResizeButton:Hide()
         else
@@ -3567,6 +3586,7 @@ function PallyPower_ScanSpells()
         AllPallysJudgements[UnitName("player")] = PallyPower_BuildJudgementCapability(SealRankInfo)
         PallyPower_RFCapabilities[UnitName("player")] = hasRighteousFury == true
         PP_IsPally = true
+        IsPally = 1
         initialized = true
         if not PallyPower_Assignments[UnitName("player")] then
             PallyPower_Assignments[UnitName("player")] = {}
@@ -3717,12 +3737,14 @@ function PallyPower_ScanSpells()
         AllPallysJudgements[UnitName("player")] = PallyPower_BuildJudgementCapability(SealRankInfo)
         PallyPower_RFCapabilities[UnitName("player")] = hasRighteousFury == true
         PP_IsPally = true
+        IsPally = 1
         if initialized then
             PallyPower_SendSelf()
         end
     else
         PP_Debug("I'm not a paladin?? " .. class)
         PP_IsPally = nil
+        IsPally = 0
         initialized = true
     end
 
@@ -3931,6 +3953,9 @@ function PallyPower_SendSelf()
 end
 
 function PallyPower_SendVersion()
+    -- Development builds participate in normal PallyPower comms but never
+    -- advertise their development version to other PallyPower clients.
+    if ADDON_VERSION and string.find(ADDON_VERSION, "%-dev") then return end
     PallyPower_SendMessage("VERSION " .. PallyPower_Version)
 end
 
@@ -6824,17 +6849,41 @@ function PallyPower_SwapSet(set)
 	-- Swap a set
 	if (set) then
 		if (PP_Presets and PP_Presets[player] and PP_Presets[player]["s"] and PP_Presets[player]["s"][set]) then
+            local preset = PP_Presets[player]["s"][set]
 			for id = 0, 9 do
-				PallyPower_Assignments[player][id] = PP_Presets[player]["s"][set][id];
-				if PP_Presets[player]["s"][set]["A"] then
-					PallyPower_AuraAssignments[player] = PP_Presets[player]["s"][set]["A"]
-				end
-				if PP_Presets[player]["s"][set]["S"] then
-					PallyPower_SealAssignments[player] = PP_Presets[player]["s"][set]["S"]
-				end
-				PP_Presets[UnitName("player")]["CurrentSet"] = set;
+				PallyPower_Assignments[player][id] = preset[id];
 			end
+            if preset["A"] ~= nil then
+                PallyPower_AuraAssignments[player] = preset["A"]
+            end
+            if preset["S"] ~= nil then
+                PallyPower_SealAssignments[player] = preset["S"]
+            end
+
+            -- New explicit keys preserve nil as false; lowercase fallbacks
+            -- recover RF/Judgement from presets saved after storage unification.
+            if preset["R"] ~= nil then
+                if preset["R"] == false then
+                    PallyPower_RFAssignments[player] = nil
+                else
+                    PallyPower_RFAssignments[player] = preset["R"]
+                end
+            elseif preset.rf ~= nil then
+                PallyPower_RFAssignments[player] = preset.rf
+            end
+            if preset["J"] ~= nil then
+                if preset["J"] == false then
+                    PallyPower_JudgementAssignments[player] = nil
+                else
+                    PallyPower_JudgementAssignments[player] = preset["J"]
+                end
+            elseif preset.judgement ~= nil then
+                PallyPower_JudgementAssignments[player] = preset.judgement
+            end
+
+			PP_Presets[player]["CurrentSet"] = set;
 		    PP_NextScan = 0 --PallyPower_UpdateUI()
+            PP_JudgementNextScan = 0
 	        PallyPower_SendSelf()
 		end
 	end
@@ -6914,6 +6963,18 @@ function PallyPower_SaveSet(set)
 		if PallyPower_SealAssignments[player] then
 			PP_Presets[player]["s"][set]["S"] = PallyPower_SealAssignments[player];
 		end
+
+        -- false is a preset-only sentinel for an explicit nil assignment.
+        if PallyPower_RFAssignments[player] == nil then
+            PP_Presets[player]["s"][set]["R"] = false
+        else
+            PP_Presets[player]["s"][set]["R"] = PallyPower_RFAssignments[player]
+        end
+        if PallyPower_JudgementAssignments[player] == nil then
+            PP_Presets[player]["s"][set]["J"] = false
+        else
+            PP_Presets[player]["s"][set]["J"] = PallyPower_JudgementAssignments[player]
+        end
 		PP_Presets[player]["CurrentSet"] = set;
 	end
 end
