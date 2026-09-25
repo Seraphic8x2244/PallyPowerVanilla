@@ -1735,7 +1735,7 @@ function PallyPower_OnLoad()
     --Hide BuffBar if not paladin. You can still see the assignments grid
     local _, class = UnitClass("player")
     if class ~= "PALADIN" then
-        getglobal("PallyPowerBuffBar"):Hide()
+        PallyPowerUIRefs.buffBar:Hide()
     end    
 end
 
@@ -2324,7 +2324,7 @@ function PallyPower_SlashCommandHandler(msg)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_ENABLED .. testArg)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_FAKE)
             PallyPower_ScanSpells()
-            getglobal("PallyPowerBuffBar"):Show()
+            PallyPowerUIRefs.buffBar:Show()
             PP_NextScan = 0.1
             return true
         elseif testArg == "off" or testArg == "clear" or testArg == "reset" or testArg == "" then
@@ -2336,7 +2336,7 @@ function PallyPower_SlashCommandHandler(msg)
                 -- If not actually a paladin, hide buff bar again
                 local _, class = UnitClass("player")
                 if class ~= "PALADIN" then
-                    getglobal("PallyPowerBuffBar"):Hide()
+                    PallyPowerUIRefs.buffBar:Hide()
                 end
                 PP_NextScan = 0.1
             else

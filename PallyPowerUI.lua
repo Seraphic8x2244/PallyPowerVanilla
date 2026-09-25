@@ -8,6 +8,7 @@ PallyPowerUIRefs = {
 	classGroups = {},
 	specialGroups = {},
 	buffButtons = {},
+	buffBar = nil,
 }
 
 function PallyPowerUI.ResolveName(parent, name)
@@ -1676,6 +1677,7 @@ end
 
 function PallyPowerUI.CreateBuffBarUI()
 	local frame = PallyPowerUI.CreateFrame("Frame", "PallyPowerBuffBar", UIParent)
+	PallyPowerUIRefs.buffBar = frame
 	local title
 	local region
 	local button
