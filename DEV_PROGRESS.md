@@ -9,7 +9,7 @@
 - Stage 7 second-slice runtime implementation: `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`)
 - Stage 7 second-slice user-tested build: `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`)
 - Stage 7 third-slice runtime implementation: `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`)
-- Branch head before this handoff update: `4b817936e403bc455663a7c89909ccbd7e3615a8`
+- Branch head before this handoff update: `81760e3a343afd6827a4fc1672b7c3772282056a`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -369,6 +369,7 @@ After generated-name/global lookup cleanup:
 - Feature expansion unrelated to the migration.
 - Broader module split beyond the deliberate `PallyPowerUI.lua` separation.
 - Modernizing legacy `this`/`arg1` callback style before the XML-free parity checkpoint.
+- Post-Stage-7 cleanup: audit duplicate `IsPally` / `PP_IsPally` state; `/pp test` exposes their mismatch on non-Paladins. Defer until the main naming/reference work is complete.
 
 ## Release / Promotion Notes
 - Current stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`.
