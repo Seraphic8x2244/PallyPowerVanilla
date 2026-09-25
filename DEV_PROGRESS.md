@@ -9,7 +9,8 @@
 - Stage 7 second-slice runtime implementation: `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`)
 - Stage 7 second-slice user-tested build: `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`)
 - Stage 7 third-slice runtime implementation: `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`)
-- Branch head before this handoff update: `81760e3a343afd6827a4fc1672b7c3772282056a`
+- Stage 7 third-slice user-tested build: `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`)
+- Branch head before this handoff update: `6fc87b0cdff93cd86f8e6b1000ad9807ffba93ee`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -141,6 +142,7 @@
 - Post-Stage-6 Advanced Options Scan1/Scan2 border correction `1188304105d38fd4172acc9c43b8f6f47ea6c30f` is user-verified fixed in game. The previously stretched scan EditBox borders now render correctly.
 - Stage 7 first-slice build `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`) is user-verified in live group/raid use. The user reports PallyPower is working as expected; the Assignment UI and Buff Bar are visibly populated, and live blessing-state tracking correctly detected a tank warrior removing Salvation.
 - Stage 7 second-slice build `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`) is user-verified for the changed Buff Bar root-reference path on a warrior: the Buff Bar remains hidden normally, `/pp` still opens Assignments, and `/pp test prot` visibly shows the Buff Bar before the existing normal UI update immediately hides it again. The blink proves the new direct root reference executes the show path successfully; the subsequent hide is existing test-mode/visibility behavior, not a reference failure.
+- Stage 7 third-slice build `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`) is user-verified: the preset UI works normally, including the New Save dialog and existing preset Save/Delete warning paths, with no header/title/layout or control regression observed.
 
 ## Implemented / Awaiting Runtime Test
 - Stage 1 remains the frozen parity/scaffold baseline at `f6ee37e4ed644dd1841d84918595530f5a2c36d6`; `docs/XML_UI_PARITY_MANIFEST.md` remains unchanged and authoritative for the migration.
@@ -225,23 +227,19 @@
 - The Advanced Options Scan1/Scan2 border correction remains user-verified fixed on `1188304105d38fd4172acc9c43b8f6f47ea6c30f`.
 - Stage 7 first slice is user-verified on `1.11.2-dev` / `03f988f66b912381585a5b487ed16ad7a68b14da`; no regression is currently known in the migrated indexed-reference families.
 - Stage 7 second slice is user-verified on `1.11.3-dev` / `4a31fcb795b5e01d23d8cfe55ba42d1596709014`; no regression is known in the Buff Bar root-reference change. The proposed non-Paladin `/pp test prot` persistence check was invalid because test mode sets `PP_IsPally = true` while `PallyPower_UpdateUI()` still gates Buff Bar visibility on legacy `IsPally == 1`, so a non-Paladin test profile is immediately hidden by the pre-existing update path. Do not fold that legacy flag mismatch into Stage 7 naming cleanup.
-- Stage 7 third slice is compiler-checked on `1.11.4-dev` / `4b817936e403bc455663a7c89909ccbd7e3615a8` but is not yet user runtime-tested. Do not begin a fourth naming/reference slice until its two dialog-header anchor paths are accepted.
+- Stage 7 third slice is compiler-checked and user-verified on `1.11.4-dev` / `4b817936e403bc455663a7c89909ccbd7e3615a8`; no regression is known in the two dialog-header anchor changes.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.3-dev` / runtime build `4a31fcb795b5e01d23d8cfe55ba42d1596709014`.
-- Environment/use: warrior/non-Paladin focused Buff Bar root-reference path.
-- Result: Buff Bar is hidden normally, `/pp` still opens Assignments, and `/pp test prot` visibly shows the Buff Bar before the pre-existing `IsPally == 1` update gate hides it again.
-- Acceptance: Stage 7 second slice is user-verified for the changed root-reference path; the test-profile blink is documented as pre-existing visibility behavior rather than a reference failure.
+- Version/build: `1.11.4-dev` / runtime build `4b817936e403bc455663a7c89909ccbd7e3615a8`.
+- Environment/use: preset UI focused validation.
+- Result: preset UI works normally; New Save and existing preset Save/Delete warning paths behave correctly with no visible header/title/layout or control regression.
+- Acceptance: Stage 7 third slice is user-verified.
 
 ### Next Runtime Test
-- Version/build: `1.11.4-dev` / runtime `4b817936e403bc455663a7c89909ccbd7e3615a8`.
-- Confirm clean login/load and `/reload` with no Lua/UI errors.
-- Open the minimap preset menu and choose the new-save action so `PallyPowerSaveMenu` appears; verify its header/title renders in the same position and the name field/buttons still behave normally.
-- Exercise an existing preset Save/Delete warning path so `PallyPowerWarningFrame` appears; verify its header/title renders in the same position and OK/Cancel behavior is unchanged.
-- Compatibility expectation: generated globals `PallyPowerSaveMenuHeaderTexture` and `PallyPowerWarningFrameHeaderTexture` still exist unchanged.
+- None yet. Define a focused test only after the next narrow Stage 7 lookup family is implemented.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -348,7 +346,7 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST TWO SLICES USER-VERIFIED / THIRD SLICE AWAITING RUNTIME TEST
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST THREE SLICES USER-VERIFIED
 - First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
 - Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
 - All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
@@ -358,7 +356,7 @@ After generated-name/global lookup cleanup:
 - Second slice owns only the Buff Bar root reference: three fixed internal root visibility lookups now use `PallyPowerUIRefs.buffBar`, while global `PallyPowerBuffBar` remains available unchanged.
 - The second slice is compiler-checked and user-verified on `1.11.3-dev`. The non-Paladin test-profile blink is explained by the pre-existing `PP_IsPally` versus `IsPally` visibility split and is not part of this naming/reference slice.
 - Third slice owns only the two constructor-time dialog header anchors: the warning and save-preset titles now anchor directly to their freshly created header texture objects, while the generated named texture globals remain intact.
-- The third slice is compiler-checked on `1.11.4-dev` and awaits focused runtime validation. Do not choose or implement a fourth lookup family until that dialog test passes.
+- The third slice is compiler-checked and user-verified on `1.11.4-dev`. The preset UI paths tested normally, so Stage 7 may continue with a fresh audit of the remaining lookup families.
 
 ## Deferred / Out of Scope
 - Artwork flattening or renaming.
@@ -370,6 +368,7 @@ After generated-name/global lookup cleanup:
 - Broader module split beyond the deliberate `PallyPowerUI.lua` separation.
 - Modernizing legacy `this`/`arg1` callback style before the XML-free parity checkpoint.
 - Post-Stage-7 cleanup: audit duplicate `IsPally` / `PP_IsPally` state; `/pp test` exposes their mismatch on non-Paladins. Defer until the main naming/reference work is complete.
+- Post-Stage-7 feature-completeness cleanup: presets currently save Blessing/Aura/Seal assignments but do not persist the newer Righteous Fury or Judgement assignments. Add RF/Judgement preset persistence after the main naming/reference work.
 
 ## Release / Promotion Notes
 - Current stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`.
@@ -380,4 +379,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test exact Stage 7 third-slice build `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`). Confirm clean startup/reload, then open the New Save preset dialog and an existing preset Save/Delete warning dialog. Verify both dialog headers/titles render in the same position and the surrounding controls behave unchanged. Generated compatibility globals `PallyPowerSaveMenuHeaderTexture` and `PallyPowerWarningFrameHeaderTexture` must remain available. If this passes, record the third slice as user-verified before auditing or implementing any fourth Stage 7 lookup family. Do not combine acceptance with callback modernization or behavior/data/protocol changes.
+Audit the remaining 31 `getglobal()` lines in `PallyPower.lua` and 5 in `PallyPowerUI.lua`, group them by actual access pattern, and choose the smallest coherent repeated family for the fourth Stage 7 slice. Preserve all uncertain compatibility globals. Keep the deferred `IsPally` / `PP_IsPally` cleanup and RF/Judgement preset persistence out of this stage. Before handing off the next testable runtime state, bump the TOC numeric version and run the canonical real Lua 5.0.2 compiler check.
