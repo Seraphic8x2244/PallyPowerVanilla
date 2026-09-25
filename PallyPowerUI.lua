@@ -8,6 +8,7 @@ PallyPowerUIRefs = {
 	classGroups = {},
 	specialGroups = {},
 	buffButtons = {},
+	buffSpecialButtons = {},
 	buffBar = nil,
 }
 
@@ -1728,9 +1729,11 @@ function PallyPowerUI.CreateBuffBarUI()
 	end)
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentAura", frame)
+	PallyPowerUIRefs.buffSpecialButtons.Aura = button
 	PallyPowerUI.SetPoint(button, "TOPLEFT", title, "BOTTOMLEFT", 0, 0)
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentRF", frame)
+	PallyPowerUIRefs.buffSpecialButtons.RF = button
 	PallyPowerUI.SetPoint(button, "TOPLEFT", PallyPowerBuffBarAura, "BOTTOMLEFT", 0, 0)
 	region = PallyPowerUI.CreateFontString(button, "$parentNoRF", "OVERLAY", "GameFontNormalLarge")
 	PallyPowerUI.SetSize(region, 24, 24)
@@ -1743,6 +1746,7 @@ function PallyPowerUI.CreateBuffBarUI()
 	region:Hide()
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentSeal", frame)
+	PallyPowerUIRefs.buffSpecialButtons.Seal = button
 	PallyPowerUI.SetPoint(button, "TOPLEFT", PallyPowerBuffBarAura, "BOTTOMLEFT", 0, 0)
 
 	button = PallyPowerUI.CreatePPBuffBarCombinedSelfTemplate("$parentSelfCombined", frame)

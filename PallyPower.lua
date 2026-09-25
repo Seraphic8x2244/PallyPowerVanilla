@@ -5530,7 +5530,7 @@ function PallyPowerBuffButton_OnLoad(btn)
 end
 
 function PallyPowerBuffButton_OnClick(btn, mousebtn)
-    if btn == getglobal("PallyPowerBuffBarRF") then
+    if btn == PallyPowerUIRefs.buffSpecialButtons.RF then
         local rfState = PallyPower_RFAssignments[UnitName("player")]
         if rfState == "off" then
             if PallyPower_CheckRighteousFury() then
@@ -5545,7 +5545,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
         return
     end
 
-    if btn == getglobal("PallyPowerBuffBarAura") then
+    if btn == PallyPowerUIRefs.buffSpecialButtons.Aura then
         local auraId = PallyPower_AuraAssignments[UnitName("player")]
         if auraId ~= -1 and 
            AllPallysAuras[UnitName("player")] and 
@@ -5561,7 +5561,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
         return
     end
 
-    if btn == getglobal("PallyPowerBuffBarSeal") then
+    if btn == PallyPowerUIRefs.buffSpecialButtons.Seal then
         PallyPower_CastSeal()
         return
     end
@@ -6247,9 +6247,9 @@ function PallyPowerBuffBarButton_OnMouseWheel(btn, arg1)
 
     if btn:GetName() == "PallyPowerBuffBarRF" or btn:GetName() == "PallyPowerBuffBarTitle" then return end
 
-    if btn == getglobal("PallyPowerBuffBarAura") then 
+    if btn == PallyPowerUIRefs.buffSpecialButtons.Aura then 
         class = PALLYPOWER_AURA_CLASS 
-    elseif btn == getglobal("PallyPowerBuffBarSeal") then 
+    elseif btn == PallyPowerUIRefs.buffSpecialButtons.Seal then 
         class = PALLYPOWER_SEAL_CLASS 
     else
         class = btn.classID
