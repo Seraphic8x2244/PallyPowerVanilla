@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.6-dev`
+- Version: `1.11.7-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -14,7 +14,8 @@
 - Stage 7 fourth-slice user-tested build: `d3dd69006e619ff8d26318ec0b970b440ab784dc` (`1.11.5-dev`)
 - Stage 7 fifth-slice runtime implementation: `98f0ecbdc7cb77749041d288b3b511cf6381b173` (`1.11.6-dev`)
 - Stage 7 fifth-slice user-tested build: `98f0ecbdc7cb77749041d288b3b511cf6381b173` (`1.11.6-dev`)
-- Branch head before this handoff update: `8867b533ea04e1891ab11526c5dc0be3bed7bd6f`
+- Stage 7 sixth-slice runtime implementation: `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b` (`1.11.7-dev`)
+- Branch head before this handoff update: `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -100,6 +101,9 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `c5d4eb0` - Replace the two remaining `PallyPowerUI.lua` constructor icon-anchor `getglobal()` lookups with direct constructor-owned icon references, preserve generated globals, and bump the testable build to `1.11.7-dev`.
+- `a842f45` - Record deferred override-tooltip live-refresh and player-button mouse-wheel follow-ups; no addon runtime files changed.
+- `c910f16` - Accept the fifth Stage 7 player-text runtime test and document the legacy tooltip/mouse-wheel observations; no addon runtime files changed.
 - `98f0ecb` - Replace the three class-group player-button generated `Text` `getglobal()` reads with the constructor-owned `ppText` reference and bump the testable build to `1.11.6-dev`.
 - `b487db4` - Accept the fourth Stage 7 Save Preset runtime test and unblock the fifth lookup slice; no addon runtime files changed.
 - `cc7242f` - Document the fourth Stage 7 compiler provenance and focused Save Preset runtime-test gate; no addon runtime files changed.
@@ -243,7 +247,9 @@
 - Stage 7 fourth slice is compiler-checked and user-verified on `1.11.5-dev` / `d3dd69006e619ff8d26318ec0b970b440ab784dc`; the blank/new/existing-name OK-button state paths and Save/overwrite/Cancel behavior all worked as described.
 - Stage 7 fifth slice is compiler-checked and user-verified on `1.11.6-dev` / `98f0ecbdc7cb77749041d288b3b511cf6381b173`. Left-click cycling and right-click clearing both target the correct displayed player, and the Buff Bar correctly resolves the selected player override. The hover tooltip still resolves correctly after re-entering the player button.
 - Fifth-slice runtime observations exposed two legacy UX behaviors that are not caused by the `ppText` reference change: an already-open player override tooltip does not refresh immediately when the override changes and instead updates on re-entry; player-button mouse-wheel cycling appears nonfunctional in current runtime despite the registered handler. Do not treat either as a Stage 7 regression or fold a behavior fix into naming/reference cleanup.
-- Remaining `getglobal()` lines after the fifth slice: 28 in `PallyPower.lua`, 2 in `PallyPowerUI.lua`.
+- Stage 7 sixth slice is implemented and compiler-checked on `1.11.7-dev` / `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b` but is not yet user runtime-tested. It changes only the two constructor-time NoRF overlay anchors in `PallyPowerUI.lua`: the assignment RF cell now anchors to its existing `cell.ppIcon`, and Buff Bar special buttons now retain their freshly created icon as `button.ppBuffIcon` so the RF NoRF overlay anchors directly to it. Generated `...Icon` globals remain created unchanged.
+- Remaining `getglobal()` lines after the sixth slice: 28 in `PallyPower.lua`, 0 in `PallyPowerUI.lua`.
+- Sixth-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36167908788`, job `108180052218`, validation commit `b62e2c1d8984ef7b2e4a251306ea5fa84ca7b2e4`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `66972463993b7e77d158d9d2f809ffe14a296f82`, `PallyPowerUI.lua` `404cd584f512b68b5e1b6b4f9d691040c9b9a65d`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #14 was closed and its branch reset to the VanillaTemplate baseline afterward.
 - Fifth-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36165111196`, job `108170839722`, validation commit `607c2075248ef3fde391d288fe19654983e7c672`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `66972463993b7e77d158d9d2f809ffe14a296f82`, `PallyPowerUI.lua` `a192458cabb41719f5feb0b122732bf08b2d304a`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #13 was closed and its branch reset to the VanillaTemplate baseline afterward.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
@@ -256,7 +262,11 @@
 - Acceptance: Stage 7 fifth slice is user-verified for the actual `ppText` lookup paths.
 
 ### Next Runtime Test
-- None yet. Define a focused test only after the next narrow Stage 7 lookup family is implemented.
+- Version/build: `1.11.7-dev` / runtime `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b`.
+- Confirm clean login/load and `/reload` with no Lua/UI errors.
+- In the assignment frame, cycle your own paladin's Righteous Fury assignment to explicit `off`; verify the red `X` overlay appears centered on the RF icon in that paladin row, with no position/size change compared with previous builds.
+- With the same own RF assignment set to `off`, verify the Buff Bar RF control also shows its red `X` centered on the RF icon. Cycle out of `off` and confirm both overlays hide normally.
+- Compatibility expectation: generated icon globals such as the assignment-cell `...Icon` and `PallyPowerBuffBarRFBuffIcon` still exist unchanged.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -363,7 +373,7 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST FIVE SLICES USER-VERIFIED
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST FIVE SLICES USER-VERIFIED / SIXTH SLICE AWAITING RUNTIME TEST
 - First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
 - Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
 - All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
@@ -377,7 +387,9 @@ After generated-name/global lookup cleanup:
 - Fourth slice owns only the three Save Preset `OkayButton` state lookups inside the existing name-field `OnTextChanged` callback. The constructor now keeps a direct local reference while global `PallyPowerSaveMenuOkayButton` remains intact; callback style and behavior are unchanged. The slice is compiler-checked and user-verified on `1.11.5-dev`.
 - Fifth-slice audit regrouped the remaining lookups after the fourth slice. The smallest clean repeated family that required no new stored state was the three class-group player-button generated `Text` reads: all three buttons already carry the exact constructor-owned font string as `ppText`. The two remaining UI constructor icon-anchor lookups were left alone because only one currently has an existing direct child reference.
 - Fifth slice therefore changes only those three player-name reads in mouse-wheel, click and hover paths to `btn.ppText` / `plbtn.ppText`. All generated `...Text` globals remain intact for compatibility. The slice is compiler-checked and user-verified on `1.11.6-dev`; click/clear targeting and Buff Bar override resolution passed. Tooltip live-refresh and mouse-wheel cycling are legacy behavior observations, not fifth-slice regressions.
-- Remaining lookup groups after the fifth slice: core tooltip/template-generated regions (8 lines), Judgement Buff Bar children (5), generated self-buff/special children and layout (8), fixed special-button identity comparisons (5), dynamic warning-localization lookup (2), plus 2 constructor icon-anchor lines in `PallyPowerUI.lua`.
+- Sixth-slice audit deliberately leaves the two dynamic warning-localization lookups alone: current internal callers use `SAVE`/`DELETE`, but the dynamic global lookup remains an open compatibility surface and should not be narrowed to a hard-coded map during Stage 7.
+- Sixth slice instead owns the two remaining constructor icon-anchor lookups in `PallyPowerUI.lua`. The assignment RF NoRF overlay now anchors to the already-existing `cell.ppIcon`; the Buff Bar special-button factory stores its created icon as `button.ppBuffIcon`, and the RF NoRF overlay anchors to that direct reference. Generated icon globals remain intact. The slice is compiler-checked on `1.11.7-dev` and awaits focused runtime validation.
+- `PallyPowerUI.lua` now contains zero `getglobal()` calls. Remaining lookup groups are all in `PallyPower.lua`: tooltip/template-generated regions (8 lines), Judgement Buff Bar children (5), generated self-buff/special children and layout (8), fixed special-button identity comparisons (5), and dynamic warning-localization lookup (2).
 
 ## Deferred / Out of Scope
 - Artwork flattening or renaming.
@@ -402,4 +414,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Audit the remaining 28 `getglobal()` lines in `PallyPower.lua` and 2 in `PallyPowerUI.lua`, regroup them after the accepted fifth slice, and choose the smallest coherent repeated family for the sixth Stage 7 slice. Preserve uncertain compatibility globals and do not mix in behavior fixes for the legacy tooltip-refresh or player-button mouse-wheel observations. Keep callback modernization, `IsPally` / `PP_IsPally` cleanup, and RF/Judgement preset persistence deferred. Before handing off the next testable runtime state, bump the TOC numeric version and run the canonical real Lua 5.0.2 compiler check.
+Runtime-test exact sixth-slice build `c5d4eb0f8cca41d590a491ea31094d09c6aeec1b` (`1.11.7-dev`) by setting the player's RF assignment to explicit `off` and checking that the red `X` remains centered over the RF icon in both the assignment row and Buff Bar, then clears normally when leaving `off`. If this passes, record the sixth slice as user-verified before auditing or implementing a seventh Stage 7 lookup family. Keep the deferred override tooltip/mouse-wheel fixes, `IsPally` / `PP_IsPally` cleanup, and RF/Judgement preset persistence out of Stage 7.
