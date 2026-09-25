@@ -326,7 +326,8 @@ local function PP_JudgementFormatTime(seconds)
 end
 
 local function PP_JudgementSetDebug(text)
-    local label = getglobal("PallyPowerBuffBarJudgementDebug")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local label = judgement and judgement.ppDebug
     if not label then return end
 
     if PP_PerUser and PP_PerUser.verbose_judgement_refresh == false then
@@ -601,7 +602,8 @@ local function PP_UpdateJudgementCountdownVisual()
         remaining = PP_JudgementTrack.expiresAt - now
     end
 
-    local timeText = getglobal("PallyPowerBuffBarJudgementTime")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local timeText = judgement and judgement.ppTime
     if timeText then
         if remaining > 0 then
             timeText:SetText(PP_JudgementFormatTime(remaining))
@@ -612,7 +614,8 @@ local function PP_UpdateJudgementCountdownVisual()
         end
     end
 
-    local bar = getglobal("PallyPowerBuffBarJudgementDurationBar")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local bar = judgement and judgement.ppDurationBar
     if bar then
         local duration = PP_JudgementTrack.duration or 0
         if remaining > 0 and duration > 0 then
@@ -633,13 +636,15 @@ function PallyPower_UpdateJudgementTracker()
     local player = UnitName("player")
     local assignment = PallyPower_JudgementAssignments[player]
     if assignment == nil or assignment == -1 then
-        local bar = getglobal("PallyPowerBuffBarJudgementDurationBar")
+        local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local bar = judgement and judgement.ppDurationBar
         if bar then bar:Hide() end
         PallyPowerBuffBarJudgement:Hide()
         return
     end
 
-    local icon = getglobal("PallyPowerBuffBarJudgementBuffIcon")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local icon = judgement and judgement.ppBuffIcon
     if icon then icon:SetTexture(PallyPower_JudgementIcons[assignment]) end
 
     local now = GetTime()

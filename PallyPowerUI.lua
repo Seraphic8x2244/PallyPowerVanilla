@@ -1754,6 +1754,7 @@ function PallyPowerUI.CreateBuffBarUI()
 	button:Hide()
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentJudgement", frame)
+	PallyPowerUIRefs.buffSpecialButtons.Judgement = button
 	PallyPowerUI.SetPoint(button, "TOPLEFT", PallyPowerBuffBarSeal, "BOTTOMLEFT", 0, 0)
 	button:Hide()
 
@@ -1764,6 +1765,7 @@ function PallyPowerUI.CreateBuffBarUI()
 	region:SetJustifyH("CENTER")
 	region:SetJustifyV("MIDDLE")
 	PallyPowerUI.SetFontStyle(region, 11)
+	button.ppTime = region
 
 	region = PallyPowerUI.CreateFontString(button, "$parentDebug", "OVERLAY", "GameFontNormalSmall")
 	PallyPowerUI.SetSize(region, 78, 12)
@@ -1771,6 +1773,7 @@ function PallyPowerUI.CreateBuffBarUI()
 	region:SetText("")
 	region:SetJustifyH("LEFT")
 	region:SetTextColor(1, 1, 1)
+	button.ppDebug = region
 
 	statusBar = PallyPowerUI.CreateFrame("StatusBar", "$parentDurationBar", button)
 	PallyPowerUI.SetSize(statusBar, 62, 4)
@@ -1779,6 +1782,7 @@ function PallyPowerUI.CreateBuffBarUI()
 	statusBar:SetValue(0)
 	statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 	statusBar:SetStatusBarColor(1, 1, 1)
+	button.ppDurationBar = statusBar
 
 	button:SetScript("OnClick", function()
 	end)
