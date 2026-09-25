@@ -390,6 +390,8 @@ After generated-name/global lookup cleanup:
 - Modernizing legacy `this`/`arg1` callback style before the XML-free parity checkpoint.
 - Post-Stage-7 cleanup: audit duplicate `IsPally` / `PP_IsPally` state; `/pp test` exposes their mismatch on non-Paladins. Defer until the main naming/reference work is complete.
 - Post-Stage-7 feature-completeness cleanup: presets currently save Blessing/Aura/Seal assignments but do not persist the newer Righteous Fury or Judgement assignments. Add RF/Judgement preset persistence after the main naming/reference work.
+- Post-Stage-7 override UX cleanup: refresh the player override blessing tooltip immediately when an override changes while the pointer remains over that player button; current tooltip content updates only after leaving and re-entering.
+- Post-Stage-7 override input cleanup: investigate why player override buttons register an `OnMouseWheel` handler but mouse-wheel cycling is nonfunctional in current runtime, then either restore the intended behavior or remove/replace the dead path deliberately.
 
 ## Release / Promotion Notes
 - Current stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`.
