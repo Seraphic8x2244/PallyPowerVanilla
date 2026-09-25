@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.10-dev`
+- Version: `1.11.11-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -22,11 +22,12 @@
 - Stage 7 eighth-slice user-tested build: `915c61ac624e571e6d07cc092abefc4bd4003e7d` (`1.11.9-dev`)
 - Stage 7 ninth-slice runtime implementation: `177a980a97cffc1cad22746dfea0490f40e89ca6` (`1.11.10-dev`)
 - Stage 7 ninth-slice user-tested build: `177a980a97cffc1cad22746dfea0490f40e89ca6` (`1.11.10-dev`)
-- Branch head before this handoff update: `54de327bbe801ed3f38929836d8a597d8e7556e4`
+- Post-Stage-7 consolidated cleanup runtime implementation: `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182` (`1.11.11-dev`)
+- Branch head before this handoff update: `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
-- Current scope boundary: Stage 7 naming/reference cleanup only. Preserve runtime behaviour, appearance, compatibility globals, data/protocol formats and optional-extension semantics. Do not combine naming cleanup with callback modernization or feature changes.
+- Current scope boundary: Stage 7 is complete. One consolidated post-Stage-7 cleanup build (`1.11.11-dev`) intentionally bundles the previously deferred Paladin-state, preset, override-tooltip, mouse-wheel and NoRF visual fixes so they can be runtime-tested in a single game session. Preserve compatibility globals and existing assignment/comms formats.
 
 ## Current Design / Development Contract
 
@@ -40,6 +41,7 @@
 - `PallyPowerUI.lua` should replace addon-owned UI/layout XML one-for-one. Do not fold the converted UI directly into `PallyPower.lua`; keeping a separate Lua chunk preserves the existing logic/UI separation and reduces Lua 5.0 top-level local-pressure risk.
 - `Bindings.xml` remains intentionally. Vanilla WoW discovers it specially for normal Key Bindings UI integration; it is not part of the addon-owned UI/layout migration.
 - `PallyPowerVanilla.toc` remains the addon metadata/version source of truth.
+- Development-version communication rule: if `ADDON_VERSION` contains the `-dev` suffix, `PallyPower_SendVersion()` must not send the `VERSION ...` addon message. Dev builds still participate in all normal PallyPower assignment/state communications; only version advertisement is suppressed. Keep the version-communication code in place behind this runtime check.
 - User-facing localization remains in `locales/enUS.lua`.
 - Existing artwork hierarchy remains unchanged.
 - Optional Nampower and UnitXP paths remain capability/enable-gated enhancements; normal addon operation must retain the native/non-DLL path.
@@ -108,6 +110,8 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `3fb5aa0` - Bundle the post-Stage-7 runtime cleanups into `1.11.11-dev`: suppress VERSION advertisement on `-dev`, unify internal Paladin-state reads on `PP_IsPally` while retaining `IsPally`, restore RF/Judgement preset loading/saving, live-refresh override tooltips, enable/fix mouse-wheel cycling, and replace the visible NoRF X with red icon overlays while preserving legacy named X regions hidden.
+- `0cfdf96` - Close Stage 7 after the final compatibility-bound `getglobal()` audit; no addon runtime files changed.
 - `177a980` - Replace the eight self-buff/special-layout `getglobal()` lookups with constructor-owned direct references and bump the testable build to `1.11.10-dev`.
 - `47ad76b` - Accept the eighth Stage 7 Judgement-child runtime test and note the observed return of the duration bar; no addon runtime files changed.
 - `915c61a` - Replace the five Judgement Buff Bar child `getglobal()` lookups with constructor-owned direct child references and bump the testable build to `1.11.9-dev`.
@@ -266,6 +270,8 @@
 - Stage 7 eighth slice is compiler-checked and user-verified on `1.11.9-dev` / `915c61ac624e571e6d07cc092abefc4bd4003e7d`. Judgement tracking behaved correctly in runtime, including the assigned icon and tracker display. The user also observed that the duration bar is visibly present again on this build. Because the slice was intended as reference-only cleanup and the previous generated global should have resolved the same StatusBar, record that as an observed improvement rather than an established causal fix until compared against the prior build if needed.
 - Stage 7 ninth slice is compiler-checked and user-verified on `1.11.10-dev` / `177a980a97cffc1cad22746dfea0490f40e89ca6`. Separate and combined self-buff modes, Aura/RF/Seal icons and backdrop states, clicking, the existing NoRF indicator, and horizontal/vertical geometry all passed runtime validation.
 - Stage 7 final audit is complete: the remaining 10 `getglobal()` calls are intentional template/dynamic compatibility lookups and are not candidates for further naming cleanup. Stage 7 closes with nine user-verified runtime slices; no tenth runtime delta is needed.
+- Post-Stage-7 consolidated cleanup build `1.11.11-dev` / `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182` is implemented and compiler-checked but not yet user runtime-tested. It intentionally combines the deferred fixes into one reload/test cycle: `PP_IsPally` is the internal Paladin-state source with legacy `IsPally` synchronized; `/pp test` therefore remains visible on non-Paladins; presets explicitly persist/restore RF and Judgement with backward fallback; player override tooltips rebuild immediately after click/wheel changes; all four Lua-created controls with wheel handlers now call `EnableMouseWheel(true)` and player-wheel direction is implemented; NoRF runtime presentation uses red overlays while the named legacy X font strings remain hidden for compatibility; and `-dev` builds suppress only the `VERSION ...` advertisement message.
+- Consolidated build real Lua 5.0.2 validation passed in VanillaTemplate run `36190224173`, job `108253302916`, validation commit `f9f35d0b147dd4fd92aff1575a8efbd7bde39f12`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `ed64b58b56aea6a055b8aaecce5bceb7457d11b0`, `PallyPowerUI.lua` `682544c161244e8cc32be94ca43ce0894ebd4467`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #18 was closed and its branch reset to the VanillaTemplate baseline afterward.
 - Remaining `getglobal()` lines after the ninth slice: 10 in `PallyPower.lua`, 0 in `PallyPowerUI.lua`.
 - Ninth-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36185293881`, job `108237076001`, validation commit `1cd6f271d8dd89d969af0a226a892e520a86e7e7`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `17a4dd211faa193489846128f2dc9d0f0f123d48`, `PallyPowerUI.lua` `18aef63feaaf9564c881b31864f36dbcedf92c75`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #17 was closed and its branch reset to the VanillaTemplate baseline afterward.
 - Eighth-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36182659540`, job `108228502232`, validation commit `52d59c523bd4332914d939e3b48a9ac4d301432e`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `cc9eb05acbcd2b15cf82bd36add1810ffb74423d`, `PallyPowerUI.lua` `9594c27bc9ca9d3ac335f7456742442c86d3bce9`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #16 was closed and its branch reset to the VanillaTemplate baseline afterward.
@@ -283,7 +289,15 @@
 - Acceptance: Stage 7 ninth slice is user-verified.
 
 ### Next Runtime Test
-- None yet. Final Stage 7 lookup audit required first.
+- Version/build: `1.11.11-dev` / runtime `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182`.
+- One-session consolidated gate; no restart between items is required beyond loading this build.
+- Dev VERSION suppression: while grouped with another PallyPower client, confirm normal assignment/state comms still work. A `-dev` build must not advertise its own `VERSION ...` message as a newer release.
+- `/pp test` on a non-Paladin: enable a test profile and confirm the Buff Bar remains visible/usable instead of blinking away; disable test mode and confirm normal non-Paladin visibility returns.
+- Presets: save two presets with different RF states (including explicit NoRF/unassigned if practical) and different Judgement assignments, swap between them, and confirm both RF and Judgement restore with the preset alongside the existing Blessing/Aura/Seal data.
+- Player overrides: while keeping the pointer over a populated player override button, left-click to cycle and right-click to clear; the tooltip should update/disappear immediately without requiring mouse re-entry.
+- Mouse wheel: verify wheel cycling now works on player override buttons, assignment-grid cells, and Buff Bar controls that have wheel handlers. On player overrides, wheel down should cycle forward and wheel up backward; Buff Bar/grid behavior should follow their existing direction rules.
+- NoRF visual: explicit NoRF should show a translucent red overlay/tint over the RF icon in the assignment row, separate Buff Bar RF button, and combined self-buff RF slot. No red X should be visible; cycling away from NoRF should remove the overlay.
+- Run a normal Paladin smoke check afterward (Buff Bar, assignments and casting) to ensure the `PP_IsPally` cleanup did not alter normal Paladin behavior.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -421,11 +435,6 @@ After generated-name/global lookup cleanup:
 - Feature expansion unrelated to the migration.
 - Broader module split beyond the deliberate `PallyPowerUI.lua` separation.
 - Modernizing legacy `this`/`arg1` callback style before the XML-free parity checkpoint.
-- Post-Stage-7 cleanup: audit duplicate `IsPally` / `PP_IsPally` state; `/pp test` exposes their mismatch on non-Paladins. Defer until the main naming/reference work is complete.
-- Post-Stage-7 feature-completeness cleanup: presets currently save Blessing/Aura/Seal assignments but do not persist the newer Righteous Fury or Judgement assignments. Add RF/Judgement preset persistence after the main naming/reference work.
-- Post-Stage-7 override UX cleanup: refresh the player override blessing tooltip immediately when an override changes while the pointer remains over that player button; current tooltip content updates only after leaving and re-entering.
-- Post-Stage-7 mouse-wheel input cleanup: investigate why registered `OnMouseWheel` handlers are nonfunctional in current runtime across both player override buttons and Buff Bar controls, then restore intended cycling where supported or deliberately remove/replace the dead paths.
-- Post-Stage-7 RF visual cleanup: replace the current red `X` NoRF indicator with a red overlay/tint on the RF icon in both the assignment row and Buff Bar; preserve explicit `off` semantics while changing presentation only.
 
 ## Release / Promotion Notes
 - Current stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`.
@@ -436,4 +445,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Begin post-Stage-7 cleanup with the deferred duplicate Paladin-state audit: trace every read/write of legacy `IsPally` and newer `PP_IsPally`, document their intended ownership/lifetime, and fix the `/pp test` visibility mismatch without changing normal Paladin detection or compatibility behavior. Treat this as a new post-Stage-7 runtime slice with its own TOC version bump, Lua 5.0.2 compiler check, and focused runtime gate. Keep the other deferred items separate: RF/Judgement preset persistence, override-tooltip live refresh, broad mouse-wheel input investigation, and the NoRF red-overlay visual change.
+Runtime-test the consolidated post-Stage-7 build `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182` (`1.11.11-dev`) using the single-session checklist above. Record each sub-area separately as pass/fail against this exact build. Do not split or version-bump again unless a failing sub-area requires a corrective runtime delta. If the consolidated gate passes, the next step is release-readiness review/promotion planning from the fully tested development baseline.
