@@ -2731,7 +2731,7 @@ function PallyPowerPlayerButton_OnMouseWheel(btn, arg1)
     if btn then
         local _, _, class, pnum = strfind(btn:GetName(), "PallyPowerFrameClassGroup(.+)PlayerButton(.+)")
         class = tonumber(class) - 1 --class 0 == button 1
-        local pname = getglobal(btn:GetName() .. "Text"):GetText()
+        local pname = btn.ppText:GetText()
         PallyPower_PerformPlayerCycle(arg1, pname, class)
     end
 end
@@ -2763,7 +2763,7 @@ function PallyPowerPlayerButton_OnClick(plbtn, mouseBtn)
     if plbtn then
         local _, _, class, pnum = strfind(plbtn:GetName(), "PallyPowerFrameClassGroup(.+)PlayerButton(.+)")
         class = tonumber(class) - 1 --class 0 == button 1
-        local pname = getglobal(plbtn:GetName() .. "Text"):GetText()
+        local pname = plbtn.ppText:GetText()
         if mouseBtn == "RightButton" then
             if PallyPower_NormalAssignments[UnitName("player")] and 
                PallyPower_NormalAssignments[UnitName("player")][class] and 
@@ -2842,7 +2842,7 @@ function PallyPowerPlayerButton_OnEnter(plbtn)
     if not class then return end
     
     local classIndex = tonumber(class) - 1 -- class 0 == button 1
-    local playerName = getglobal(btnName .. "Text"):GetText()
+    local playerName = plbtn.ppText:GetText()
     if not playerName then return end
     
     -- Get the current player's blessing assignments
