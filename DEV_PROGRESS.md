@@ -5,8 +5,8 @@
 - Version: `1.11.2-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
-- Current Stage 7 test build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
-- Branch head before this handoff update: `8ec82172c986e1e2f6725f45ac5dc3123feed46b`
+- Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
+- Branch head before this handoff update: `1cbbd4f69b4870a1eba06f48a8cb6856c4465781`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -92,6 +92,7 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `1cbbd4f` - Sync the canonical development rulebook, including the canonical Lua 5.0.2 compiler-check requirement; no addon runtime files changed.
 - `8ec8217` - Fix and clarify the new addon build-versioning rule in `dev_rulebook.md`; each new testable build must increment the numeric TOC version.
 - `03f988f` - Bump the Stage 7 testable build to `1.11.2-dev`; runtime Lua is unchanged from `ceec82c`.
 - `ceec82c` - Remove the last player-row name parsing from the first Stage 7 indexed-reference slice.
@@ -130,6 +131,7 @@
 - Stable `main` `1.11.0` was promoted after user approval of the tested development state.
 - Stage 6 XML-free parity is user-accepted on exact runtime implementation `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` (`1.11.1-dev`). During a full AQ40 raid the user reported that PallyPower behaved exactly as before and no differences or regressions were noticed throughout the run. This is the required broad real-raid parity acceptance; it does not claim that every optional DLL/client combination was separately exercised.
 - Post-Stage-6 Advanced Options Scan1/Scan2 border correction `1188304105d38fd4172acc9c43b8f6f47ea6c30f` is user-verified fixed in game. The previously stretched scan EditBox borders now render correctly.
+- Stage 7 first-slice build `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`) is user-verified in live group/raid use. The user reports PallyPower is working as expected; the Assignment UI and Buff Bar are visibly populated, and live blessing-state tracking correctly detected a tank warrior removing Salvation.
 
 ## Implemented / Awaiting Runtime Test
 - Stage 1 remains the frozen parity/scaffold baseline at `f6ee37e4ed644dd1841d84918595530f5a2c36d6`; `docs/XML_UI_PARITY_MANIFEST.md` remains unchanged and authoritative for the migration.
@@ -150,7 +152,6 @@
 - `Bindings.xml` remains intentionally separate and unchanged.
 - Stage 7 first slice is implemented: `PallyPowerUIRefs` owns deterministic references for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons; legacy named globals are still created unchanged as compatibility aliases.
 - Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` subsequently passed focused startup testing and a full AQ40 raid parity run; Stage 6 is now user-accepted.
-- Stage 7 first-slice test build `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`) is implemented and compiler-checked but has not yet been tested in game.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
@@ -205,24 +206,21 @@
 ## Current Issues
 - No Stage 6 parity regression is known; Stage 6 remains accepted on `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`.
 - The Advanced Options Scan1/Scan2 border correction remains user-verified fixed on `1188304105d38fd4172acc9c43b8f6f47ea6c30f`.
-- Stage 7 first slice is compiler-checked but runtime-untested. Do not continue to another naming/reference slice until test build `03f988f66b912381585a5b487ed16ad7a68b14da` is user-verified.
+- Stage 7 first slice is user-verified on `1.11.2-dev` / `03f988f66b912381585a5b487ed16ad7a68b14da`; no regression is currently known in the migrated indexed-reference families.
+- The next Stage 7 slice has not started. Remaining unrelated/global-name lookups must be audited before choosing another coherent family.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
 
 ### Last Runtime Test
-- Version/commit: `1.11.1-dev` / runtime implementation `1188304105d38fd4172acc9c43b8f6f47ea6c30f`.
-- Focus: Advanced Options Scan1/Scan2 post-parity border correction.
-- Result: user confirms the Advanced Options issue is fixed in game.
-- Acceptance: the deferred scan EditBox visual defect is closed.
+- Version/build: `1.11.2-dev` / runtime build `03f988f66b912381585a5b487ed16ad7a68b14da`; later branch changes through `1cbbd4f69b4870a1eba06f48a8cb6856c4465781` are documentation/rulebook-only and do not change the runtime payload.
+- Environment/use: live group/raid use with the Assignment UI and Buff Bar active.
+- Result: user reports the addon is working as expected. The Assignment UI and Buff Bar are populated normally, and PallyPower correctly noticed when a tank warrior removed Salvation, demonstrating live blessing-state tracking through the refactored UI path.
+- Acceptance: Stage 7 first slice is user-verified. This does not separately claim every optional client-extension combination was exercised.
 
 ### Next Runtime Test
-- Version/build: `1.11.2-dev` / `03f988f66b912381585a5b487ed16ad7a68b14da`; Stage 7 Lua implementation is `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`.
-- Confirm clean login/load and `/reload` with no Lua/UI errors.
-- Assignment UI: verify Paladin rows populate names, group IDs, capability/utility icons and blessing/aura/seal/RF/Judgement assignments normally; hover capability/assignment tooltips and exercise normal assignment clicks. Check the per-class individual player override rows populate names/icons/colours and remain interactive.
-- Buff Bar: verify blessing buttons populate class/blessing icons, counts and both timer texts normally; switch vertical/horizontal layout; exercise normal blessing-button clicks/hotkeys and confirm hidden/unused buttons stay hidden.
-- Compatibility focus: named/global UI behavior should look identical to the accepted pre-Stage-7 build. A full AQ40 repeat is not required if these changed indexed paths receive representative group/raid coverage.
-- Stop on any difference and report the exact path; do not continue Stage 7 until this build is accepted.
+- None yet: no second Stage 7 runtime delta has been implemented.
+- After the next narrow naming/reference slice, define a focused test only for the families changed by that slice plus clean startup/reload.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -329,13 +327,13 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SLICE IMPLEMENTED / AWAITING RUNTIME TEST
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST SLICE USER-VERIFIED
 - First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
 - Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
 - All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
 - Keep compatibility globals/aliases wherever external use is possible or uncertain.
 - Do not combine this stage with behaviour, data-model or protocol changes.
-- Runtime-test again before treating this cleaner internal architecture as stable.
+- First-slice runtime acceptance is complete on `1.11.2-dev`. Audit the remaining lookup families before choosing the next slice, and runtime-test each subsequent slice before treating it as stable.
 
 ## Deferred / Out of Scope
 - Artwork flattening or renaming.
@@ -356,4 +354,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test exact Stage 7 build `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`) using the Stage 7 checklist above. The changed scope is player-row/class-column/class-player-button/Buff-Bar indexed references only; verify those paths plus clean startup/reload. If the build passes, record it as the Stage 7 first-slice tested baseline before auditing or implementing any further naming/getglobal cleanup. Do not start the next Stage 7 slice before this runtime acceptance.
+Start the next Stage 7 slice only after a fresh audit of the remaining lookup sites: the first slice left 34 `getglobal()` call sites in `PallyPower.lua` and 7 in `PallyPowerUI.lua`, with the player-row/class-column/Buff-Bar indexed families already removed from internal lookup use. Group the remaining sites by actual access pattern, choose the smallest coherent repeated family, preserve all uncertain compatibility globals, and do not combine the slice with callback modernization or behavior/data/protocol changes. Before handing the next runtime state to the user, bump the TOC numeric version to the next development build (normally `1.11.3-dev`) and run the canonical real Lua 5.0.2 compiler check. Because this chat is already tool-heavy, resume that implementation in a fresh chat from this handoff rather than extending the current session.
