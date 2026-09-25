@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.4-dev`
+- Version: `1.11.5-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -10,7 +10,8 @@
 - Stage 7 second-slice user-tested build: `4a31fcb795b5e01d23d8cfe55ba42d1596709014` (`1.11.3-dev`)
 - Stage 7 third-slice runtime implementation: `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`)
 - Stage 7 third-slice user-tested build: `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`)
-- Branch head before this handoff update: `6fc87b0cdff93cd86f8e6b1000ad9807ffba93ee`
+- Stage 7 fourth-slice runtime implementation: `d3dd69006e619ff8d26318ec0b970b440ab784dc` (`1.11.5-dev`)
+- Branch head before this handoff update: `d3dd69006e619ff8d26318ec0b970b440ab784dc`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -96,6 +97,7 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `d3dd690` - Replace the three Save Preset dialog `OkayButton` `getglobal()` lookups with one constructor-owned direct reference, preserve global `PallyPowerSaveMenuOkayButton`, and bump the testable build to `1.11.5-dev`.
 - `4b81793` - Replace the two constructor-time dialog HeaderTexture `getglobal()` lookups with direct local texture references while preserving the generated named textures.
 - `ce404cd` - Bump the Stage 7 testable build to `1.11.4-dev` before the third-slice runtime change.
 - `88c4812` - Accept the Stage 7 second-slice Buff Bar root-reference runtime test and document the pre-existing test-mode visibility mismatch.
@@ -164,6 +166,7 @@
 - Stage 7 first slice is implemented: `PallyPowerUIRefs` owns deterministic references for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons; legacy named globals are still created unchanged as compatibility aliases.
 - Stage 7 second slice is implemented at `4a31fcb795b5e01d23d8cfe55ba42d1596709014`: `PallyPowerUIRefs.buffBar` now owns the Buff Bar root reference, and the three fixed root show/hide lookups use that direct reference. The constructor still creates global `PallyPowerBuffBar` unchanged for compatibility.
 - Stage 7 third slice is implemented at `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`): `CreateWarningDialog()` and `CreateSavePresetDialog()` retain their generated `$parentHeaderTexture` named globals, but each title now anchors directly to the texture object just created instead of resolving that object back through `getglobal()`.
+- Stage 7 fourth slice is implemented at `d3dd69006e619ff8d26318ec0b970b440ab784dc` (`1.11.5-dev`): `CreateSavePresetDialog()` retains the named global `PallyPowerSaveMenuOkayButton`, captures that freshly created button in local `okayButton`, and its existing `OnTextChanged` callback now uses the direct reference for the blank/new-name/existing-name enable-state branches. Legacy `this` callback semantics and save/overwrite behavior are unchanged.
 - Stages 2 through 5 were not tested independently in game. Stage 6 startup has now produced three useful runtime results: the original XML-free baseline failed before initialization, the `772472b` Buff Bar `this` fix still failed startup, and diagnostic runtime `52f6d2d` localized the remaining failure to the save-dialog `SetHistoryLines(0)` replay. Corrective runtime `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047` subsequently passed focused startup testing and a full AQ40 raid parity run; Stage 6 is now user-accepted.
 - Not every optional client-extension / legacy-client combination has an individually documented runtime result.
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
@@ -221,6 +224,9 @@
 - Fresh third-slice audit started from 31 `getglobal()` lines in `PallyPower.lua` and 7 in `PallyPowerUI.lua`. The smallest coherent repeated family was the two constructor-time `$parentHeaderTexture` lookups shared by the warning and save-preset dialogs; both are immediately available as the just-created texture object and require no compatibility-global removal.
 - Third-slice runtime `4b817936e403bc455663a7c89909ccbd7e3615a8` removes only those two UI lookup lines and leaves 31 `getglobal()` lines in `PallyPower.lua` and 5 in `PallyPowerUI.lua`. Generated globals `PallyPowerWarningFrameHeaderTexture` and `PallyPowerSaveMenuHeaderTexture` remain created unchanged.
 - Canonical real Lua 5.0.2 compiler validation passed for exact third-slice runtime `4b817936e403bc455663a7c89909ccbd7e3615a8` in VanillaTemplate run `36155647148`, job `108139408037`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `7ebf68682308051ae3d352be684470bf4b8b8c93`, `PallyPowerUI.lua` `0c13474f87cfd7025e19d5d71daec4c67b3dac1d`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR `#11` was closed and `validate-pallypower-stage7-dialog-headers` was reset to VanillaTemplate baseline `b37a6c56c15a58d8001771b3e4947643e74753c1`.
+- Fourth-slice audit at handoff `e5e3929f67b95f44fad0233bdde15e3691baabf0` grouped the remaining 31 `getglobal()` lines in `PallyPower.lua` into tooltip/template-generated regions (8 lines), Judgement Buff Bar children (5), class-group player-name text children (3), generated self-buff/special children and layout (8), fixed special-button identity comparisons (5), and dynamic warning-localization lookup (2). The 5 `PallyPowerUI.lua` lines split into two constructor icon anchors and three repeated Save Preset `OkayButton` accesses.
+- The smallest coherent repeated family was the three Save Preset `OkayButton` accesses. Runtime `d3dd69006e619ff8d26318ec0b970b440ab784dc` replaces only those three lookups with local `okayButton`, preserves named global `PallyPowerSaveMenuOkayButton`, and leaves 31 `getglobal()` lines in `PallyPower.lua` and 2 in `PallyPowerUI.lua`.
+- Canonical real Lua 5.0.2 compiler validation passed for exact fourth-slice runtime `d3dd69006e619ff8d26318ec0b970b440ab784dc` (`1.11.5-dev`) in VanillaTemplate run `36161957113`, job `108160419066`, with `Lua 5.0.2 syntax check passed: 3 file(s).` Exact checked blobs were `PallyPower.lua` `7ebf68682308051ae3d352be684470bf4b8b8c93`, `PallyPowerUI.lua` `a192458cabb41719f5feb0b122732bf08b2d304a`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR `#12` was closed and `validate-pallypower-stage7-save-okay` was reset to VanillaTemplate baseline `b37a6c56c15a58d8001771b3e4947643e74753c1`.
 
 ## Current Issues
 - No Stage 6 parity regression is known; Stage 6 remains accepted on `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`.
@@ -228,6 +234,7 @@
 - Stage 7 first slice is user-verified on `1.11.2-dev` / `03f988f66b912381585a5b487ed16ad7a68b14da`; no regression is currently known in the migrated indexed-reference families.
 - Stage 7 second slice is user-verified on `1.11.3-dev` / `4a31fcb795b5e01d23d8cfe55ba42d1596709014`; no regression is known in the Buff Bar root-reference change. The proposed non-Paladin `/pp test prot` persistence check was invalid because test mode sets `PP_IsPally = true` while `PallyPower_UpdateUI()` still gates Buff Bar visibility on legacy `IsPally == 1`, so a non-Paladin test profile is immediately hidden by the pre-existing update path. Do not fold that legacy flag mismatch into Stage 7 naming cleanup.
 - Stage 7 third slice is compiler-checked and user-verified on `1.11.4-dev` / `4b817936e403bc455663a7c89909ccbd7e3615a8`; no regression is known in the two dialog-header anchor changes.
+- Stage 7 fourth slice is compiler-checked on `1.11.5-dev` / `d3dd69006e619ff8d26318ec0b970b440ab784dc` but is not yet user runtime-tested. Do not begin a fifth naming/reference slice until the Save Preset `OkayButton` state path is accepted.
 - Optional compatibility-path coverage is not exhaustively documented per client/extension combination.
 
 ## Testing
@@ -239,7 +246,12 @@
 - Acceptance: Stage 7 third slice is user-verified.
 
 ### Next Runtime Test
-- None yet. Define a focused test only after the next narrow Stage 7 lookup family is implemented.
+- Version/build: `1.11.5-dev` / runtime `d3dd69006e619ff8d26318ec0b970b440ab784dc`.
+- Confirm clean login/load and `/reload` with no Lua/UI errors.
+- Open the minimap preset menu and choose Save New so `PallyPowerSaveMenu` appears.
+- With the name field blank, verify the OK button is disabled and the required-name help text is shown.
+- Enter a new non-empty name; verify OK enables and the help text hides. Enter an existing preset name; verify OK stays enabled and the overwrite help text appears.
+- Verify Save/overwrite and Cancel behavior remain unchanged. Compatibility expectation: named global `PallyPowerSaveMenuOkayButton` still exists unchanged.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -346,7 +358,7 @@ After generated-name/global lookup cleanup:
 - Canonical real Lua 5.0.2 compiler validation passed for the exact XML-free runtime payload in run `36020971505`.
 - The first XML-free runtime test and the `772472b` corrective retest both failed before normal startup completed. Diagnostic runtime `52f6d2d` then exposed the save-dialog `SetHistoryLines(0)` failure. Corrective runtime `69ebb9d` removes that invalid Lua replay, removes diagnostic scaffolding, passes the real Lua 5.0.2 compiler check, passes the focused startup retest with visible UI and working `/pp`, and passed the subsequent full AQ40 parity run with no behavioral differences noticed. Stage 6 is user-accepted.
 
-### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST THREE SLICES USER-VERIFIED
+### Stage 7 - Post-Validation Naming / Reference Refactor — FIRST THREE SLICES USER-VERIFIED / FOURTH SLICE AWAITING RUNTIME TEST
 - First slice owns deterministic references through global compatibility table `PallyPowerUIRefs` for player rows, class icons/groups, class-group player buttons and Buff Bar blessing buttons.
 - Core indexed access for those families now uses direct Lua references; assignment-cell row/class identity is attached directly instead of parsed back out of generated frame names.
 - All legacy global frame/region names continue to be created unchanged. This slice intentionally leaves unrelated tooltip globals, special-control globals and arbitrary name-derived lookups alone.
@@ -357,6 +369,7 @@ After generated-name/global lookup cleanup:
 - The second slice is compiler-checked and user-verified on `1.11.3-dev`. The non-Paladin test-profile blink is explained by the pre-existing `PP_IsPally` versus `IsPally` visibility split and is not part of this naming/reference slice.
 - Third slice owns only the two constructor-time dialog header anchors: the warning and save-preset titles now anchor directly to their freshly created header texture objects, while the generated named texture globals remain intact.
 - The third slice is compiler-checked and user-verified on `1.11.4-dev`. The preset UI paths tested normally, so Stage 7 may continue with a fresh audit of the remaining lookup families.
+- Fourth slice owns only the three Save Preset `OkayButton` state lookups inside the existing name-field `OnTextChanged` callback. The constructor now keeps a direct local reference while global `PallyPowerSaveMenuOkayButton` remains intact; callback style and behavior are unchanged. The slice is compiler-checked on `1.11.5-dev` and awaits focused runtime validation.
 
 ## Deferred / Out of Scope
 - Artwork flattening or renaming.
@@ -379,4 +392,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Audit the remaining 31 `getglobal()` lines in `PallyPower.lua` and 5 in `PallyPowerUI.lua`, group them by actual access pattern, and choose the smallest coherent repeated family for the fourth Stage 7 slice. Preserve all uncertain compatibility globals. Keep the deferred `IsPally` / `PP_IsPally` cleanup and RF/Judgement preset persistence out of this stage. Before handing off the next testable runtime state, bump the TOC numeric version and run the canonical real Lua 5.0.2 compiler check.
+Runtime-test exact Stage 7 fourth-slice build `d3dd69006e619ff8d26318ec0b970b440ab784dc` (`1.11.5-dev`). Confirm clean startup/reload, then open Save New and verify the OK button is disabled for blank input, enabled for a new non-empty name, remains enabled with the overwrite warning for an existing preset name, and Save/Cancel behavior is unchanged. Generated compatibility global `PallyPowerSaveMenuOkayButton` must remain available. If this passes, record the fourth slice as user-verified before auditing or implementing a fifth Stage 7 lookup family. Do not combine acceptance with callback modernization or the deferred `IsPally` / `PP_IsPally` or RF/Judgement preset work.
