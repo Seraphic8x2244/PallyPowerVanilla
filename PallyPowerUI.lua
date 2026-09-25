@@ -1084,9 +1084,10 @@ function PallyPowerUI.CreateWarningDialog()
 	region = PallyPowerUI.CreateTexture(frame, "$parentHeaderTexture", "ARTWORK", "Interface\\DialogFrame\\UI-DialogBox-Header")
 	PallyPowerUI.SetSize(region, 256, 64)
 	PallyPowerUI.SetPoint(region, "TOP", frame, "TOP", 0, 12)
+	local headerTexture = region
 
 	region = PallyPowerUI.CreateFontString(frame, "$parentTitle", "ARTWORK", "GameFontNormal")
-	PallyPowerUI.SetPoint(region, "TOP", getglobal(frame:GetName() .. "HeaderTexture"), "TOP", 0, -14)
+	PallyPowerUI.SetPoint(region, "TOP", headerTexture, "TOP", 0, -14)
 	region:SetText(PALLYPOWER_TEXT_WARNING)
 
 	region = PallyPowerUI.CreateFontString(frame, "$parentText", "ARTWORK", "GameFontNormal")
@@ -1151,9 +1152,10 @@ function PallyPowerUI.CreateSavePresetDialog()
 	region = PallyPowerUI.CreateTexture(frame, "$parentHeaderTexture", "ARTWORK", "Interface\\DialogFrame\\UI-DialogBox-Header")
 	PallyPowerUI.SetSize(region, 256, 64)
 	PallyPowerUI.SetPoint(region, "TOP", frame, "TOP", 0, 12)
+	local headerTexture = region
 
 	region = PallyPowerUI.CreateFontString(frame, "$parentTitle", "ARTWORK", "GameFontNormal")
-	PallyPowerUI.SetPoint(region, "TOP", getglobal(frame:GetName() .. "HeaderTexture"), "TOP", 0, -14)
+	PallyPowerUI.SetPoint(region, "TOP", headerTexture, "TOP", 0, -14)
 	region:SetText(PALLYPOWER_TEXT_SAVENEW)
 
 	region = PallyPowerUI.CreateFontString(frame, "$parentEditing", "ARTWORK", "GameFontNormal")
