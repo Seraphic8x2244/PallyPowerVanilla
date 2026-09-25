@@ -1065,6 +1065,7 @@ function PallyPowerUI.CreateWarningDialog()
 	local frame = CreateFrame("Frame", "PallyPowerWarningFrame", UIParent)
 	local region
 	local button
+	local okayButton
 
 	frame:SetWidth(350)
 	frame:SetHeight(135)
@@ -1198,15 +1199,15 @@ function PallyPowerUI.CreateSavePresetDialog()
 	end)
 	editBox:SetScript("OnTextChanged", function()
 		if this:GetText() == "" then
-			getglobal(this:GetParent():GetName() .. "OkayButton"):Disable()
+			okayButton:Disable()
 			PallyPowerSaveMenuHelp:SetText(PALLYPOWER_TEXT_MUSTENTER)
 			PallyPowerSaveMenuHelp:Show()
 		elseif PallyPower_SetExists(this:GetText()) then
-			getglobal(this:GetParent():GetName() .. "OkayButton"):Enable()
+			okayButton:Enable()
 			PallyPowerSaveMenuHelp:SetText(PALLYPOWER_TEXT_OVERWRITE)
 			PallyPowerSaveMenuHelp:Show()
 		else
-			getglobal(this:GetParent():GetName() .. "OkayButton"):Enable()
+			okayButton:Enable()
 			PallyPowerSaveMenuHelp:Hide()
 		end
 	end)
@@ -1215,6 +1216,7 @@ function PallyPowerUI.CreateSavePresetDialog()
 	end)
 
 	button = CreateFrame("Button", "PallyPowerSaveMenuOkayButton", frame, "GameMenuButtonTemplate")
+	okayButton = button
 	button:SetWidth(70)
 	button:SetHeight(21)
 	button:SetPoint("BOTTOM", frame, "BOTTOM", -42, 20)
