@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.13-dev`
+- Version: `1.11.14-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -25,7 +25,8 @@
 - Post-Stage-7 consolidated cleanup runtime implementation: `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182` (`1.11.11-dev`)
 - NoRF overlay corrective runtime implementation: `2e6a8e5bd3a78c9960146ed35bc31900a58f744a` (`1.11.12-dev`)
 - NoRF direct-icon-tint corrective runtime implementation: `833881ebdcefe7f59e7b8b7d9d18157ea7356172` (`1.11.13-dev`)
-- Branch head before this handoff update: `833881ebdcefe7f59e7b8b7d9d18157ea7356172`
+- RF/Judgement grid-wheel routing corrective runtime implementation: `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`)
+- Branch head before this handoff update: `d0a44be85627a05d3c4e621fc490b44f951d88da`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -112,6 +113,7 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `d0a44be` - Fix grid mouse-wheel routing for RF/Judgement by mapping `R`/`J` tokens before numeric coercion; bump to `1.11.14-dev`.
 - `833881e` - Remove the separate visible NoRF overlay region and tint the existing RF icon directly for NoRF; restore normal icon tint when cycling away and bump to `1.11.13-dev`.
 - `2e6a8e5` - Fix the invisible NoRF overlay by using a true solid red texture with alpha instead of tinting `UI-Tooltip-Background`; preserve the hidden legacy named X regions and bump to `1.11.12-dev`.
 - `145b0ec` - Sync the updated development rulebook; current canonical compiler validation is Lua 5.0.3. No addon runtime files changed.
@@ -279,6 +281,9 @@
 - Post-Stage-7 consolidated cleanup runtime results on exact `1.11.11-dev` / `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182`: RF/Judgement preset restore passed; player override tooltip now updates immediately and player-button mouse-wheel works; mouse-wheel cycling works everywhere tested; normal Paladin operation appears good. The NoRF state logic still cycled correctly, but the new translucent red overlay was not visible. Non-Paladin `/pp test` remains untested. Dev VERSION advertisement suppression remains statically verified but has not received a separate peer-client runtime observation.
 - Runtime result on exact `1.11.12-dev` / `2e6a8e5bd3a78c9960146ed35bc31900a58f744a`: the solid red NoRF overlay became visibly effective, but mouse-wheel cycling then stopped working. The user correctly identified that this build placed a separate visible region over the existing RF icon rather than tinting the icon itself. This is treated as the regression boundary even though Vanilla texture regions would normally be expected not to consume mouse input.
 - `1.11.13-dev` / `833881ebdcefe7f59e7b8b7d9d18157ea7356172` removes the separate runtime overlay regions and instead applies `SetVertexColor(1, 0.2, 0.2)` directly to the existing RF icon for explicit NoRF, restoring `SetVertexColor(1, 1, 1)` when cycling away. The legacy named NoRF X font strings remain created and hidden. All existing `EnableMouseWheel(true)` calls and wheel handlers remain unchanged from the known-good `1.11.11-dev` path.
+- Runtime result on exact `1.11.13-dev`: direct RF icon tint works. Mouse-wheeling the RF grid cell reaches the handler but errors at former line 6334 (`class = class + 0`) because `btn.ppClass` is string token `R`; the grid wheel handler only translated `A`/`S`, unlike the click handler which already translated `A`/`S`/`R`/`J`. This is a latent wheel-routing bug exposed now that input reaches the RF cell.
+- `1.11.14-dev` / `d0a44be85627a05d3c4e621fc490b44f951d88da` adds the missing `R -> PALLYPOWER_RF_CLASS` and `J -> PALLYPOWER_JUDGEMENT_CLASS` mappings before numeric coercion. Forward/backward cycle functions already handle both special classes, so no other routing behavior changed.
+- Grid-wheel routing real Lua 5.0.3 validation passed in VanillaTemplate run `36234922168`, job `108384839215`, validation commit `8a86d588b8662c97ba4f1f2a3dfcd87866e2adb2`: self-test passed and `Lua 5.0.3 syntax check passed: 3 file(s).` Temporary validation PR #21 was closed and reset to the current VanillaTemplate baseline afterward.
 - Direct-icon-tint real Lua 5.0.3 validation passed in VanillaTemplate run `36233568448`, job `108381141981`, validation commit `237a13d5f39237a2dde6442130900064e50f90ca`: self-test passed and `Lua 5.0.3 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `db3b4717128e61b005bb683b04bb19a481e792ec`, `PallyPowerUI.lua` `4f6052e8b9c0ee8bbb2a1af553ad0834b9367205`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #20 was closed and its branch reset to the current VanillaTemplate baseline afterward.
 - NoRF corrective real Lua 5.0.3 validation passed in VanillaTemplate run `36230916118`, job `108373778622`, validation commit `d158f9614e88119983e161c70893971bb20d40c3`: self-test passed and `Lua 5.0.3 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `ed64b58b56aea6a055b8aaecce5bceb7457d11b0`, `PallyPowerUI.lua` `a534bb816a36859ee3c422af3b0b888c163d24ef`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #19 was closed and its branch reset to the current VanillaTemplate baseline afterward.
 - Consolidated build real Lua 5.0.2 validation passed in VanillaTemplate run `36190224173`, job `108253302916`, validation commit `f9f35d0b147dd4fd92aff1575a8efbd7bde39f12`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `ed64b58b56aea6a055b8aaecce5bceb7457d11b0`, `PallyPowerUI.lua` `682544c161244e8cc32be94ca43ce0894ebd4467`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #18 was closed and its branch reset to the VanillaTemplate baseline afterward.
@@ -293,15 +298,15 @@
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.12-dev` / runtime build `2e6a8e5bd3a78c9960146ed35bc31900a58f744a`.
-- Result: NoRF red colourisation became visible, but mouse-wheel cycling broke. Underlying RF/NoRF state logic remained functional.
-- Regression boundary: `1.11.11-dev` had working mouse-wheel but invisible overlay; `1.11.12-dev` made the separate overlay visible and mouse-wheel stopped. The separate visible overlay region is therefore removed in `1.11.13-dev` rather than attempting to work around it.
+- Version/build: `1.11.13-dev` / runtime build `833881ebdcefe7f59e7b8b7d9d18157ea7356172`.
+- Result: direct NoRF tint works. Mouse-wheeling the RF grid cell throws a string-arithmetic error because the wheel handler does not translate `R`/`J` class tokens before numeric conversion.
+- Correction: `1.11.14-dev` maps `R` and `J` exactly like the existing click handler; this delta is compiler-checked and awaits focused runtime retest.
 
 ### Next Runtime Test
-1. On `1.11.13-dev` / `833881ebdcefe7f59e7b8b7d9d18157ea7356172`, cycle RF to explicit NoRF and confirm the existing RF icon itself turns visibly red; cycle away and confirm the icon returns to normal colour.
-2. In the same session, verify mouse-wheel cycling works again on RF and at least one other previously verified wheel surface. This directly tests the `1.11.12-dev` regression boundary.
-3. When next convenient on a non-Paladin, run `/pp test prot` (or another profile), confirm the Buff Bar remains visible/usable, then `/pp test off` and confirm normal non-Paladin hiding returns.
-4. Peer VERSION suppression is still runtime-unobserved: a `-dev` build should continue normal PallyPower comms but must not send its own `VERSION ...` advertisement.
+1. On `1.11.14-dev` / `d0a44be85627a05d3c4e621fc490b44f951d88da`, mouse-wheel the RF assignment-grid cell in both directions. Confirm it cycles RF states with no Lua error and the direct red tint still appears for explicit NoRF.
+2. Mouse-wheel the Judgement assignment-grid cell once to confirm the same newly added `J` routing works without error.
+3. Spot-check one normal numeric class cell to ensure its existing wheel path still works.
+4. Non-Paladin `/pp test` and peer VERSION suppression remain independent outstanding checks.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -449,4 +454,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test exact build `833881ebdcefe7f59e7b8b7d9d18157ea7356172` (`1.11.13-dev`) for the direct RF-icon tint and mouse-wheel restoration using items 1-2 above. Do not retest the already-passed preset/tooltip/normal-Paladin paths unless a regression is observed. Non-Paladin `/pp test` and peer VERSION suppression remain independent outstanding checks. If the tint is visible and wheel input is restored, accept this corrective delta and proceed toward release-readiness review.
+Runtime-test exact build `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`) using items 1-3 above. The key gate is that RF and Judgement grid mouse-wheel routing no longer errors and RF direct tint remains correct. Do not repeat the already-passed preset/tooltip/normal-Paladin paths unless a regression appears. Non-Paladin `/pp test` and peer VERSION suppression remain independent outstanding checks.
