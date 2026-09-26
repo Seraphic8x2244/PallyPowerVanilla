@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.18-dev`
+- Version: `1.11.19-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -31,11 +31,12 @@
 - Assignment Window first corrective runtime implementation: `76a50880420ca6378d23e005bd6aedd40d5a8086` (`1.11.16-dev`)
 - Assignment Window corrective runtime implementation: `cd22c47987fb3c40b186bc54b221771dfd3af671` (`1.11.17-dev`)
 - Assignment Window current refinement runtime implementation: `a80f4a61e556e3a704003be9765b63ece8235062` (`1.11.18-dev`)
-- Branch head before this handoff update: `a80f4a61e556e3a704003be9765b63ece8235062`
+- Assignment Window flyout/native-icon/assets runtime implementation: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` (`1.11.19-dev`)
+- Branch head before this handoff update: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Complete the Assignment Window presentation redesign, including the newly agreed class-override flyout/native-icon cleanup, then finish its focused runtime gate before release-readiness.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window runtime `1.11.18-dev` / `a80f4a6` is the current implementation under test; the latest screenshot confirms the grey empty-column guides are visually successful, but the full focused `1.11.18-dev` gate has not yet been reported and must not be marked accepted. The next implementation pass is now deliberately broadened to the user-finalized override-flyout/native-icon presentation decisions and the rulebook-required asset-directory migration. Assignment semantics, comms/data formats and icon sizes remain unchanged.
+- Goal: Runtime-validate the completed Assignment Window flyout/native-icon/grey-fade/assets pass before any release-readiness cleanup.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Runtime `1.11.19-dev` / `7baa74e6` implements the finalized class-override flyout, client-native spell icons, thin black icon framing, exact empty-column grey fade, and rulebook `assets/` migration. Static review is complete, but this runtime is **not yet user-accepted**. Do not begin release-readiness cleanup until its focused runtime gate passes. Assignment semantics, comms/data formats and icon sizes remain unchanged.
 
 ## Current Design / Development Contract
 
@@ -51,7 +52,7 @@
 - `PallyPowerVanilla.toc` remains the addon metadata/version source of truth.
 - Development-version communication rule: if `ADDON_VERSION` contains the `-dev` suffix, `PallyPower_SendVersion()` must not send the `VERSION ...` addon message. Dev builds still participate in all normal PallyPower assignment/state communications; only version advertisement is suppressed. Keep the version-communication code in place behind this runtime check.
 - User-facing localization remains in `locales/enUS.lua`.
-- Asset layout now follows the current rulebook: all addon-owned artwork, sounds and other static files must live under `assets/` (flattened unless there is a concrete reason for subdirectories). The next runtime implementation pass should migrate retained PallyPower artwork/sounds into `assets/`, update every runtime path, and delete obsolete bundled icon assets in the same coherent revision.
+- Asset layout follows the current rulebook: all retained addon-owned artwork/sounds now live in flat `assets/`. Runtime `1.11.19-dev` removed the old `artwork/` and `Sounds/` trees, removed bundled spell/HD icon copies, and uses client `Interface\\Icons\\...` textures for spell/blessing/aura/seal presentation.
 - Assignment Window redesign contract (user-finalized before implementation):
   - Layout/presentation only: keep existing assignment logic, column order, icon sizes, window backdrop, outer border, title/chrome, bottom Smart Buffs / Free Assignment area and surrounding background unchanged.
   - Remove all current grey grid/separator lines. Do not replace them with neutral separators.
@@ -145,6 +146,7 @@
 - Rulebook asset placement is active project scope: retained addon-owned artwork and sounds must move under `assets/`, and obsolete bundled textures should be deleted during that migration.
 
 ## Recent Relevant Commits
+- `7baa74e` - Implement the finalized Assignment Window flyout/native-icon/grey-fade pass and rulebook asset migration; remove the HD-icon option/runtime switching and bundled spell/HD icon copies, move 26 retained presentation/sound files to flat `assets/`, add exact 32x32 class-header hitboxes with class-colour hover glow/tooltip, move individual overrides into one-at-a-time above-header flyouts, add black icon framing, and change empty-column guides to solid grey through the top edge plus a 32 px fade to zero; bump to `1.11.19-dev`.
 - `a80f4a6` - Refine the runtime-tested Assignment Window: set tuned new-character spacing defaults to 6/24, centre each override icon+name pair as a left-oriented visual group, stop hiding active override buttons every frame so registered left-click MouseDown/MouseUp can complete, and add subdued grey guides only for wholly unassigned columns with visible Paladins; bump to `1.11.18-dev`.
 - `cd22c47` - Restore the retained 82 px legacy separator-layout compatibility constant after static review caught three hidden separator construction anchors still reading it; bump the corrected test build to `1.11.17-dev`.
 - `76a5088` - Apply the first Assignment Window runtime corrections: hide inactive class-player override buttons so alpha-zero controls cannot intercept off-frame input, tighten the Symbol-of-Kings count presentation, add live 0-50 px Self-Buff/Class Spacing controls, and reflow headers/rows/linkers/player hitboxes from those values; initial corrective build `1.11.16-dev`.
@@ -334,40 +336,41 @@
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.17-dev` / runtime payload `cd22c47987fb3c40b186bc54b221771dfd3af671`.
-- Result: user reports the corrective build works as expected overall and feels very clean. Live Self-Buff/Class Spacing controls work. User-selected defaults are now 6 px self-buff spacing and 24 px class spacing.
-- Remaining focused issues observed on this exact build:
-  - override-player labels need better visual centering while preserving a left icon and left-aligned text;
-  - override-player left-click cycling no longer works, while mouse-wheel cycling still works;
-  - a completely empty assignment column feels spatially disconnected when Paladin rows are present; user prefers a grey linker/guide with no placeholder icon;
-  - the Judgement header remains a stock-looking icon with HD Icons enabled.
-- Assessment: the left-click regression is explained by the `1.11.17-dev` correction hiding and re-showing populated override buttons every UI update; that can interrupt the registered MouseDown/MouseUp sequence while mouse-wheel remains unaffected. `1.11.18-dev` now hides only unused slots after population.
-- HD Judgement-header assessment: the header is intentionally hardcoded to Blizzard `Interface\\Icons\\Spell_Holy_RighteousFury`; the addon's `artwork/IconsHD` directory has no matching `Spell_Holy_RighteousFury` asset. This is an asset-coverage issue, not failure of the HD toggle. No substitute artwork is introduced during this focused redesign correction.
+- Latest exact full runtime gate remains `1.11.17-dev` / `cd22c47987fb3c40b186bc54b221771dfd3af671`, which the user reported as working cleanly overall with the then-documented mini-issues.
+- `1.11.18-dev` / `a80f4a61e556e3a704003be9765b63ece8235062` received a partial visual follow-up: the user confirmed the subdued grey empty-column guides looked good and then finalized the grey-fade geometry, native/client-icon direction and class-header flyout interaction. That partial screenshot/feedback is **not** a completed runtime gate.
+- `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` has not yet been tested in game.
 
 ### Next Runtime Test
-Focused refinement gate for exact runtime `1.11.18-dev` / `a80f4a61e556e3a704003be9765b63ece8235062`:
-1. Left-click a populated override-player label repeatedly and confirm it cycles individual Blessings again; mouse-wheel in both directions must remain working.
-2. Check short and long override-player names under several class headers. The 12 px override icon slot + name should look visually centred beneath the 32 px class icon as one group, while the icon remains on the left and the text remains left-aligned.
-3. Test both an override with an individual Blessing icon and one without; removing/adding the icon must not make the text jump to a different structural alignment.
-4. With at least one Paladin visible and an entire assignment column empty, confirm a subdued grey guide runs from the header centre through the visible Paladin row(s), with no placeholder assignment icon. Hover/click/wheel should still use only the existing 32x32 assignment-cell hitbox.
-5. Add an assignment in that column and confirm the grey guide is replaced by the normal full-colour linker ending at the lowest assigned row, with no coloured tail below it.
-6. Confirm no grey guide/linker appears when there are no visible Paladins.
-7. Confirm Self-Buff/Class Spacing still reflow correctly. New/unset SavedVariables default to 6 and 24 respectively; existing explicitly saved per-character spacing values are preserved rather than forcibly overwritten.
-8. Recheck frame movement/scaling once with the tuned spacing.
+Focused gate for exact runtime `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`:
+1. Load/reload with no Lua/UI errors, open the Assignment Window, and confirm its outer frame/title/footer geometry still looks unchanged.
+2. Confirm spell/blessing/aura/seal/Judgement presentation now uses the client icon set, normal visible Assignment/header icons have the thin black frame, and Advanced Options no longer exposes an HD Icons toggle.
+3. Hover each normal class header icon and confirm only that 32x32 icon gains its class-colour border glow and shows the individual-Blessing flyout tooltip.
+4. Click a populated class header and confirm a compact player-override flyout opens above that icon; click the same icon again to close it, and confirm opening another class closes the previous flyout.
+5. In an open flyout, verify one player override end-to-end: left-click cycles, right-click clears, mouse-wheel cycles in both directions, and the existing override hover tooltip still reflects the current individual Blessing.
+6. Confirm classes with no current players do not create a stray/empty flyout, and no permanent override-name list, label, badge or count remains on the main Assignment frame.
+7. With at least one Paladin visible and a whole assignment column empty, confirm the grey guide is solid from the header centre to the **top edge** of the lowest would-be 32x32 assignment slot, then fades smoothly to zero at that slot's bottom edge; there must be no placeholder icon or empty black icon frame.
+8. Add an assignment in that column and confirm the grey fade disappears, the normal full-colour linker returns, and it stops at the centre of the lowest assigned icon with no coloured tail below.
+9. Remove all visible Paladin rows and confirm no full-colour linker or grey guide remains.
+10. Recheck live Self-Buff Spacing, Class Spacing and Assignment Link Width changes, then move/scale the Assignment frame once; headers, flyouts, rows and linkers must continue to reflow from the existing controls without changing icon size.
+11. Exercise the migrated addon-owned presentation assets once: Assignment toolbar icons, eye/visibility icon, minimap button, and resize grip must all render from the new `assets/` paths.
+12. Recheck Buff Bar Aura and Seal truth once: when the assigned Aura/Seal is active its state should still detect correctly using the native client texture path, and normal Blessing buttons/icons should render normally.
+13. If convenient, trigger the Blessing-expiry sound once to confirm the migrated `assets/ding.mp3` path.
 
-Outstanding compatibility checks remain tracked after this focused gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
+Outstanding compatibility checks remain tracked **after** this focused gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
-- First corrective implementation: `cd22c47987fb3c40b186bc54b221771dfd3af671` / `1.11.17-dev`, user-tested as broadly working/clean with the mini-issues above.
-- Current refinement implementation: `a80f4a61e556e3a704003be9765b63ece8235062` / `1.11.18-dev`.
-- Override click correction: populated override buttons are no longer hidden at the start of every UI update; only unpopulated tail slots are hidden after the class roster is populated. This preserves the earlier off-frame hitbox correction without interrupting active button clicks.
-- Override label correction: icon + actual rendered name width are centred as a single group inside the current class pitch; icon stays left, text stays left-justified, and the icon slot remains part of the group when no override texture is present.
-- Empty-column guide: if visible Paladin rows exist but no assignment texture exists anywhere in a column, the existing linker texture is shown as subdued grey to the lowest visible Paladin cell. Assigned columns restore their documented class/special colour and lowest-assignment extent.
-- Tuned defaults: Self-Buff Spacing default 6; Class Spacing default 24. Existing saved values are not migrated/overwritten.
-- Judgement HD header: no matching HD `Spell_Holy_RighteousFury` asset exists in the current addon pack, so the stock header icon remains intentionally unchanged for this correction.
-- Canonical Lua 5.0.3 compiler check for `1.11.18-dev`: **not run / not claimed in this chat**; the canonical checker is not mounted in the executable environment.
-- In-game test of `1.11.18-dev`: not yet performed.
+- First corrective implementation: `cd22c47987fb3c40b186bc54b221771dfd3af671` / `1.11.17-dev`, user-tested as broadly working/clean with the then-documented mini-issues.
+- Spacing/click/grey-guide refinement: `a80f4a61e556e3a704003be9765b63ece8235062` / `1.11.18-dev`; partial visual feedback confirmed the grey-guide direction before the final flyout/native-icon/fade decisions.
+- Current implementation: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` / `1.11.19-dev`.
+- Override presentation: the permanent class-player lists are hidden flyouts anchored above their exact 32x32 class header icons. Only one flyout opens at a time. Existing player-button click/right-click/mouse-wheel/hover handlers are retained rather than rewritten.
+- Class-header interaction: each normal class header has an exact 32x32 Button overlay, normally black-framed; hover adds an additive class-colour border glow and the localized individual-Blessing tooltip.
+- Empty-column guide: the solid grey segment now ends at the top edge of the lowest visible would-be 32x32 assignment slot; a dedicated gradient texture spans that slot and fades from the same grey alpha at its top to zero at its bottom.
+- Icon source: PallyPower no longer reads `PP_PerUser.usehdicons` or switches to bundled `IconsHD` assets. Spell/blessing/aura/seal icons use client `Interface\\Icons\\...` paths; the legacy `PallyPower_UseHDIconsOption()` global is retained as a compatibility entry point that only reapplies the native icon map.
+- Asset migration: static tree review shows exactly 26 retained addon-owned presentation/sound files under flat `assets/`; the old `artwork/` and `Sounds/` trees are absent. Runtime Lua/UI/locale/TOC audit found no stale `PP_PerUser.usehdicons`, `IconsHD`, old addon `artwork` path, or old `Sounds` path.
+- Interaction-geometry static review: class-header flyout entry buttons are exactly 32x32; flyouts anchor above the class texture; persistent Assignment header height no longer grows from player-count labels; assignment icon borders are shown only when an assignment texture exists.
+- Canonical Lua 5.0.3 compiler check for `1.11.19-dev`: **not run / not claimed**. The executable environment has `cc`, but neither Lua 5.0.3 nor the canonical VanillaTemplate checker is mounted, and this environment cannot clone/download the vendored checker source. Static source review completed instead.
+- In-game test of `1.11.19-dev`: not yet performed.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -514,4 +517,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-In a fresh chat, verify this handoff first. Do **not** start release-readiness cleanup. The next coherent implementation pass is the agreed Assignment Window follow-up plus required asset migration: remove PallyPower-owned HD icon switching/assets in favour of native/client icons while retaining thin black framing; implement the exact grey-guide solid-to-fade geometry; replace the permanent override-player list with class-icon flyouts above each class header, preserving override click/wheel/clear semantics and adding class-colour border glow + tooltip on hover; migrate all retained addon-owned artwork/sounds to `assets/` and update runtime paths, deleting obsolete textures/sounds only when no references remain. Bump the TOC version for that runtime revision, statically audit asset references and interaction geometry, run the canonical Lua 5.0.3 checker if executable access is available, then provide a focused numbered runtime gate. The current `1.11.18-dev` screenshot confirms the grey-guide direction visually but does **not** constitute full acceptance of its focused gate. The two older compatibility checks remain tracked afterward: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
+In a fresh chat, verify this handoff first. Do **not** start release-readiness cleanup. Runtime-test exact `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` against the focused numbered Assignment Window gate above. If a gate item fails, correct only that regression, bump the TOC version for any runtime change, and repeat the affected checks. If the focused gate passes, record acceptance before moving to the two older compatibility checks: non-Paladin `/pp test`, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue. Release-readiness remains out of scope until those tracked checks are resolved/accepted.
