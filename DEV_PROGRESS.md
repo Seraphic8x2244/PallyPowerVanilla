@@ -26,7 +26,8 @@
 - NoRF overlay corrective runtime implementation: `2e6a8e5bd3a78c9960146ed35bc31900a58f744a` (`1.11.12-dev`)
 - NoRF direct-icon-tint corrective runtime implementation: `833881ebdcefe7f59e7b8b7d9d18157ea7356172` (`1.11.13-dev`)
 - RF/Judgement grid-wheel routing corrective runtime implementation: `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`)
-- Branch head before this handoff update: `d0a44be85627a05d3c4e621fc490b44f951d88da`
+- RF/Judgement grid-wheel routing user-tested build: `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`)
+- Branch head before this handoff update: `688d6e0d95b677fa2fb800f6ac0968cb87a108b6`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
@@ -298,15 +299,13 @@
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.13-dev` / runtime build `833881ebdcefe7f59e7b8b7d9d18157ea7356172`.
-- Result: direct NoRF tint works. Mouse-wheeling the RF grid cell throws a string-arithmetic error because the wheel handler does not translate `R`/`J` class tokens before numeric conversion.
-- Correction: `1.11.14-dev` maps `R` and `J` exactly like the existing click handler; this delta is compiler-checked and awaits focused runtime retest.
+- Version/build: `1.11.14-dev` / runtime build `d0a44be85627a05d3c4e621fc490b44f951d88da`.
+- Result: RF grid mouse-wheel works in both directions without error, Judgement grid mouse-wheel works, a normal numeric class cell still works, and the direct red NoRF tint remains correct.
+- Acceptance: the RF/Judgement grid-wheel routing correction and direct-icon NoRF presentation are user-verified.
 
 ### Next Runtime Test
-1. On `1.11.14-dev` / `d0a44be85627a05d3c4e621fc490b44f951d88da`, mouse-wheel the RF assignment-grid cell in both directions. Confirm it cycles RF states with no Lua error and the direct red tint still appears for explicit NoRF.
-2. Mouse-wheel the Judgement assignment-grid cell once to confirm the same newly added `J` routing works without error.
-3. Spot-check one normal numeric class cell to ensure its existing wheel path still works.
-4. Non-Paladin `/pp test` and peer VERSION suppression remain independent outstanding checks.
+1. When next convenient on a non-Paladin, run `/pp test prot` (or another profile), confirm the Buff Bar remains visible/usable, then `/pp test off` and confirm normal non-Paladin hiding returns.
+2. Peer VERSION suppression remains runtime-unobserved: a `-dev` build should continue normal PallyPower assignment/state comms but must not send its own `VERSION ...` advertisement.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -454,4 +453,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test exact build `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`) using items 1-3 above. The key gate is that RF and Judgement grid mouse-wheel routing no longer errors and RF direct tint remains correct. Do not repeat the already-passed preset/tooltip/normal-Paladin paths unless a regression appears. Non-Paladin `/pp test` and peer VERSION suppression remain independent outstanding checks.
+The `1.11.14-dev` RF/Judgement wheel correction and direct NoRF tint are accepted. The only outstanding runtime checks are non-Paladin `/pp test` behavior and peer observation that `-dev` suppresses only the `VERSION ...` advertisement while normal PallyPower comms continue. If those pass, proceed to release-readiness review/promotion planning from the fully tested development baseline.
