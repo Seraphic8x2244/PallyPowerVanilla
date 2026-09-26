@@ -1081,6 +1081,8 @@ local PP_PerUserDefaults = {
     usehdicons = false,
     transparency = 0.5,
     assignmentlinkwidth = 8,
+    assignmentselfbuffspacing = 8,
+    assignmentclassspacing = 42,
     judgement_failed_attacks_refresh = false,
     verbose_judgement_refresh = true
 }
@@ -1694,6 +1696,10 @@ function PallyPower_InitConfig()
                 PP_PerUser[key] = value
             end
         end
+    end
+
+    if PallyPowerUI and PallyPowerUI.ApplyAssignmentSpacing then
+        PallyPowerUI.ApplyAssignmentSpacing()
     end
     
     -- UnitXP SP3 detection (using Puppeteer's safer method)
@@ -2621,6 +2627,7 @@ function PallyPowerGrid_Update(tdiff)
                 local pbnt = group.playerButtons[jj]
                 pbnt:SetFrameStrata("BACKGROUND")
                 pbnt:SetAlpha(0)
+                pbnt:Hide()
             end    
             
             if CurrentBuffs[ii - 1] then
@@ -2651,11 +2658,13 @@ function PallyPowerGrid_Update(tdiff)
                         pbnt.ppText:SetTextColor(nameColor[1], nameColor[2], nameColor[3])
                         pbnt:SetFrameStrata("DIALOG")
                         pbnt:SetAlpha(1)
+                        pbnt:Show()
                         currentPlayer = currentPlayer + 1
                     else
                         pbnt.ppIcon:SetTexture("")
                         pbnt:SetFrameStrata("BACKGROUND")
                         pbnt:SetAlpha(0)
+                        pbnt:Hide()
                     end
 
                 end

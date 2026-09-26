@@ -15,23 +15,34 @@ PallyPowerUIRefs = {
 }
 
 PallyPowerUI.AssignmentLayout = {
-	COLUMN_WIDTH = 82,
 	CELL_SIZE = 32,
 	ROW_HEIGHT = 44,
 	PALADIN_INFO_WIDTH = 184,
 	LEFT_MARGIN = 8,
+	FIRST_ASSIGNMENT_GAP = 25,
 	HEADER_ICON_TOP = 42,
 	HEADER_BASE_HEIGHT = 90,
 	PLAYER_LABEL_HEIGHT = 13,
 	FOOTER_HEIGHT = 30,
+	SELF_BUFF_SPACING_DEFAULT = 8,
+	CLASS_SPACING_DEFAULT = 42,
+	SPACING_MAX = 50,
 }
+PallyPowerUI.AssignmentLayout.SELF_BUFF_PITCH =
+	PallyPowerUI.AssignmentLayout.CELL_SIZE + PallyPowerUI.AssignmentLayout.SELF_BUFF_SPACING_DEFAULT
+PallyPowerUI.AssignmentLayout.CLASS_PITCH =
+	PallyPowerUI.AssignmentLayout.CELL_SIZE + PallyPowerUI.AssignmentLayout.CLASS_SPACING_DEFAULT
 PallyPowerUI.AssignmentLayout.ASSIGNMENT_ICON_LEFT =
-	PallyPowerUI.AssignmentLayout.PALADIN_INFO_WIDTH +
-	((PallyPowerUI.AssignmentLayout.COLUMN_WIDTH - PallyPowerUI.AssignmentLayout.CELL_SIZE) / 2)
+	PallyPowerUI.AssignmentLayout.PALADIN_INFO_WIDTH + PallyPowerUI.AssignmentLayout.FIRST_ASSIGNMENT_GAP
 PallyPowerUI.AssignmentLayout.ASSIGNMENT_ICON_TOP =
 	(PallyPowerUI.AssignmentLayout.ROW_HEIGHT - PallyPowerUI.AssignmentLayout.CELL_SIZE) / 2
 PallyPowerUI.AssignmentLayout.ROW_WIDTH =
-	PallyPowerUI.AssignmentLayout.PALADIN_INFO_WIDTH + (14 * PallyPowerUI.AssignmentLayout.COLUMN_WIDTH)
+	PallyPowerUI.AssignmentLayout.PALADIN_INFO_WIDTH +
+	PallyPowerUI.AssignmentLayout.FIRST_ASSIGNMENT_GAP +
+	PallyPowerUI.AssignmentLayout.CELL_SIZE +
+	(3 * PallyPowerUI.AssignmentLayout.SELF_BUFF_PITCH) +
+	(10 * PallyPowerUI.AssignmentLayout.CLASS_PITCH) +
+	PallyPowerUI.AssignmentLayout.FIRST_ASSIGNMENT_GAP
 PallyPowerUI.AssignmentLayout.FRAME_WIDTH =
 	(2 * PallyPowerUI.AssignmentLayout.LEFT_MARGIN) + PallyPowerUI.AssignmentLayout.ROW_WIDTH
 PallyPowerUI.AssignmentLayout.HEADER_FIRST_ICON_LEFT =
@@ -482,10 +493,10 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	frame.ppName = region
 
 	region = PallyPowerUI.CreateFontString(frame, "$parentSymbols", "OVERLAY", "GameFontHighlightSmall")
-	PallyPowerUI.SetSize(region, 28, 16)
-	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 134, -25)
+	PallyPowerUI.SetSize(region, 38, 16)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 124, -25)
 	region:SetText("999")
-	region:SetJustifyH("RIGHT")
+	region:SetJustifyH("LEFT")
 	frame.ppSymbols = region
 
 	region = PallyPowerUI.CreateTexture(frame, "$parentSymbolIcon", "OVERLAY", "Interface\\Icons\\INV_Misc_SymbolofKings_01")
@@ -584,7 +595,7 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "R")
 	frame.ppAssignments.R = cell
 	cell.ppRow = frame
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.A, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.A, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	region = PallyPowerUI.CreateFontString(cell, "$parentNoRF", "OVERLAY", "GameFontNormalLarge")
 	PallyPowerUI.SetSize(region, 24, 24)
 	PallyPowerUI.SetPoint(region, "CENTER", cell.ppIcon, "CENTER", 0, 0)
@@ -600,7 +611,7 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "S")
 	frame.ppAssignments.S = cell
 	cell.ppRow = frame
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.R, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.R, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	cell:SetScript("OnEnter", function()
 		PallyPower_ShowAllSealCapabilities(this)
 	end)
@@ -611,7 +622,7 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "J")
 	frame.ppAssignments.J = cell
 	cell.ppRow = frame
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.S, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.S, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	cell:SetScript("OnEnter", function()
 		PallyPower_ShowSealCapabilities(this)
 	end)
@@ -622,13 +633,13 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "0")
 	frame.ppAssignments[0] = cell
 	cell.ppRow = frame
-	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.J, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+	PallyPowerUI.SetPoint(cell, "TOPLEFT", frame.ppAssignments.J, "TOPLEFT", layout.CLASS_PITCH, 0)
 	previous = cell
 	for i = 1, 9 do
 		cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, tostring(i))
 		frame.ppAssignments[i] = cell
 		cell.ppRow = frame
-		PallyPowerUI.SetPoint(cell, "TOPLEFT", previous, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+		PallyPowerUI.SetPoint(cell, "TOPLEFT", previous, "TOPLEFT", layout.CLASS_PITCH, 0)
 		previous = cell
 	end
 
@@ -660,6 +671,168 @@ function PallyPowerUI.SetAssignmentLinkWidth(value)
 		linker:SetWidth(width)
 	end
 	return width
+end
+
+function PallyPowerUI.NormalizeAssignmentSpacing(value, defaultValue)
+	local spacing = tonumber(value)
+	if spacing == nil then spacing = defaultValue end
+	spacing = math.floor(spacing + 0.5)
+	if spacing < 0 then spacing = 0 end
+	if spacing > PallyPowerUI.AssignmentLayout.SPACING_MAX then
+		spacing = PallyPowerUI.AssignmentLayout.SPACING_MAX
+	end
+	return spacing
+end
+
+function PallyPowerUI.ApplyAssignmentSpacing()
+	local layout = PallyPowerUI.AssignmentLayout
+	local selfSpacing = PallyPowerUI.NormalizeAssignmentSpacing(
+		PP_PerUser and PP_PerUser.assignmentselfbuffspacing,
+		layout.SELF_BUFF_SPACING_DEFAULT
+	)
+	local classSpacing = PallyPowerUI.NormalizeAssignmentSpacing(
+		PP_PerUser and PP_PerUser.assignmentclassspacing,
+		layout.CLASS_SPACING_DEFAULT
+	)
+	local refs = PallyPowerUIRefs
+	local specialKeys = {"A", "R", "S", "J"}
+	local specialOffset
+	local classOffset
+	local textWidth
+	local i
+	local j
+	local key
+	local icon
+	local previousIcon
+	local group
+	local row
+	local cell
+	local button
+
+	layout.SELF_BUFF_SPACING = selfSpacing
+	layout.CLASS_SPACING = classSpacing
+	layout.SELF_BUFF_PITCH = layout.CELL_SIZE + selfSpacing
+	layout.CLASS_PITCH = layout.CELL_SIZE + classSpacing
+	layout.ASSIGNMENT_ICON_LEFT = layout.PALADIN_INFO_WIDTH + layout.FIRST_ASSIGNMENT_GAP
+	layout.ROW_WIDTH =
+		layout.PALADIN_INFO_WIDTH +
+		layout.FIRST_ASSIGNMENT_GAP +
+		layout.CELL_SIZE +
+		(3 * layout.SELF_BUFF_PITCH) +
+		(10 * layout.CLASS_PITCH) +
+		layout.FIRST_ASSIGNMENT_GAP
+	layout.FRAME_WIDTH = (2 * layout.LEFT_MARGIN) + layout.ROW_WIDTH
+	layout.HEADER_FIRST_ICON_LEFT = layout.LEFT_MARGIN + layout.ASSIGNMENT_ICON_LEFT
+
+	if layout.APPLIED_SELF_BUFF_SPACING == selfSpacing
+		and layout.APPLIED_CLASS_SPACING == classSpacing then
+		if PallyPowerFrame then
+			PallyPowerFrame:SetWidth(layout.FRAME_WIDTH)
+		end
+		return selfSpacing, classSpacing
+	end
+
+	layout.APPLIED_SELF_BUFF_SPACING = selfSpacing
+	layout.APPLIED_CLASS_SPACING = classSpacing
+
+	if not PallyPowerFrame then
+		return selfSpacing, classSpacing
+	end
+
+	icon = refs.classIcons.A
+	if icon then
+		icon:ClearAllPoints()
+		PallyPowerUI.SetPoint(icon, "TOPLEFT", PallyPowerFrame, "TOPLEFT", layout.HEADER_FIRST_ICON_LEFT, -layout.HEADER_ICON_TOP)
+	end
+
+	previousIcon = icon
+	for i = 2, 4 do
+		key = specialKeys[i]
+		icon = refs.classIcons[key]
+		if icon and previousIcon then
+			icon:ClearAllPoints()
+			PallyPowerUI.SetPoint(icon, "TOPLEFT", previousIcon, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
+		end
+		previousIcon = icon
+	end
+
+	for i = 0, 9 do
+		icon = refs.classIcons[i]
+		if icon and previousIcon then
+			icon:ClearAllPoints()
+			PallyPowerUI.SetPoint(icon, "TOPLEFT", previousIcon, "TOPLEFT", layout.CLASS_PITCH, 0)
+		end
+		previousIcon = icon
+	end
+
+	specialOffset = (layout.SELF_BUFF_PITCH - layout.CELL_SIZE) / 2
+	for i = 1, 4 do
+		key = specialKeys[i]
+		group = refs.specialGroups[key]
+		icon = refs.classIcons[key]
+		if group and icon then
+			group:SetWidth(layout.SELF_BUFF_PITCH)
+			group:ClearAllPoints()
+			PallyPowerUI.SetPoint(group, "TOPLEFT", icon, "BOTTOMLEFT", -specialOffset, -12)
+		end
+	end
+
+	classOffset = (layout.CLASS_PITCH - layout.CELL_SIZE) / 2
+	textWidth = layout.CLASS_PITCH - 21
+	if textWidth < 10 then textWidth = 10 end
+	for i = 1, 10 do
+		group = refs.classGroups[i]
+		icon = refs.classIcons[i - 1]
+		if group and icon then
+			group:SetWidth(layout.CLASS_PITCH)
+			group:ClearAllPoints()
+			PallyPowerUI.SetPoint(group, "TOPLEFT", icon, "BOTTOMLEFT", -classOffset, -12)
+			for j = 1, 15 do
+				button = group.playerButtons and group.playerButtons[j]
+				if button then
+					button:SetWidth(layout.CLASS_PITCH)
+					button:ClearAllPoints()
+					PallyPowerUI.SetPoint(button, "TOPLEFT", group, "TOPLEFT", 0, -13 * (j - 1))
+					if button.ppText then
+						button.ppText:SetWidth(textWidth)
+					end
+				end
+			end
+		end
+	end
+
+	for i = 1, 12 do
+		row = refs.playerRows[i]
+		if row and row.ppAssignments then
+			row:SetWidth(layout.ROW_WIDTH)
+			cell = row.ppAssignments.A
+			if cell then
+				cell:ClearAllPoints()
+				PallyPowerUI.SetPoint(cell, "TOPLEFT", row, "TOPLEFT", layout.ASSIGNMENT_ICON_LEFT, -layout.ASSIGNMENT_ICON_TOP)
+			end
+			previousIcon = cell
+			for j = 2, 4 do
+				key = specialKeys[j]
+				cell = row.ppAssignments[key]
+				if cell and previousIcon then
+					cell:ClearAllPoints()
+					PallyPowerUI.SetPoint(cell, "TOPLEFT", previousIcon, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
+				end
+				previousIcon = cell
+			end
+			for j = 0, 9 do
+				cell = row.ppAssignments[j]
+				if cell and previousIcon then
+					cell:ClearAllPoints()
+					PallyPowerUI.SetPoint(cell, "TOPLEFT", previousIcon, "TOPLEFT", layout.CLASS_PITCH, 0)
+				end
+				previousIcon = cell
+			end
+		end
+	end
+
+	PallyPowerFrame:SetWidth(layout.FRAME_WIDTH)
+	return selfSpacing, classSpacing
 end
 
 function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
@@ -706,6 +879,7 @@ end
 
 function PallyPowerUI.UpdateAssignmentGeometry(numPallys, numMaxClass)
 	local layout = PallyPowerUI.AssignmentLayout
+	PallyPowerUI.ApplyAssignmentSpacing()
 	local headerHeight = layout.HEADER_BASE_HEIGHT + (layout.PLAYER_LABEL_HEIGHT * numMaxClass)
 	local i
 
@@ -904,7 +1078,7 @@ function PallyPowerUI.CreateAssignmentUI()
 		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfFury"
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
-	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.A, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.A, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	PallyPowerUIRefs.classIcons.R = region
 
 	region = PallyPowerUI.CreateTexture(
@@ -912,7 +1086,7 @@ function PallyPowerUI.CreateAssignmentUI()
 		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Ability_Thunderbolt"
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
-	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.R, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.R, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	PallyPowerUIRefs.classIcons.S = region
 
 	region = PallyPowerUI.CreateTexture(
@@ -920,7 +1094,7 @@ function PallyPowerUI.CreateAssignmentUI()
 		"Interface\\Icons\\Spell_Holy_RighteousFury"
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
-	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.S, "TOPLEFT", layout.COLUMN_WIDTH, 0)
+	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.S, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	PallyPowerUIRefs.classIcons.J = region
 
 	for i = 0, 9 do
@@ -930,13 +1104,13 @@ function PallyPowerUI.CreateAssignmentUI()
 			PallyPowerUI.SetPoint(
 				region, "TOPLEFT",
 				PallyPowerUIRefs.classIcons.J,
-				"TOPLEFT", layout.COLUMN_WIDTH, 0
+				"TOPLEFT", layout.CLASS_PITCH, 0
 			)
 		else
 			PallyPowerUI.SetPoint(
 				region, "TOPLEFT",
 				PallyPowerUIRefs.classIcons[i - 1],
-				"TOPLEFT", layout.COLUMN_WIDTH, 0
+				"TOPLEFT", layout.CLASS_PITCH, 0
 			)
 		end
 		PallyPowerUIRefs.classIcons[i] = region
@@ -1149,6 +1323,8 @@ function PallyPowerUI.CreateAssignmentUI()
 			)
 		end
 	end
+
+	PallyPowerUI.ApplyAssignmentSpacing()
 
 	frame:SetScript("OnEvent", function()
 		PallyPower_OnEvent(event, arg1)
@@ -1515,7 +1691,7 @@ PallyPowerUI.CreateBuffBarUI()
 	local button
 	local slider
 
-	PallyPowerUI.SetSize(frame, 400, 490)
+	PallyPowerUI.SetSize(frame, 400, 555)
 	PallyPowerUI.SetPoint(frame, "CENTER", UIParent, "CENTER", 0, 65)
 	frame:SetToplevel(true)
 	frame:SetMovable(true)
@@ -1547,32 +1723,32 @@ PallyPowerUI.CreateBuffBarUI()
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "PP_UI_AdvancedScanningHeader", "GameFontNormal", PALLYPOWER_UI_SECTION_SCANNING,
-		180, 16, "TOPLEFT", 10, -337, "LEFT", 0.96, 0.55, 0.73
+		180, 16, "TOPLEFT", 10, -397, "LEFT", 0.96, 0.55, 0.73
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "PP_UI_NampowerLabel", "GameFontHighlight", PALLYPOWER_UI_NAMPOWER,
-		180, 16, "TOPLEFT", 18, -440, "LEFT"
+		180, 16, "TOPLEFT", 18, -500, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "PP_UI_NampowerState", "GameFontNormal", nil,
-		150, 16, "TOPRIGHT", -30, -440, "RIGHT"
+		150, 16, "TOPRIGHT", -30, -500, "RIGHT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "PP_UI_UnitXPLabel", "GameFontHighlight", PALLYPOWER_UI_UNITXP_SP3,
-		180, 16, "TOPLEFT", 18, -465, "LEFT"
+		180, 16, "TOPLEFT", 18, -525, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "PP_UI_UnitXPState", "GameFontNormal", nil,
-		150, 16, "TOPRIGHT", -30, -465, "RIGHT"
+		150, 16, "TOPRIGHT", -30, -525, "RIGHT"
 	)
 
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentOption1", "GameFontHighlight", PALLYPOWER_UI_SCAN_UNITFRAMES_EVERY,
-		300, 16, "TOPLEFT", 18, -365, "LEFT"
+		300, 16, "TOPLEFT", 18, -425, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentOption2", "GameFontHighlight", PALLYPOWER_UI_UNITS_SCANNED_PER_FRAME,
-		300, 16, "TOPLEFT", 18, -390, "LEFT"
+		300, 16, "TOPLEFT", 18, -450, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentOption3", "GameFontHighlight", PALLYPOWER_OPTIONS_FEEDBACK_CHAT,
@@ -1620,7 +1796,7 @@ PallyPowerUI.CreateBuffBarUI()
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentOption13", "GameFontHighlight", PALLYPOWER_OPTIONS_USE_UNITXP_SP3_LOS,
-		300, 16, "TOPLEFT", 7, -350, "LEFT"
+		300, 16, "TOPLEFT", 7, -410, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentOption14", "GameFontHighlight", PALLYPOWER_OPTIONS_USE_HDICONS,
@@ -1643,8 +1819,16 @@ PallyPowerUI.CreateBuffBarUI()
 		180, 16, "TOPLEFT", 18, -319, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentAssignmentSelfBuffSpacingLabel", "GameFontHighlight", PALLYPOWER_UI_ASSIGNMENT_SELF_BUFF_SPACING,
+		180, 16, "TOPLEFT", 18, -344, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
+		frame, "$parentAssignmentClassSpacingLabel", "GameFontHighlight", PALLYPOWER_UI_ASSIGNMENT_CLASS_SPACING,
+		180, 16, "TOPLEFT", 18, -369, "LEFT"
+	)
+	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentVerboseJudgementRefreshLabel", "GameFontHighlight", PALLYPOWER_UI_VERBOSE_JUDGEMENT_REFRESH,
-		260, 16, "TOPLEFT", 18, -415, "LEFT"
+		260, 16, "TOPLEFT", 18, -475, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentOption15", "GameFontHighlight", PALLYPOWER_OPTIONS_TRANSPARENCY,
@@ -1655,11 +1839,11 @@ PallyPowerUI.CreateBuffBarUI()
 	PallyPowerUI.SetPoint(button, "TOPRIGHT", frame, "TOPRIGHT", 2, 2)
 
 	PallyPowerUI.CreateAdvancedOptionsScanEditBox(
-		frame, "Scan1", -363, "scanfreq",
+		frame, "Scan1", -423, "scanfreq",
 		function() PallyPower_OptionsFrameScan2:SetFocus() end
 	)
 	PallyPowerUI.CreateAdvancedOptionsScanEditBox(
-		frame, "Scan2", -388, "scanperframe",
+		frame, "Scan2", -448, "scanperframe",
 		function() PallyPower_OptionsFrameScan1:SetFocus() end
 	)
 
@@ -1691,7 +1875,7 @@ PallyPowerUI.CreateBuffBarUI()
 		end
 	)
 	PallyPowerUI.CreateAdvancedOptionsCheckButton(
-		frame, "$parentVerboseJudgementRefresh", -30, -413,
+		frame, "$parentVerboseJudgementRefresh", -30, -473,
 		function()
 			if PP_PerUser.verbose_judgement_refresh then this:SetChecked(true) else this:SetChecked(false) end
 		end,
@@ -1813,7 +1997,7 @@ PallyPowerUI.CreateBuffBarUI()
 		end
 	)
 	PallyPowerUI.CreateAdvancedOptionsCheckButton(
-		frame, "UseUnitXPSP3OptionChk", -5, -350,
+		frame, "UseUnitXPSP3OptionChk", -5, -410,
 		function()
 			if PP_PerUser.useunitxp_sp3 then this:SetChecked(true) else this:SetChecked(false) end
 		end,
@@ -1871,6 +2055,66 @@ PallyPowerUI.CreateBuffBarUI()
 			AssignmentLinkWidthSliderText:SetText(tostring(width))
 		end
 		PallyPowerUI.SetAssignmentLinkWidth(width)
+	end)
+
+	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentSelfBuffSpacingSlider", frame, "OptionsSliderTemplate")
+	PallyPowerUI.SetSize(slider, 140, 16)
+	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -344)
+	slider:SetMinMaxValues(0, 50)
+	slider:SetValueStep(1)
+	if AssignmentSelfBuffSpacingSliderLow then AssignmentSelfBuffSpacingSliderLow:SetText("0") end
+	if AssignmentSelfBuffSpacingSliderHigh then AssignmentSelfBuffSpacingSliderHigh:SetText("50") end
+	if AssignmentSelfBuffSpacingSliderText then AssignmentSelfBuffSpacingSliderText:SetText("8") end
+	slider:SetScript("OnShow", function()
+		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
+			PP_PerUser and PP_PerUser.assignmentselfbuffspacing,
+			PallyPowerUI.AssignmentLayout.SELF_BUFF_SPACING_DEFAULT
+		)
+		this:SetValue(spacing)
+		if AssignmentSelfBuffSpacingSliderText then
+			AssignmentSelfBuffSpacingSliderText:SetText(tostring(spacing))
+		end
+	end)
+	slider:SetScript("OnValueChanged", function()
+		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
+			this:GetValue(),
+			PallyPowerUI.AssignmentLayout.SELF_BUFF_SPACING_DEFAULT
+		)
+		PP_PerUser.assignmentselfbuffspacing = spacing
+		if AssignmentSelfBuffSpacingSliderText then
+			AssignmentSelfBuffSpacingSliderText:SetText(tostring(spacing))
+		end
+		PallyPowerUI.ApplyAssignmentSpacing()
+	end)
+
+	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentClassSpacingSlider", frame, "OptionsSliderTemplate")
+	PallyPowerUI.SetSize(slider, 140, 16)
+	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -369)
+	slider:SetMinMaxValues(0, 50)
+	slider:SetValueStep(1)
+	if AssignmentClassSpacingSliderLow then AssignmentClassSpacingSliderLow:SetText("0") end
+	if AssignmentClassSpacingSliderHigh then AssignmentClassSpacingSliderHigh:SetText("50") end
+	if AssignmentClassSpacingSliderText then AssignmentClassSpacingSliderText:SetText("42") end
+	slider:SetScript("OnShow", function()
+		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
+			PP_PerUser and PP_PerUser.assignmentclassspacing,
+			PallyPowerUI.AssignmentLayout.CLASS_SPACING_DEFAULT
+		)
+		this:SetValue(spacing)
+		if AssignmentClassSpacingSliderText then
+			AssignmentClassSpacingSliderText:SetText(tostring(spacing))
+		end
+	end)
+	slider:SetScript("OnValueChanged", function()
+		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
+			this:GetValue(),
+			PallyPowerUI.AssignmentLayout.CLASS_SPACING_DEFAULT
+		)
+		PP_PerUser.assignmentclassspacing = spacing
+		if AssignmentClassSpacingSliderText then
+			AssignmentClassSpacingSliderText:SetText(tostring(spacing))
+		end
+		PallyPowerUI.ApplyAssignmentSpacing()
 	end)
 
 	frame:SetScript("OnLoad", function()
