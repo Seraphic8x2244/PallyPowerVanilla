@@ -180,22 +180,22 @@ function PallyPowerUI.CreateIconBorderFrame(parent, icon, width, height, frameTy
 	border.ppBorderTextures = {}
 
 	top = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
-	PallyPowerUI.SetSize(top, width, 1)
+	PallyPowerUI.SetSize(top, width, 2)
 	PallyPowerUI.SetPoint(top, "TOP", border, "TOP", 0, 0)
 	border.ppBorderTextures[1] = top
 
 	bottom = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
-	PallyPowerUI.SetSize(bottom, width, 1)
+	PallyPowerUI.SetSize(bottom, width, 2)
 	PallyPowerUI.SetPoint(bottom, "BOTTOM", border, "BOTTOM", 0, 0)
 	border.ppBorderTextures[2] = bottom
 
 	left = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
-	PallyPowerUI.SetSize(left, 1, height)
+	PallyPowerUI.SetSize(left, 2, height)
 	PallyPowerUI.SetPoint(left, "LEFT", border, "LEFT", 0, 0)
 	border.ppBorderTextures[3] = left
 
 	right = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
-	PallyPowerUI.SetSize(right, 1, height)
+	PallyPowerUI.SetSize(right, 2, height)
 	PallyPowerUI.SetPoint(right, "RIGHT", border, "RIGHT", 0, 0)
 	border.ppBorderTextures[4] = right
 
