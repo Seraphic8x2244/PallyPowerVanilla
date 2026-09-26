@@ -31,7 +31,7 @@
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
-- Current scope boundary: Stage 7 is complete. The consolidated post-Stage-7 cleanup is largely user-verified from `1.11.11-dev`. `1.11.12-dev` made the NoRF overlay visible but exposed a mouse-wheel regression while the visible overlay was present. `1.11.13-dev` removes that extra visible overlay region entirely and implements NoRF by tinting the existing RF icon itself; only this rendering/input delta requires immediate retest. Preserve compatibility globals and existing assignment/comms formats.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup are accepted through `1.11.14-dev`. Before release-readiness, the user has explicitly reprioritized a presentation-only Assignment Window redesign. Preserve assignment semantics, comms/data formats, icon sizes, column order, click/wheel behavior and the existing window/background/chrome unless the redesign specification below explicitly says otherwise.
 
 ## Current Design / Development Contract
 
@@ -48,6 +48,24 @@
 - Development-version communication rule: if `ADDON_VERSION` contains the `-dev` suffix, `PallyPower_SendVersion()` must not send the `VERSION ...` addon message. Dev builds still participate in all normal PallyPower assignment/state communications; only version advertisement is suppressed. Keep the version-communication code in place behind this runtime check.
 - User-facing localization remains in `locales/enUS.lua`.
 - Existing artwork hierarchy remains unchanged.
+- Assignment Window redesign contract (user-finalized before implementation):
+  - Layout/presentation only: keep existing assignment logic, column order, icon sizes, window backdrop, outer border, title/chrome, bottom Smart Buffs / Free Assignment area and surrounding background unchanged.
+  - Remove all current grey grid/separator lines. Do not replace them with neutral separators.
+  - New visual language is class-colour "linkers": full-colour vertical strips drawn behind assignment icons, centre-to-centre, with no tail beyond the highest/lowest linked icon.
+  - No paladins visible in the Assignment Window => no linkers.
+  - Every assignment column supports a linker. Normal class columns use their class colour; Aura/RF/Seal/Judgement use Paladin pink.
+  - A linker is visible only when that column has at least one assignment somewhere in the displayed paladin rows. Its lower extent reaches the lowest paladin row with an assignment in that column; therefore it passes through empty intermediate paladin slots. If nobody has an assignment in the column, no linker is drawn.
+  - Default linker width is 8 px. Add Advanced Options control `Assignment Link Width`, integer range 1-16 px, default 8, updating the visible Assignment Window immediately.
+  - Icons are the interaction truth/hitboxes. Do not retain or add oversized invisible click/mouse-wheel regions.
+  - Player label/header arrangement: individual-blessing icon immediately left of player name; player name left-aligned; fixed name position whether the individual icon exists or not; name starts slightly left of the left edge of its class icon; header area may expand upward rather than stealing vertical room from paladin rows.
+  - Main assignment icons remain vertically aligned by column.
+  - Widen the fixed paladin-info column enough to fit its contents; do not dynamically size it from player-name length.
+  - Each paladin info block uses two internal rows:
+    - row 1: group + paladin name on the left; cooldown icons on the right.
+    - row 2: six fixed blessing slots, optional deliberate spacer, Symbol of Kings count, Symbol of Kings icon.
+  - Cooldown icons right-align to the Symbol-of-Kings icon boundary and grow leftward. Keep broadly the current in-game icon spacing, with micro-placement flexibility for clean alignment and the blessing-to-SoK spacer.
+  - No divider between paladin rows; row/icon structure should provide the visual separation.
+  - Use the Lua-era layout to make row/column centres and anchors exact rather than preserving old XML-era offset quirks.
 - Optional Nampower and UnitXP paths remain capability/enable-gated enhancements; normal addon operation must retain the native/non-DLL path.
 
 ### Invariants
@@ -439,7 +457,7 @@ After generated-name/global lookup cleanup:
 - SavedVariables redesign.
 - Communication protocol redesign.
 - Keybinding-system redesign or removal of `Bindings.xml`.
-- Visual redesign of Buff Bar, assignment UI or Advanced Options.
+- Visual redesign of Buff Bar or unrelated Advanced Options surfaces. The Assignment Window redesign and its single linker-width option are now explicitly in scope as documented above.
 - Feature expansion unrelated to the migration.
 - Broader module split beyond the deliberate `PallyPowerUI.lua` separation.
 - Modernizing legacy `this`/`arg1` callback style before the XML-free parity checkpoint.
@@ -453,4 +471,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-The `1.11.14-dev` RF/Judgement wheel correction and direct NoRF tint are accepted. The only outstanding runtime checks are non-Paladin `/pp test` behavior and peer observation that `-dev` suppresses only the `VERSION ...` advertisement while normal PallyPower comms continue. If those pass, proceed to release-readiness review/promotion planning from the fully tested development baseline.
+Implement the finalized Assignment Window layout redesign above as the next development task, before release-readiness. First audit the current Lua-created Assignment Window geometry/line objects and identify the smallest clean layout constants/anchors needed; then remove the grey grid/separator presentation, rebuild the fixed paladin-info column/header geometry, and add the class-colour linker system plus live Advanced Options `Assignment Link Width` control. Preserve all assignment/runtime semantics and existing icon hitboxes. Any runtime/code change must bump the TOC numeric dev version from `1.11.14-dev`, receive the canonical Lua 5.0.3 compiler check, and get a focused runtime gate. The two previously outstanding compatibility checks remain tracked but are no longer the immediate next task: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
