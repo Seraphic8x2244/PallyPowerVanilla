@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.20-dev`
+- Version: `1.11.21-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -33,11 +33,12 @@
 - Assignment Window current refinement runtime implementation: `a80f4a61e556e3a704003be9765b63ece8235062` (`1.11.18-dev`)
 - Assignment Window flyout/native-icon/assets runtime implementation: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` (`1.11.19-dev`)
 - Assignment Window multi-Paladin corrective runtime implementation: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` (`1.11.20-dev`)
-- Branch head before this handoff update: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da`
+- Assignment native-icon crop corrective runtime implementation: `1f784862bc157858ea93cc9cfb205e5485e5ebf7` (`1.11.21-dev`)
+- Branch head before this handoff update: `1f784862bc157858ea93cc9cfb205e5485e5ebf7`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Runtime-validate the `1.11.20-dev` multi-Paladin/flyout/native-icon corrective pass, then resolve the still-open Buff Bar font presentation report before any release-readiness cleanup.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. User testing of exact `1.11.19-dev` / `7baa74e6` confirmed the fade direction but exposed multi-Paladin spacing/grey-tail needs, a missing Aura header icon, native-texture silver rims and flyout vertical placement. Runtime `1.11.20-dev` / `4a9cca5` corrects those items and awaits in-game validation. The Buff Bar title/blessing-summary font report remains deliberately open because the source font declarations are unchanged between `1.11.18-dev` and `1.11.19-dev`; no replacement font is guessed without a grounded target. Do not begin release-readiness cleanup.
+- Goal: Runtime-validate the `1.11.21-dev` Assignment Window corrective pass, beginning with the stronger native-icon crop, then finish the remaining focused gate when a Paladin is available; resolve the still-open Buff Bar font presentation report before any release-readiness cleanup.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Partial user testing of exact `1.11.20-dev` / `4a9cca5` found gate item 9 still failing: the native-icon crop remained too shallow and some icons appeared visually off-centre. Runtime `1.11.21-dev` / `1f78486` strengthens the crop symmetrically from `0.07-0.93` to `0.10-0.90`; other `1.11.20-dev` gate items remain pending until a Paladin is available. The Buff Bar title/blessing-summary font presentation report remains explicitly open. Source audit now confirms the relevant title and summary font construction is unchanged from accepted `1.11.14-dev` through `1.11.20-dev`, so no replacement font is guessed without a grounded runtime target. Do not begin release-readiness cleanup.
 
 ## Current Design / Development Contract
 
@@ -147,6 +148,7 @@
 - Rulebook asset placement is active project scope: retained addon-owned artwork and sounds must move under `assets/`, and obsolete bundled textures should be deleted during that migration.
 
 ## Recent Relevant Commits
+- `1f78486` - Strengthen the client-native spell-icon texture crop in `1.11.21-dev` from symmetric `0.07-0.93` to `0.10-0.90` after runtime feedback showed the baked rim still visible. Geometry remains centred; no font code changed.
 - `4a9cca5` - Correct the user-tested `1.11.19-dev` Assignment presentation in `1.11.20-dev`: add live 0-50 px `Paladin Spacing` (initial default 6), add grey lower-tail extensions/fade below the final assigned Paladin row, force linker/guide textures to the `BORDER` layer behind icons, move class flyouts fully above the Assignment frame, restore the missing Aura Mastery header from a retained non-HD asset, and crop native spell textures inside their baked light/silver rim while retaining PallyPower's separate black frame. Buff Bar font declarations are intentionally unchanged pending an exact target.
 - `7baa74e` - Implement the finalized Assignment Window flyout/native-icon/grey-fade pass and rulebook asset migration; remove the HD-icon option/runtime switching and bundled spell/HD icon copies, move 26 retained presentation/sound files to flat `assets/`, add exact 32x32 class-header hitboxes with class-colour hover glow/tooltip, move individual overrides into one-at-a-time above-header flyouts, add black icon framing, and change empty-column guides to solid grey through the top edge plus a 32 px fade to zero; bump to `1.11.19-dev`.
 - `a80f4a6` - Refine the runtime-tested Assignment Window: set tuned new-character spacing defaults to 6/24, centre each override icon+name pair as a left-oriented visual group, stop hiding active override buttons every frame so registered left-click MouseDown/MouseUp can complete, and add subdued grey guides only for wholly unassigned columns with visible Paladins; bump to `1.11.18-dev`.
@@ -338,7 +340,8 @@
 ## Testing
 
 ### Last Runtime Test
-- Exact tested runtime: `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`. The user explicitly confirmed the latest screenshot was from this current build; an earlier screenshot in the preceding message was from the previous version.
+- Latest partial runtime feedback is from exact `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da`. Gate item 9 failed: the native spell/blessing crop was not zoomed enough to remove the baked rim, and some icons appeared visually off-centre. The user deferred the remaining Paladin-dependent gate checks until later.
+- Earlier exact tested runtime: `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`. The user explicitly confirmed the latest screenshot was from this current build; an earlier screenshot in the preceding message was from the previous version.
 - Confirmed good: the new empty-column fade itself looks good, and the grey/linker presentation sits behind the class/assignment icons rather than covering them.
 - Current-build findings:
   - two visible Paladin rows are too tight vertically; user requested a live `Paladin Spacing` Advanced Option;
@@ -346,10 +349,10 @@
   - Aura header icon vanished after the native-icon conversion;
   - native spell icons visibly show a light/silver outer rim; source review confirms PallyPower's added frame is black, so the visible silver edge belongs to the native texture content rather than the addon frame;
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
-  - Buff Bar title-button font and Blessing-summary font are reported as reverted. Source review found those FontObject/font-height declarations unchanged across `1.11.18-dev` -> `1.11.19-dev`; this report is real runtime feedback but its exact intended replacement font is not documented, so it remains open rather than being guessed.
+  - Buff Bar title-button font and Blessing-summary font are reported as reverted. A broader source audit now confirms the exact title construction (`GameFontNormal`, 14 px override, centred 86x18 region) and Blessing-summary/count construction (`GameFontHighlightSmall`, 28x10 region) are unchanged from `1.11.14-dev` through `1.11.20-dev`; the `1.11.19-dev` HD-icon-removal diff contains no direct changes to these font objects. The runtime presentation report remains valid/open, but its cause/target is not yet identified and must not be guessed.
 
 ### Next Runtime Test
-Focused gate for exact runtime `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da`:
+Focused gate for exact runtime `1.11.21-dev` / `1f784862bc157858ea93cc9cfb205e5485e5ebf7`:
 1. `/reload` and open the Assignment Window with two Paladins; confirm no Lua/UI errors and no regression to the outer frame/title/footer.
 2. In Advanced Options, confirm `Paladin Spacing` appears under the existing spacing controls, defaults to 6 on an unset value, and changing it 0-50 immediately changes only the vertical gap between Paladin rows and the Assignment frame height.
 3. Use a column assigned on Paladin 1 but empty on Paladin 2: full colour must end at Paladin 1's assignment centre, then a subdued grey extension must continue downward and fade through Paladin 2's empty 32x32 slot.
@@ -358,11 +361,11 @@ Focused gate for exact runtime `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc
 6. Check a wholly unassigned column: grey should still run from header centre to the top edge of the lowest visible would-be assignment slot, then fade to zero through that 32 px slot.
 7. Confirm all coloured/grey linker pieces remain behind header/assignment icons.
 8. Confirm the Aura Mastery header icon is visible again.
-9. Check several native spell/blessing icons at 32 px and on the Buff Bar: the baked light/silver rim should be cropped away while PallyPower's thin black frame remains where intended.
+9. Recheck several native spell/blessing icons at 32 px and on the Buff Bar after the stronger symmetric `0.10-0.90` crop: the baked light/silver rim should be removed while PallyPower's thin black frame remains where intended. If any icon still appears off-centre, identify that specific texture rather than applying a global positional nudge.
 10. Open a populated class flyout: its bottom edge should sit above the Assignment frame's top border, horizontally centred on the selected class icon; existing left-click/right-click/wheel/tooltip behavior must still work.
 11. Recheck Self-Buff Spacing, Class Spacing and Assignment Link Width once alongside Paladin Spacing to make sure the live reflow paths still compose correctly.
 
-Still open after this corrective gate: the reported Buff Bar title-button font and Blessing-summary font. `1.11.20-dev` deliberately does not guess a replacement because the source font definitions did not change in `1.11.19-dev`. Resolve that presentation target before accepting the Assignment redesign as complete.
+Still open after this corrective gate: the reported Buff Bar title-button font and Blessing-summary font. Direct source comparison from `1.11.14-dev` through `1.11.20-dev` shows the relevant font construction unchanged, so `1.11.21-dev` deliberately does not guess a replacement. Resolve the actual runtime presentation target/cause before accepting the Assignment redesign as complete.
 
 Older compatibility checks remain after the visual gate: non-Paladin `/pp test`, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
 
@@ -371,17 +374,18 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - First corrective implementation: `cd22c47987fb3c40b186bc54b221771dfd3af671` / `1.11.17-dev`, user-tested as broadly working/clean with the then-documented mini-issues.
 - Spacing/click/grey-guide refinement: `a80f4a61e556e3a704003be9765b63ece8235062` / `1.11.18-dev`; partial visual feedback confirmed the grey-guide direction.
 - Flyout/native-icon/assets implementation: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` / `1.11.19-dev`; user-tested and not accepted due the current-build findings above.
-- Current corrective runtime: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` / `1.11.20-dev`.
+- Multi-Paladin corrective runtime: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` / `1.11.20-dev`; partially tested, with native-icon crop failure found.
+- Current corrective runtime: `1f784862bc157858ea93cc9cfb205e5485e5ebf7` / `1.11.21-dev`.
 - Paladin spacing: new per-character `assignmentpaladinspacing` default 6 and live 0-50 Advanced Options slider; frame/row anchors include the selected gap.
 - Multi-Paladin linker tail: a full-colour linker still follows the lowest assigned row rule. Empty visible rows below that final assignment receive a separate subdued grey `BORDER`-layer extension ending in the same 32 px fade at the lowest visible slot. A later assignment extends the coloured linker through intermediate empty rows instead.
 - Layering: coloured linker, grey extension and fade are now `BORDER` textures; assignment/header icon content remains `ARTWORK`/`OVERLAY`, so the bars cannot paint over the icon faces.
 - Aura header: restored with retained `assets/aura-mastery.blp` because the attempted native Vanilla `Interface\\Icons\\Spell_Holy_AuraMastery` path does not provide the header texture.
-- Native icon rim: native spell textures used by Assignment/Buff Bar presentation are inset with texture coordinates before PallyPower's independent black frame is drawn. Class glyph assets are not cropped.
+- Native icon rim: `1.11.20-dev` used symmetric `0.07-0.93` texture coordinates and runtime feedback showed that inset was too shallow. `1.11.21-dev` increases the symmetric inset to `0.10-0.90`; class glyph assets remain uncropped. Apparent per-texture centring should be retested before any texture-specific adjustment.
 - Flyout placement: class flyouts remain horizontally centred on the selected class icon but are offset so their bottom starts above the Assignment frame top.
-- Static post-commit audit passed: branch head matched `4a9cca5`; TOC is `1.11.20-dev`; 27 files live under `assets/`; no `artwork/`/`Sounds/` trees or stale HD/usehdicons runtime paths remain; Aura fallback is referenced from UI/core; Paladin slider/grey extension/flyout offsets/native crop paths are present.
-- Canonical Lua 5.0.3 compiler check for `1.11.20-dev`: **not run / not claimed**. The checker is not mounted in the executable environment; `cc` and `git` exist, but the environment cannot resolve GitHub to fetch the external VanillaTemplate checker source.
-- Buff Bar font report: still open. The exact runtime source declarations for the title and summary fonts did not change between `1.11.18-dev` and `1.11.19-dev`, and no earlier approved alternate font target was found in project state; do not silently substitute a guessed font.
-- In-game test of `1.11.20-dev`: not yet performed.
+- Static post-commit audit for `1.11.21-dev`: TOC is `1.11.21-dev`; the native-icon helper uses symmetric `0.10-0.90` coordinates; no font construction was changed by this correction. The prior `1.11.20-dev` asset/path/layout audit remains applicable.
+- Canonical Lua 5.0.3 compiler check for `1.11.21-dev`: **not run / not claimed**. This change is a texture-coordinate/comment edit plus TOC bump; no compiler pass is claimed.
+- Buff Bar font report: still open. Exact source comparison confirms the Buff Bar title and Blessing-summary/count font construction is unchanged from accepted `1.11.14-dev` through `1.11.20-dev`; the HD-icon-removal commit did not directly alter those font lines. Treat the visible runtime difference as unresolved presentation evidence, not as proof of a direct font-code edit, and do not substitute a guessed font.
+- In-game test of `1.11.21-dev`: not yet performed. `1.11.20-dev` received the partial gate result recorded above.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -528,4 +532,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Verify this handoff first in a fresh chat. Do **not** start release-readiness cleanup. Runtime-test exact `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` against the focused numbered gate above. Correct only failures from that gate and bump the TOC for any runtime change. The Buff Bar title-button and Blessing-summary font report remains an explicit unresolved visual item: the declarations did not change in `1.11.19-dev`, so identify the intended font target from runtime/user reference rather than guessing. Only after the current Assignment visual gate and font target are accepted should the two older compatibility checks resume (non-Paladin `/pp test`, then peer verification of dev VERSION-advertisement suppression). Release-readiness remains out of scope.
+Verify this handoff first in a fresh chat. Do **not** start release-readiness cleanup. Runtime-test exact `1.11.21-dev` / `1f784862bc157858ea93cc9cfb205e5485e5ebf7` against the focused numbered gate above, beginning with item 9's stronger native-icon crop; finish the remaining Paladin-dependent checks when a Paladin is available. Correct only failures from that gate and bump the TOC for any runtime change. The Buff Bar title-button and Blessing-summary font report remains explicitly unresolved: source construction is unchanged from `1.11.14-dev` through `1.11.20-dev`, so identify the actual runtime presentation target/cause rather than guessing. Only after the Assignment visual gate and font target are accepted should the two older compatibility checks resume (non-Paladin `/pp test`, then peer verification of dev VERSION-advertisement suppression). Release-readiness remains out of scope.
