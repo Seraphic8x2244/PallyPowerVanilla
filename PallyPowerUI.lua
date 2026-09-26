@@ -142,9 +142,10 @@ end
 
 function PallyPowerUI.CropNativeIcon(texture)
 	if texture and texture.SetTexCoord then
-		-- Native 1.12.1 spell textures carry their own outer rim. Crop only that
-		-- texture edge so PallyPower's separate thin black frame remains the truth.
-		texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+		-- Native/replacement spell textures can carry a substantial baked outer rim.
+		-- Use a stronger symmetric inset so the artwork stays centred while the
+		-- separate thin black PallyPower frame remains the visible edge.
+		texture:SetTexCoord(0.10, 0.90, 0.10, 0.90)
 	end
 	return texture
 end
