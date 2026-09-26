@@ -1082,6 +1082,7 @@ local PP_PerUserDefaults = {
     assignmentlinkwidth = 8,
     assignmentselfbuffspacing = 6,
     assignmentclassspacing = 24,
+    assignmentpaladinspacing = 6,
     judgement_failed_attacks_refresh = false,
     verbose_judgement_refresh = true
 }
@@ -2074,7 +2075,7 @@ function PallyPower_AdjustIcons()
     PallyPower_ClassTexture[9] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-pet.tga"
 
     PallyPower_RighteousFury = "Interface\\Icons\\Spell_Holy_SealOfFury"
-    PallyPower_AuraMastery = "Interface\\Icons\\Spell_Holy_AuraMastery"
+    PallyPower_AuraMastery = "Interface\\AddOns\\PallyPowerVanilla\\assets\\aura-mastery.blp"
     PallyPower_AbilitySeal = "Interface\\Icons\\Ability_ThunderBolt"
 end
 
