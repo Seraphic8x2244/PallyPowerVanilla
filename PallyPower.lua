@@ -1081,8 +1081,8 @@ local PP_PerUserDefaults = {
     usehdicons = false,
     transparency = 0.5,
     assignmentlinkwidth = 8,
-    assignmentselfbuffspacing = 8,
-    assignmentclassspacing = 42,
+    assignmentselfbuffspacing = 6,
+    assignmentclassspacing = 24,
     judgement_failed_attacks_refresh = false,
     verbose_judgement_refresh = true
 }
@@ -2623,13 +2623,6 @@ function PallyPowerGrid_Update(tdiff)
 
             local group = PallyPowerUIRefs.classGroups[ii]
 
-            for jj = 1, PALLYPOWER_MAXPERCLASS do
-                local pbnt = group.playerButtons[jj]
-                pbnt:SetFrameStrata("BACKGROUND")
-                pbnt:SetAlpha(0)
-                pbnt:Hide()
-            end    
-            
             if CurrentBuffs[ii - 1] then
 
                 for unit, stats in CurrentBuffs[ii - 1] do
@@ -2656,6 +2649,9 @@ function PallyPowerGrid_Update(tdiff)
                         end
                         local nameColor = PP_BuffBarClassColors[ii - 1] or {1, 1, 1}
                         pbnt.ppText:SetTextColor(nameColor[1], nameColor[2], nameColor[3])
+                        if PallyPowerUI and PallyPowerUI.AlignPlayerOverrideContent then
+                            PallyPowerUI.AlignPlayerOverrideContent(pbnt)
+                        end
                         pbnt:SetFrameStrata("DIALOG")
                         pbnt:SetAlpha(1)
                         pbnt:Show()
@@ -2671,6 +2667,17 @@ function PallyPowerGrid_Update(tdiff)
 
                 numMaxClass = math.max(numMaxClass, currentPlayer)
 
+            end
+
+            -- Hide only slots that are not populated this update. Keeping active
+            -- buttons continuously shown preserves the MouseDown/MouseUp sequence
+            -- required for registered OnClick handlers.
+            for jj = currentPlayer + 1, PALLYPOWER_MAXPERCLASS do
+                local pbnt = group.playerButtons[jj]
+                pbnt.ppIcon:SetTexture("")
+                pbnt:SetFrameStrata("BACKGROUND")
+                pbnt:SetAlpha(0)
+                pbnt:Hide()
             end
 
         end           

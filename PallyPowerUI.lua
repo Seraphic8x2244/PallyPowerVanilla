@@ -26,8 +26,8 @@ PallyPowerUI.AssignmentLayout = {
 	HEADER_BASE_HEIGHT = 90,
 	PLAYER_LABEL_HEIGHT = 13,
 	FOOTER_HEIGHT = 30,
-	SELF_BUFF_SPACING_DEFAULT = 8,
-	CLASS_SPACING_DEFAULT = 42,
+	SELF_BUFF_SPACING_DEFAULT = 6,
+	CLASS_SPACING_DEFAULT = 24,
 	SPACING_MAX = 50,
 }
 PallyPowerUI.AssignmentLayout.SELF_BUFF_PITCH =
@@ -221,6 +221,48 @@ function PallyPowerUI.CreatePPPlayerOverrideTemplate(name, parent)
 
 	button:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
 	return button
+end
+
+function PallyPowerUI.AlignPlayerOverrideContent(button)
+	if not button or not button.ppText or not button.ppIcon then
+		return
+	end
+
+	local buttonWidth = button:GetWidth() or 84
+	local iconWidth = 12
+	local gap = 2
+	local minimumInset = 2
+	local textWidth = 0
+
+	if button.ppText.GetStringWidth then
+		textWidth = button.ppText:GetStringWidth() or 0
+	end
+
+	local availableTextWidth = buttonWidth - iconWidth - gap - (2 * minimumInset)
+	if availableTextWidth < 1 then
+		availableTextWidth = 1
+	end
+	if textWidth > availableTextWidth then
+		textWidth = availableTextWidth
+	end
+
+	local contentWidth = iconWidth
+	if textWidth > 0 then
+		contentWidth = contentWidth + gap + textWidth
+	end
+
+	local left = math.floor((buttonWidth - contentWidth) / 2)
+	if left < minimumInset then
+		left = minimumInset
+	end
+
+	button.ppIcon:ClearAllPoints()
+	PallyPowerUI.SetPoint(button.ppIcon, "LEFT", button, "LEFT", left, 0)
+
+	button.ppText:ClearAllPoints()
+	PallyPowerUI.SetPoint(button.ppText, "LEFT", button.ppIcon, "RIGHT", gap, 0)
+	button.ppText:SetWidth(buttonWidth - left - iconWidth - gap - minimumInset)
+	button.ppText:SetJustifyH("LEFT")
 end
 
 function PallyPowerUI.CreatePPClassColumnTemplate(name, parent)
@@ -652,6 +694,9 @@ function PallyPowerUI.CreateAssignmentLinker(frame, key, r, g, b)
 	local linker = PallyPowerUI.CreateTexture(frame, nil, "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
 	linker:SetWidth(8)
 	linker:SetVertexColor(r, g, b)
+	linker.ppLinkR = r
+	linker.ppLinkG = g
+	linker.ppLinkB = b
 	linker:Hide()
 	PallyPowerUIRefs.assignmentLinkers[key] = linker
 	return linker
@@ -700,7 +745,6 @@ function PallyPowerUI.ApplyAssignmentSpacing()
 	local specialKeys = {"A", "R", "S", "J"}
 	local specialOffset
 	local classOffset
-	local textWidth
 	local i
 	local j
 	local key
@@ -780,8 +824,6 @@ function PallyPowerUI.ApplyAssignmentSpacing()
 	end
 
 	classOffset = (layout.CLASS_PITCH - layout.CELL_SIZE) / 2
-	textWidth = layout.CLASS_PITCH - 21
-	if textWidth < 10 then textWidth = 10 end
 	for i = 1, 10 do
 		group = refs.classGroups[i]
 		icon = refs.classIcons[i - 1]
@@ -795,9 +837,7 @@ function PallyPowerUI.ApplyAssignmentSpacing()
 					button:SetWidth(layout.CLASS_PITCH)
 					button:ClearAllPoints()
 					PallyPowerUI.SetPoint(button, "TOPLEFT", group, "TOPLEFT", 0, -13 * (j - 1))
-					if button.ppText then
-						button.ppText:SetWidth(textWidth)
-					end
+					PallyPowerUI.AlignPlayerOverrideContent(button)
 				end
 			end
 		end
@@ -848,6 +888,7 @@ function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
 	local linker
 	local headerIcon
 	local lowestIcon
+	local lastVisibleIcon
 	local row
 	local cell
 	local icon
@@ -857,21 +898,37 @@ function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
 		linker = PallyPowerUIRefs.assignmentLinkers[key]
 		headerIcon = PallyPowerUIRefs.classIcons[key]
 		lowestIcon = nil
+		lastVisibleIcon = nil
 
 		for rowIndex = 1, numPallys do
 			row = PallyPowerUIRefs.playerRows[rowIndex]
 			cell = row and row.ppAssignments and row.ppAssignments[key]
 			icon = cell and cell.ppIcon
-			if icon and icon:GetTexture() then
-				lowestIcon = icon
+			if icon then
+				lastVisibleIcon = icon
+				if icon:GetTexture() then
+					lowestIcon = icon
+				end
 			end
 		end
 
 		if linker and headerIcon and lowestIcon then
 			linker:ClearAllPoints()
 			linker:SetWidth(width)
+			linker:SetVertexColor(linker.ppLinkR, linker.ppLinkG, linker.ppLinkB)
+			linker:SetAlpha(1)
 			PallyPowerUI.SetPoint(linker, "TOP", headerIcon, "CENTER", 0, 0)
 			PallyPowerUI.SetPoint(linker, "BOTTOM", lowestIcon, "CENTER", 0, 0)
+			linker:Show()
+		elseif linker and headerIcon and lastVisibleIcon and numPallys > 0 then
+			-- Empty columns keep a subdued guide so the invisible assignment
+			-- cells remain spatially legible without adding placeholder icons.
+			linker:ClearAllPoints()
+			linker:SetWidth(width)
+			linker:SetVertexColor(0.35, 0.35, 0.35)
+			linker:SetAlpha(0.75)
+			PallyPowerUI.SetPoint(linker, "TOP", headerIcon, "CENTER", 0, 0)
+			PallyPowerUI.SetPoint(linker, "BOTTOM", lastVisibleIcon, "CENTER", 0, 0)
 			linker:Show()
 		elseif linker then
 			linker:Hide()
@@ -2066,7 +2123,7 @@ PallyPowerUI.CreateBuffBarUI()
 	slider:SetValueStep(1)
 	if AssignmentSelfBuffSpacingSliderLow then AssignmentSelfBuffSpacingSliderLow:SetText("0") end
 	if AssignmentSelfBuffSpacingSliderHigh then AssignmentSelfBuffSpacingSliderHigh:SetText("50") end
-	if AssignmentSelfBuffSpacingSliderText then AssignmentSelfBuffSpacingSliderText:SetText("8") end
+	if AssignmentSelfBuffSpacingSliderText then AssignmentSelfBuffSpacingSliderText:SetText("6") end
 	slider:SetScript("OnShow", function()
 		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
 			PP_PerUser and PP_PerUser.assignmentselfbuffspacing,
@@ -2096,7 +2153,7 @@ PallyPowerUI.CreateBuffBarUI()
 	slider:SetValueStep(1)
 	if AssignmentClassSpacingSliderLow then AssignmentClassSpacingSliderLow:SetText("0") end
 	if AssignmentClassSpacingSliderHigh then AssignmentClassSpacingSliderHigh:SetText("50") end
-	if AssignmentClassSpacingSliderText then AssignmentClassSpacingSliderText:SetText("42") end
+	if AssignmentClassSpacingSliderText then AssignmentClassSpacingSliderText:SetText("24") end
 	slider:SetScript("OnShow", function()
 		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
 			PP_PerUser and PP_PerUser.assignmentclassspacing,
