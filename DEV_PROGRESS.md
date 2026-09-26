@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.19-dev`
+- Version: `1.11.20-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -32,11 +32,12 @@
 - Assignment Window corrective runtime implementation: `cd22c47987fb3c40b186bc54b221771dfd3af671` (`1.11.17-dev`)
 - Assignment Window current refinement runtime implementation: `a80f4a61e556e3a704003be9765b63ece8235062` (`1.11.18-dev`)
 - Assignment Window flyout/native-icon/assets runtime implementation: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` (`1.11.19-dev`)
-- Branch head before this handoff update: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`
+- Assignment Window multi-Paladin corrective runtime implementation: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` (`1.11.20-dev`)
+- Branch head before this handoff update: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Runtime-validate the completed Assignment Window flyout/native-icon/grey-fade/assets pass before any release-readiness cleanup.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Runtime `1.11.19-dev` / `7baa74e6` implements the finalized class-override flyout, client-native spell icons, thin black icon framing, exact empty-column grey fade, and rulebook `assets/` migration. Static review is complete, but this runtime is **not yet user-accepted**. Do not begin release-readiness cleanup until its focused runtime gate passes. Assignment semantics, comms/data formats and icon sizes remain unchanged.
+- Goal: Runtime-validate the `1.11.20-dev` multi-Paladin/flyout/native-icon corrective pass, then resolve the still-open Buff Bar font presentation report before any release-readiness cleanup.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. User testing of exact `1.11.19-dev` / `7baa74e6` confirmed the fade direction but exposed multi-Paladin spacing/grey-tail needs, a missing Aura header icon, native-texture silver rims and flyout vertical placement. Runtime `1.11.20-dev` / `4a9cca5` corrects those items and awaits in-game validation. The Buff Bar title/blessing-summary font report remains deliberately open because the source font declarations are unchanged between `1.11.18-dev` and `1.11.19-dev`; no replacement font is guessed without a grounded target. Do not begin release-readiness cleanup.
 
 ## Current Design / Development Contract
 
@@ -60,15 +61,15 @@
   - No paladins visible in the Assignment Window => no linkers.
   - Every assignment column supports a linker. Normal class columns use their class colour; Aura/RF/Seal/Judgement use Paladin pink.
   - Assigned columns use the class/special full-colour linker from the header centre to the lowest assigned Paladin row, crossing empty intermediate rows and with no tail below the lowest assignment.
-  - If a Paladin row is visible but the entire column has no assignment, show a subdued grey guide with **no placeholder icon**. Its geometry is exact: solid grey from the centre of the header icon down to the **top edge of the lowest would-be 32x32 assignment icon**, then a smooth alpha fade through that 32 px would-be icon area, reaching zero at its bottom edge. With multiple visible Paladins, this fade occurs only at the lowest visible would-be assignment position. No visible Paladins => no linker/guide.
+  - If a Paladin row is visible but the entire column has no assignment, show a subdued grey guide with **no placeholder icon**. Its geometry is exact: solid grey from the centre of the header icon down to the **top edge of the lowest would-be 32x32 assignment icon**, then a smooth alpha fade through that 32 px would-be icon area, reaching zero at its bottom edge. With multiple visible Paladins, this fade occurs only at the lowest visible would-be assignment position. If a column has an assignment but later visible Paladin rows below the lowest assigned row are empty, the full-colour linker still ends at the lowest assignment centre, then a subdued grey extension continues through the lower empty tail and fades through the lowest visible would-be slot. A later assignment replaces that grey intermediate tail with the normal full-colour linker through the later assigned row. No visible Paladins => no linker/guide.
   - Default linker width is 8 px. Advanced Options control `Assignment Link Width` uses integer range 1-16 px, default 8, updating the visible Assignment Window immediately.
-  - First runtime feedback adds two live per-character layout controls: `Self-Buff Spacing` (empty pixels between Aura/RF/Seal/Judgement icons, integer 0-50, default 6 after runtime tuning) and `Class Spacing` (empty pixels between class-assignment columns and between Judgement/class 0, integer 0-50, default 24 after runtime tuning). Changing either must reflow headers, assignment rows, linkers and class-player interaction widths immediately without changing icon size.
+  - Runtime feedback provides three live per-character spacing controls: `Self-Buff Spacing` (empty pixels between Aura/RF/Seal/Judgement icons, integer 0-50, default 6), `Class Spacing` (empty pixels between class-assignment columns and between Judgement/class 0, integer 0-50, default 24), and `Paladin Spacing` (empty pixels between visible Paladin rows, integer 0-50, initial default 6 for the corrective test build). Changing any of them must reflow the Assignment frame immediately without changing icon size.
   - Icons are the interaction truth/hitboxes. Do not retain or add oversized invisible click/mouse-wheel regions.
   - Remove the permanently visible class-player override-name list from the Assignment Window. Class header icons become the entry point for individual Blessing overrides.
-  - Clicking a class icon opens a compact flyout **above that class icon** containing the current players of that class and their existing individual-Blessing controls. Preserve the established override semantics: left-click cycle, right-click clear, mouse-wheel cycle, hover tooltip.
+  - Clicking a class icon opens a compact flyout horizontally centred on that class icon, with the flyout's bottom edge starting **above the Assignment frame's top edge** rather than inside the header area. It contains the current players of that class and their existing individual-Blessing controls. Preserve the established override semantics: left-click cycle, right-click clear, mouse-wheel cycle, hover tooltip.
   - The main frame gets no persistent override label and no permanent override count/badge unless explicitly requested later. On class-icon hover, show the individual-Blessing tooltip and glow the icon's border in that class colour to make the icon visibly interactive; normally the border is black.
   - Main assignment icons remain vertically aligned by column.
-  - Drop PallyPower-owned HD icon switching/support. Use the client's native `Interface\\Icons\\...` textures so client-wide icon replacement packs apply automatically. Preserve the preferred thin black addon-owned framing around icons; the black frame is presentation and must remain separate from the client texture content.
+  - Drop PallyPower-owned HD icon switching/support. Use the client's native `Interface\\Icons\\...` textures so client-wide icon replacement packs apply automatically. Native spell textures are cropped slightly inside their source rim so the client texture's baked silver/light edge does not become the visible frame; preserve the preferred thin black addon-owned frame separately. Aura Mastery is the documented exception because the Vanilla client path used by `1.11.19-dev` is absent: retain the small existing non-HD Aura Mastery asset as `assets/aura-mastery.blp` for that header only.
   - Widen the fixed paladin-info column enough to fit its contents; do not dynamically size it from player-name length.
   - Each paladin info block uses two internal rows:
     - row 1: group + paladin name on the left; cooldown icons on the right.
@@ -146,6 +147,7 @@
 - Rulebook asset placement is active project scope: retained addon-owned artwork and sounds must move under `assets/`, and obsolete bundled textures should be deleted during that migration.
 
 ## Recent Relevant Commits
+- `4a9cca5` - Correct the user-tested `1.11.19-dev` Assignment presentation in `1.11.20-dev`: add live 0-50 px `Paladin Spacing` (initial default 6), add grey lower-tail extensions/fade below the final assigned Paladin row, force linker/guide textures to the `BORDER` layer behind icons, move class flyouts fully above the Assignment frame, restore the missing Aura Mastery header from a retained non-HD asset, and crop native spell textures inside their baked light/silver rim while retaining PallyPower's separate black frame. Buff Bar font declarations are intentionally unchanged pending an exact target.
 - `7baa74e` - Implement the finalized Assignment Window flyout/native-icon/grey-fade pass and rulebook asset migration; remove the HD-icon option/runtime switching and bundled spell/HD icon copies, move 26 retained presentation/sound files to flat `assets/`, add exact 32x32 class-header hitboxes with class-colour hover glow/tooltip, move individual overrides into one-at-a-time above-header flyouts, add black icon framing, and change empty-column guides to solid grey through the top edge plus a 32 px fade to zero; bump to `1.11.19-dev`.
 - `a80f4a6` - Refine the runtime-tested Assignment Window: set tuned new-character spacing defaults to 6/24, centre each override icon+name pair as a left-oriented visual group, stop hiding active override buttons every frame so registered left-click MouseDown/MouseUp can complete, and add subdued grey guides only for wholly unassigned columns with visible Paladins; bump to `1.11.18-dev`.
 - `cd22c47` - Restore the retained 82 px legacy separator-layout compatibility constant after static review caught three hidden separator construction anchors still reading it; bump the corrected test build to `1.11.17-dev`.
@@ -336,41 +338,50 @@
 ## Testing
 
 ### Last Runtime Test
-- Latest exact full runtime gate remains `1.11.17-dev` / `cd22c47987fb3c40b186bc54b221771dfd3af671`, which the user reported as working cleanly overall with the then-documented mini-issues.
-- `1.11.18-dev` / `a80f4a61e556e3a704003be9765b63ece8235062` received a partial visual follow-up: the user confirmed the subdued grey empty-column guides looked good and then finalized the grey-fade geometry, native/client-icon direction and class-header flyout interaction. That partial screenshot/feedback is **not** a completed runtime gate.
-- `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` has not yet been tested in game.
+- Exact tested runtime: `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`. The user explicitly confirmed the latest screenshot was from this current build; an earlier screenshot in the preceding message was from the previous version.
+- Confirmed good: the new empty-column fade itself looks good, and the grey/linker presentation sits behind the class/assignment icons rather than covering them.
+- Current-build findings:
+  - two visible Paladin rows are too tight vertically; user requested a live `Paladin Spacing` Advanced Option;
+  - when the lowest assignment is above later visible Paladin rows, those lower empty rows need subdued grey continuation/fade; if a later row has an assignment the existing lowest-assigned-row rule should instead carry the full-colour linker through it;
+  - Aura header icon vanished after the native-icon conversion;
+  - native spell icons visibly show a light/silver outer rim; source review confirms PallyPower's added frame is black, so the visible silver edge belongs to the native texture content rather than the addon frame;
+  - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
+  - Buff Bar title-button font and Blessing-summary font are reported as reverted. Source review found those FontObject/font-height declarations unchanged across `1.11.18-dev` -> `1.11.19-dev`; this report is real runtime feedback but its exact intended replacement font is not documented, so it remains open rather than being guessed.
 
 ### Next Runtime Test
-Focused gate for exact runtime `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`:
-1. Load/reload with no Lua/UI errors, open the Assignment Window, and confirm its outer frame/title/footer geometry still looks unchanged.
-2. Confirm spell/blessing/aura/seal/Judgement presentation now uses the client icon set, normal visible Assignment/header icons have the thin black frame, and Advanced Options no longer exposes an HD Icons toggle.
-3. Hover each normal class header icon and confirm only that 32x32 icon gains its class-colour border glow and shows the individual-Blessing flyout tooltip.
-4. Click a populated class header and confirm a compact player-override flyout opens above that icon; click the same icon again to close it, and confirm opening another class closes the previous flyout.
-5. In an open flyout, verify one player override end-to-end: left-click cycles, right-click clears, mouse-wheel cycles in both directions, and the existing override hover tooltip still reflects the current individual Blessing.
-6. Confirm classes with no current players do not create a stray/empty flyout, and no permanent override-name list, label, badge or count remains on the main Assignment frame.
-7. With at least one Paladin visible and a whole assignment column empty, confirm the grey guide is solid from the header centre to the **top edge** of the lowest would-be 32x32 assignment slot, then fades smoothly to zero at that slot's bottom edge; there must be no placeholder icon or empty black icon frame.
-8. Add an assignment in that column and confirm the grey fade disappears, the normal full-colour linker returns, and it stops at the centre of the lowest assigned icon with no coloured tail below.
-9. Remove all visible Paladin rows and confirm no full-colour linker or grey guide remains.
-10. Recheck live Self-Buff Spacing, Class Spacing and Assignment Link Width changes, then move/scale the Assignment frame once; headers, flyouts, rows and linkers must continue to reflow from the existing controls without changing icon size.
-11. Exercise the migrated addon-owned presentation assets once: Assignment toolbar icons, eye/visibility icon, minimap button, and resize grip must all render from the new `assets/` paths.
-12. Recheck Buff Bar Aura and Seal truth once: when the assigned Aura/Seal is active its state should still detect correctly using the native client texture path, and normal Blessing buttons/icons should render normally.
-13. If convenient, trigger the Blessing-expiry sound once to confirm the migrated `assets/ding.mp3` path.
+Focused gate for exact runtime `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da`:
+1. `/reload` and open the Assignment Window with two Paladins; confirm no Lua/UI errors and no regression to the outer frame/title/footer.
+2. In Advanced Options, confirm `Paladin Spacing` appears under the existing spacing controls, defaults to 6 on an unset value, and changing it 0-50 immediately changes only the vertical gap between Paladin rows and the Assignment frame height.
+3. Use a column assigned on Paladin 1 but empty on Paladin 2: full colour must end at Paladin 1's assignment centre, then a subdued grey extension must continue downward and fade through Paladin 2's empty 32x32 slot.
+4. With three Paladins, assign Paladin 3 in that same column while Paladin 2 is empty: the normal full-colour linker must run continuously through the empty intermediate row to Paladin 3's assignment centre; no grey section should replace the intermediate part.
+5. If a still-lower visible Paladin is empty beneath the last assignment, confirm the grey extension resumes only below that final assigned row and fades through the lowest visible empty slot.
+6. Check a wholly unassigned column: grey should still run from header centre to the top edge of the lowest visible would-be assignment slot, then fade to zero through that 32 px slot.
+7. Confirm all coloured/grey linker pieces remain behind header/assignment icons.
+8. Confirm the Aura Mastery header icon is visible again.
+9. Check several native spell/blessing icons at 32 px and on the Buff Bar: the baked light/silver rim should be cropped away while PallyPower's thin black frame remains where intended.
+10. Open a populated class flyout: its bottom edge should sit above the Assignment frame's top border, horizontally centred on the selected class icon; existing left-click/right-click/wheel/tooltip behavior must still work.
+11. Recheck Self-Buff Spacing, Class Spacing and Assignment Link Width once alongside Paladin Spacing to make sure the live reflow paths still compose correctly.
 
-Outstanding compatibility checks remain tracked **after** this focused gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
+Still open after this corrective gate: the reported Buff Bar title-button font and Blessing-summary font. `1.11.20-dev` deliberately does not guess a replacement because the source font definitions did not change in `1.11.19-dev`. Resolve that presentation target before accepting the Assignment redesign as complete.
+
+Older compatibility checks remain after the visual gate: non-Paladin `/pp test`, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
 - First corrective implementation: `cd22c47987fb3c40b186bc54b221771dfd3af671` / `1.11.17-dev`, user-tested as broadly working/clean with the then-documented mini-issues.
-- Spacing/click/grey-guide refinement: `a80f4a61e556e3a704003be9765b63ece8235062` / `1.11.18-dev`; partial visual feedback confirmed the grey-guide direction before the final flyout/native-icon/fade decisions.
-- Current implementation: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` / `1.11.19-dev`.
-- Override presentation: the permanent class-player lists are hidden flyouts anchored above their exact 32x32 class header icons. Only one flyout opens at a time. Existing player-button click/right-click/mouse-wheel/hover handlers are retained rather than rewritten.
-- Class-header interaction: each normal class header has an exact 32x32 Button overlay, normally black-framed; hover adds an additive class-colour border glow and the localized individual-Blessing tooltip.
-- Empty-column guide: the solid grey segment now ends at the top edge of the lowest visible would-be 32x32 assignment slot; a dedicated gradient texture spans that slot and fades from the same grey alpha at its top to zero at its bottom.
-- Icon source: PallyPower no longer reads `PP_PerUser.usehdicons` or switches to bundled `IconsHD` assets. Spell/blessing/aura/seal icons use client `Interface\\Icons\\...` paths; the legacy `PallyPower_UseHDIconsOption()` global is retained as a compatibility entry point that only reapplies the native icon map.
-- Asset migration: static tree review shows exactly 26 retained addon-owned presentation/sound files under flat `assets/`; the old `artwork/` and `Sounds/` trees are absent. Runtime Lua/UI/locale/TOC audit found no stale `PP_PerUser.usehdicons`, `IconsHD`, old addon `artwork` path, or old `Sounds` path.
-- Interaction-geometry static review: class-header flyout entry buttons are exactly 32x32; flyouts anchor above the class texture; persistent Assignment header height no longer grows from player-count labels; assignment icon borders are shown only when an assignment texture exists.
-- Canonical Lua 5.0.3 compiler check for `1.11.19-dev`: **not run / not claimed**. The executable environment has `cc`, but neither Lua 5.0.3 nor the canonical VanillaTemplate checker is mounted, and this environment cannot clone/download the vendored checker source. Static source review completed instead.
-- In-game test of `1.11.19-dev`: not yet performed.
+- Spacing/click/grey-guide refinement: `a80f4a61e556e3a704003be9765b63ece8235062` / `1.11.18-dev`; partial visual feedback confirmed the grey-guide direction.
+- Flyout/native-icon/assets implementation: `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` / `1.11.19-dev`; user-tested and not accepted due the current-build findings above.
+- Current corrective runtime: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` / `1.11.20-dev`.
+- Paladin spacing: new per-character `assignmentpaladinspacing` default 6 and live 0-50 Advanced Options slider; frame/row anchors include the selected gap.
+- Multi-Paladin linker tail: a full-colour linker still follows the lowest assigned row rule. Empty visible rows below that final assignment receive a separate subdued grey `BORDER`-layer extension ending in the same 32 px fade at the lowest visible slot. A later assignment extends the coloured linker through intermediate empty rows instead.
+- Layering: coloured linker, grey extension and fade are now `BORDER` textures; assignment/header icon content remains `ARTWORK`/`OVERLAY`, so the bars cannot paint over the icon faces.
+- Aura header: restored with retained `assets/aura-mastery.blp` because the attempted native Vanilla `Interface\\Icons\\Spell_Holy_AuraMastery` path does not provide the header texture.
+- Native icon rim: native spell textures used by Assignment/Buff Bar presentation are inset with texture coordinates before PallyPower's independent black frame is drawn. Class glyph assets are not cropped.
+- Flyout placement: class flyouts remain horizontally centred on the selected class icon but are offset so their bottom starts above the Assignment frame top.
+- Static post-commit audit passed: branch head matched `4a9cca5`; TOC is `1.11.20-dev`; 27 files live under `assets/`; no `artwork/`/`Sounds/` trees or stale HD/usehdicons runtime paths remain; Aura fallback is referenced from UI/core; Paladin slider/grey extension/flyout offsets/native crop paths are present.
+- Canonical Lua 5.0.3 compiler check for `1.11.20-dev`: **not run / not claimed**. The checker is not mounted in the executable environment; `cc` and `git` exist, but the environment cannot resolve GitHub to fetch the external VanillaTemplate checker source.
+- Buff Bar font report: still open. The exact runtime source declarations for the title and summary fonts did not change between `1.11.18-dev` and `1.11.19-dev`, and no earlier approved alternate font target was found in project state; do not silently substitute a guessed font.
+- In-game test of `1.11.20-dev`: not yet performed.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -517,4 +528,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-In a fresh chat, verify this handoff first. Do **not** start release-readiness cleanup. Runtime-test exact `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa` against the focused numbered Assignment Window gate above. If a gate item fails, correct only that regression, bump the TOC version for any runtime change, and repeat the affected checks. If the focused gate passes, record acceptance before moving to the two older compatibility checks: non-Paladin `/pp test`, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue. Release-readiness remains out of scope until those tracked checks are resolved/accepted.
+Verify this handoff first in a fresh chat. Do **not** start release-readiness cleanup. Runtime-test exact `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` against the focused numbered gate above. Correct only failures from that gate and bump the TOC for any runtime change. The Buff Bar title-button and Blessing-summary font report remains an explicit unresolved visual item: the declarations did not change in `1.11.19-dev`, so identify the intended font target from runtime/user reference rather than guessing. Only after the current Assignment visual gate and font target are accepted should the two older compatibility checks resume (non-Paladin `/pp test`, then peer verification of dev VERSION-advertisement suppression). Release-readiness remains out of scope.
