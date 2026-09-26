@@ -360,10 +360,10 @@ function PallyPowerUI.CreatePPBuffBarCombinedSelfButton(name, parent, x, texture
 		noRF:Hide()
         button.ppLegacyNoRF = noRF
 
-        noRF = PallyPowerUI.CreateTexture(button, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+        noRF = PallyPowerUI.CreateTexture(button, nil, "OVERLAY")
         PallyPowerUI.SetSize(noRF, 22, 22)
         PallyPowerUI.SetPoint(noRF, "CENTER", icon, "CENTER", 0, 0)
-        noRF:SetVertexColor(1, 0, 0)
+        noRF:SetTexture(1, 0, 0)
         noRF:SetAlpha(0.45)
         noRF:Hide()
 		button.ppNoRF = noRF
@@ -570,10 +570,10 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	region:Hide()
     cell.ppLegacyNoRF = region
 
-    region = PallyPowerUI.CreateTexture(cell, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+    region = PallyPowerUI.CreateTexture(cell, nil, "OVERLAY")
     PallyPowerUI.SetSize(region, 32, 32)
     PallyPowerUI.SetPoint(region, "CENTER", cell.ppIcon, "CENTER", 0, 0)
-    region:SetVertexColor(1, 0, 0)
+    region:SetTexture(1, 0, 0)
     region:SetAlpha(0.45)
     region:Hide()
 	cell.ppNoRF = region
@@ -1770,10 +1770,10 @@ function PallyPowerUI.CreateBuffBarUI()
 	region:Hide()
     button.ppLegacyNoRF = region
 
-    region = PallyPowerUI.CreateTexture(button, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+    region = PallyPowerUI.CreateTexture(button, nil, "OVERLAY")
     PallyPowerUI.SetSize(region, 24, 24)
     PallyPowerUI.SetPoint(region, "CENTER", button.ppBuffIcon, "CENTER", 0, 0)
-    region:SetVertexColor(1, 0, 0)
+    region:SetTexture(1, 0, 0)
     region:SetAlpha(0.45)
     region:Hide()
 	button.ppNoRF = region
