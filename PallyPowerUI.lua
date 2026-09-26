@@ -359,14 +359,7 @@ function PallyPowerUI.CreatePPBuffBarCombinedSelfButton(name, parent, x, texture
 		noRF:SetTextColor(1, 0, 0)
 		noRF:Hide()
         button.ppLegacyNoRF = noRF
-
-        noRF = PallyPowerUI.CreateTexture(button, nil, "OVERLAY")
-        PallyPowerUI.SetSize(noRF, 22, 22)
-        PallyPowerUI.SetPoint(noRF, "CENTER", icon, "CENTER", 0, 0)
-        noRF:SetTexture(1, 0, 0)
-        noRF:SetAlpha(0.45)
-        noRF:Hide()
-		button.ppNoRF = noRF
+        button.ppNoRF = noRF
 	end
 
 	button:SetScript("OnLoad", function()
@@ -569,14 +562,7 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	region:SetTextColor(1, 0, 0)
 	region:Hide()
     cell.ppLegacyNoRF = region
-
-    region = PallyPowerUI.CreateTexture(cell, nil, "OVERLAY")
-    PallyPowerUI.SetSize(region, 32, 32)
-    PallyPowerUI.SetPoint(region, "CENTER", cell.ppIcon, "CENTER", 0, 0)
-    region:SetTexture(1, 0, 0)
-    region:SetAlpha(0.45)
-    region:Hide()
-	cell.ppNoRF = region
+    cell.ppNoRF = region
 
 	cell = PallyPowerUI.CreatePPPaladinRowAssignment(frame, "S")
 	frame.ppAssignments.S = cell
@@ -1769,14 +1755,7 @@ function PallyPowerUI.CreateBuffBarUI()
 	region:SetTextColor(1, 0, 0)
 	region:Hide()
     button.ppLegacyNoRF = region
-
-    region = PallyPowerUI.CreateTexture(button, nil, "OVERLAY")
-    PallyPowerUI.SetSize(region, 24, 24)
-    PallyPowerUI.SetPoint(region, "CENTER", button.ppBuffIcon, "CENTER", 0, 0)
-    region:SetTexture(1, 0, 0)
-    region:SetAlpha(0.45)
-    region:Hide()
-	button.ppNoRF = region
+    button.ppNoRF = region
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentSeal", frame)
 	PallyPowerUIRefs.buffSpecialButtons.Seal = button

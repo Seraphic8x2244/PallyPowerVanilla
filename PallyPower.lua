@@ -2584,13 +2584,22 @@ function PallyPowerGrid_Update(tdiff)
                 rfCell:SetAlpha((PallyPower_RFCapabilities[name] == false and rfState ~= "off") and 0.35 or 1)
             end
             if rfState == true then
-                if rfIcon then rfIcon:SetTexture(PallyPower_RighteousFury) end
+                if rfIcon then
+                    rfIcon:SetTexture(PallyPower_RighteousFury)
+                    rfIcon:SetVertexColor(1, 1, 1)
+                end
                 if rfNo then rfNo:Hide() end
             elseif rfState == "off" then
-                if rfIcon then rfIcon:SetTexture(PallyPower_RighteousFury) end
-                if rfNo then rfNo:Show() end
+                if rfIcon then
+                    rfIcon:SetTexture(PallyPower_RighteousFury)
+                    rfIcon:SetVertexColor(1, 0.2, 0.2)
+                end
+                if rfNo then rfNo:Hide() end
             else
-                if rfIcon then rfIcon:SetTexture(nil) end
+                if rfIcon then
+                    rfIcon:SetTexture(nil)
+                    rfIcon:SetVertexColor(1, 1, 1)
+                end
                 if rfNo then rfNo:Hide() end
             end
             i = i + 1
@@ -2995,10 +3004,22 @@ end
 local function PP_SetRFNoOverlay(show)
     local separateButton = PallyPowerUIRefs.buffSpecialButtons.RF
     local combinedButton = PP_GetCombinedSelfSlot("RF")
-    local separate = separateButton and separateButton.ppNoRF
-    local combined = combinedButton and combinedButton.ppNoRF
-    if separate then if show then separate:Show() else separate:Hide() end end
-    if combined then if show then combined:Show() else combined:Hide() end end
+    local separateIcon = separateButton and separateButton.ppBuffIcon
+    local combinedIcon = combinedButton and combinedButton.ppBuffIcon
+    local r, g, b = 1, 1, 1
+    if show then
+        g = 0.2
+        b = 0.2
+    end
+    if separateIcon then separateIcon:SetVertexColor(r, g, b) end
+    if combinedIcon then combinedIcon:SetVertexColor(r, g, b) end
+
+    -- Legacy named NoRF font strings remain present for compatibility, but
+    -- presentation is now a tint on the existing RF icon itself.
+    local separateNoRF = separateButton and separateButton.ppNoRF
+    local combinedNoRF = combinedButton and combinedButton.ppNoRF
+    if separateNoRF then separateNoRF:Hide() end
+    if combinedNoRF then combinedNoRF:Hide() end
 end
 
 local function PallyPower_ApplyCombinedSelfGeometry(frame, horizontal)
