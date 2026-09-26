@@ -5,7 +5,9 @@ PallyPowerUI = PallyPowerUI or {}
 PallyPowerUIRefs = {
 	playerRows = {},
 	classIcons = {},
+	classHeaderButtons = {},
 	classGroups = {},
+	openClassFlyout = nil,
 	specialGroups = {},
 	assignmentLinkers = {},
 	buffButtons = {},
@@ -29,6 +31,9 @@ PallyPowerUI.AssignmentLayout = {
 	SELF_BUFF_SPACING_DEFAULT = 6,
 	CLASS_SPACING_DEFAULT = 24,
 	SPACING_MAX = 50,
+	FLYOUT_WIDTH = 120,
+	FLYOUT_INSET = 4,
+	FLYOUT_GAP = 4,
 }
 PallyPowerUI.AssignmentLayout.SELF_BUFF_PITCH =
 	PallyPowerUI.AssignmentLayout.CELL_SIZE + PallyPowerUI.AssignmentLayout.SELF_BUFF_SPACING_DEFAULT
@@ -133,6 +138,98 @@ function PallyPowerUI.SetFontStyle(fontString, height, outline)
 	return fontString
 end
 
+function PallyPowerUI.SetBorderColor(frame, r, g, b, a)
+	if not frame or not frame.ppBorderTextures then return end
+	local i
+	for i = 1, 4 do
+		frame.ppBorderTextures[i]:SetVertexColor(r, g, b, a or 1)
+	end
+end
+
+function PallyPowerUI.CreateIconBorderFrame(parent, icon, width, height, frameType)
+	local border = PallyPowerUI.CreateFrame(frameType or "Frame", nil, parent)
+	local top
+	local bottom
+	local left
+	local right
+
+	PallyPowerUI.SetSize(border, width, height)
+	PallyPowerUI.SetPoint(border, "CENTER", icon, "CENTER", 0, 0)
+	border.ppIcon = icon
+	border.ppBorderTextures = {}
+
+	top = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(top, width, 1)
+	PallyPowerUI.SetPoint(top, "TOP", border, "TOP", 0, 0)
+	border.ppBorderTextures[1] = top
+
+	bottom = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(bottom, width, 1)
+	PallyPowerUI.SetPoint(bottom, "BOTTOM", border, "BOTTOM", 0, 0)
+	border.ppBorderTextures[2] = bottom
+
+	left = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(left, 1, height)
+	PallyPowerUI.SetPoint(left, "LEFT", border, "LEFT", 0, 0)
+	border.ppBorderTextures[3] = left
+
+	right = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	PallyPowerUI.SetSize(right, 1, height)
+	PallyPowerUI.SetPoint(right, "RIGHT", border, "RIGHT", 0, 0)
+	border.ppBorderTextures[4] = right
+
+	PallyPowerUI.SetBorderColor(border, 0, 0, 0, 1)
+	return border
+end
+
+function PallyPowerUI.CreateClassHeaderButton(parent, classID, icon, color)
+	local button = PallyPowerUI.CreateIconBorderFrame(parent, icon, 32, 32, "Button")
+	local glow = {}
+	local i
+	local edge
+
+	button.ppClass = classID
+	button.ppClassColor = color
+	button.ppGlowTextures = glow
+	button:RegisterForClicks("LeftButtonUp")
+
+	for i = 1, 4 do
+		edge = PallyPowerUI.CreateTexture(button, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+		edge:SetVertexColor(color[1], color[2], color[3], 1)
+		edge:SetBlendMode("ADD")
+		glow[i] = edge
+	end
+	PallyPowerUI.SetSize(glow[1], 32, 2)
+	PallyPowerUI.SetPoint(glow[1], "TOP", button, "TOP", 0, 0)
+	PallyPowerUI.SetSize(glow[2], 32, 2)
+	PallyPowerUI.SetPoint(glow[2], "BOTTOM", button, "BOTTOM", 0, 0)
+	PallyPowerUI.SetSize(glow[3], 2, 32)
+	PallyPowerUI.SetPoint(glow[3], "LEFT", button, "LEFT", 0, 0)
+	PallyPowerUI.SetSize(glow[4], 2, 32)
+	PallyPowerUI.SetPoint(glow[4], "RIGHT", button, "RIGHT", 0, 0)
+	for i = 1, 4 do glow[i]:Hide() end
+
+	button:SetScript("OnClick", function()
+		PallyPowerUI.ToggleClassFlyout(this.ppClass)
+	end)
+	button:SetScript("OnEnter", function()
+		local j
+		for j = 1, 4 do this.ppGlowTextures[j]:Show() end
+		GameTooltip:SetOwner(this, "ANCHOR_TOP")
+		GameTooltip:SetText(PALLYPOWER_TOOLTIP_CLASS_OVERRIDES, 1, 1, 1)
+		GameTooltip:AddLine(PALLYPOWER_TOOLTIP_CLASS_OVERRIDES_DESC, 0.9, 0.9, 0.9, 1)
+		GameTooltip:Show()
+	end)
+	button:SetScript("OnLeave", function()
+		local j
+		for j = 1, 4 do this.ppGlowTextures[j]:Hide() end
+		GameTooltip:Hide()
+	end)
+
+	PallyPowerUIRefs.classHeaderButtons[classID] = button
+	return button
+end
+
 function PallyPowerUI.CreatePPResizeGripTemplate(name, parent)
 	local button = PallyPowerUI.CreateFrame("Button", name, parent)
 	PallyPowerUI.SetSize(button, 16, 16)
@@ -142,8 +239,8 @@ function PallyPowerUI.CreatePPResizeGripTemplate(name, parent)
 	button:SetScript("OnMouseUp", function()
 		PallyPower_StopScaling(arg1)
 	end)
-	button:SetNormalTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\PallyPower-ResizeGrip")
-	button:SetHighlightTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\PallyPower-ResizeGrip")
+	button:SetNormalTexture("Interface\\AddOns\\PallyPowerVanilla\\assets\\PallyPower-ResizeGrip.tga")
+	button:SetHighlightTexture("Interface\\AddOns\\PallyPowerVanilla\\assets\\PallyPower-ResizeGrip.tga")
 	button:GetHighlightTexture():SetBlendMode("ADD")
 	return button
 end
@@ -155,10 +252,12 @@ function PallyPowerUI.CreatePPAssignmentCellTemplate(name, parent)
 	PallyPowerUI.SetSize(button, 32, 32)
 	button:EnableMouseWheel(true)
 
-	icon = PallyPowerUI.CreateTexture(button, "$parentIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
+	icon = PallyPowerUI.CreateTexture(button, "$parentIcon", "OVERLAY", "Interface\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.SetSize(icon, 32, 32)
 	PallyPowerUI.SetPoint(icon, "TOPLEFT", button, "TOPLEFT", 0, 0)
 	button.ppIcon = icon
+	button.ppIconBorder = PallyPowerUI.CreateIconBorderFrame(button, icon, 32, 32)
+	button.ppIconBorder:Hide()
 
 	button:SetScript("OnLoad", function()
 		PallyPowerGridButton_OnLoad(this)
@@ -197,11 +296,13 @@ function PallyPowerUI.CreatePPPlayerOverrideTemplate(name, parent)
 	text:SetText("PlayerButton")
 	text:SetJustifyH("LEFT")
 
-	icon = PallyPowerUI.CreateTexture(button, "$parentIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
+	icon = PallyPowerUI.CreateTexture(button, "$parentIcon", "OVERLAY", "Interface\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.SetSize(icon, 12, 12)
 	PallyPowerUI.SetPoint(icon, "LEFT", button, "LEFT", 5, 0)
 	button.ppText = text
 	button.ppIcon = icon
+	button.ppIconBorder = PallyPowerUI.CreateIconBorderFrame(button, icon, 12, 12)
+	button.ppIconBorder:Hide()
 
 	button:SetScript("OnLoad", function()
 		this:RegisterForClicks("LeftButtonUp", "RightButtonUp", "MiddleButtonUp")
@@ -266,16 +367,28 @@ function PallyPowerUI.AlignPlayerOverrideContent(button)
 end
 
 function PallyPowerUI.CreatePPClassColumnTemplate(name, parent)
+	local layout = PallyPowerUI.AssignmentLayout
 	local frame = PallyPowerUI.CreateFrame("Frame", name, parent)
 	local line
 	local i
 	local button
 
-	PallyPowerUI.SetSize(frame, 84, 26)
-	frame:EnableMouse(true)
+	PallyPowerUI.SetSize(frame, layout.FLYOUT_WIDTH, 1)
+	frame:EnableMouse(false)
+	PallyPowerUI.SetBackdrop(
+		frame,
+		"Interface\\Tooltips\\UI-Tooltip-Background",
+		"Interface\\Tooltips\\UI-Tooltip-Border",
+		true, 8, 8, 3, 3, 3, 3
+	)
+	frame:SetBackdropColor(0.05, 0.05, 0.05, 0.95)
+	frame:SetBackdropBorderColor(0.35, 0.35, 0.35, 1)
+	frame:SetFrameStrata("DIALOG")
+	frame.ppPlayerCount = 0
+	frame:Hide()
 
 	line = PallyPowerUI.CreateTexture(frame, "$parentLine", "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
-	PallyPowerUI.SetSize(line, 2, 212)
+	PallyPowerUI.SetSize(line, 1, 1)
 	PallyPowerUI.SetPoint(line, "TOPLEFT", frame, "TOPLEFT", 0, 0)
 	frame.ppLine = line
 	line:Hide()
@@ -283,11 +396,52 @@ function PallyPowerUI.CreatePPClassColumnTemplate(name, parent)
 
 	for i = 1, 15 do
 		button = PallyPowerUI.CreatePPPlayerOverrideTemplate("$parentPlayerButton" .. i, frame)
-		PallyPowerUI.SetPoint(button, "TOPLEFT", frame, "TOPLEFT", 3, -13 * (i - 1))
+		button:SetWidth(layout.FLYOUT_WIDTH - (2 * layout.FLYOUT_INSET))
+		PallyPowerUI.SetPoint(
+			button, "BOTTOMLEFT", frame, "BOTTOMLEFT",
+			layout.FLYOUT_INSET,
+			layout.FLYOUT_INSET + (layout.PLAYER_LABEL_HEIGHT * (i - 1))
+		)
 		frame.playerButtons[i] = button
 	end
 
 	return frame
+end
+
+function PallyPowerUI.UpdateClassFlyout(group, playerCount)
+	local layout = PallyPowerUI.AssignmentLayout
+	local count = playerCount or 0
+	local height = (2 * layout.FLYOUT_INSET) + (count * layout.PLAYER_LABEL_HEIGHT)
+
+	group.ppPlayerCount = count
+	if height < 1 then height = 1 end
+	group:SetHeight(height)
+
+	if count <= 0 and group:IsShown() then
+		group:Hide()
+		if PallyPowerUIRefs.openClassFlyout == group then
+			PallyPowerUIRefs.openClassFlyout = nil
+		end
+	end
+end
+
+function PallyPowerUI.ToggleClassFlyout(classID)
+	local refs = PallyPowerUIRefs
+	local group = refs.classGroups[classID + 1]
+
+	if refs.openClassFlyout then
+		local previous = refs.openClassFlyout
+		refs.openClassFlyout = nil
+		previous:Hide()
+		if previous == group then
+			return
+		end
+	end
+
+	if group and group.ppPlayerCount and group.ppPlayerCount > 0 then
+		group:Show()
+		refs.openClassFlyout = group
+	end
 end
 
 function PallyPowerUI.CreatePPSpecialColumnTemplate(name, parent)
@@ -342,12 +496,12 @@ function PallyPowerUI.CreatePPBuffBarBlessingTemplate(name, parent)
 	region:SetJustifyH("RIGHT")
 	button.ppText = region
 
-	region = PallyPowerUI.CreateTexture(button, "$parentClassIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Paladin")
+	region = PallyPowerUI.CreateTexture(button, "$parentClassIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-paladin.tga")
 	PallyPowerUI.SetSize(region, 24, 24)
 	PallyPowerUI.SetPoint(region, "LEFT", button, "LEFT", 3, 0)
 	button.ppClassIcon = region
 
-	region = PallyPowerUI.CreateTexture(button, "$parentBuffIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
+	region = PallyPowerUI.CreateTexture(button, "$parentBuffIcon", "OVERLAY", "Interface\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.SetSize(region, 24, 24)
 	PallyPowerUI.SetPoint(region, "LEFT", button, "LEFT", 33, 0)
 	button.ppBuffIcon = region
@@ -391,7 +545,7 @@ function PallyPowerUI.CreatePPBuffBarSpecialTemplate(name, parent)
 		true, 8, 8, 2, 2, 3, 2
 	)
 
-	icon = PallyPowerUI.CreateTexture(button, "$parentBuffIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfFury")
+	icon = PallyPowerUI.CreateTexture(button, "$parentBuffIcon", "OVERLAY", "Interface\\Icons\\Spell_Holy_SealOfFury")
 	PallyPowerUI.SetSize(icon, 24, 24)
 	PallyPowerUI.SetPoint(icon, "CENTER", button, "CENTER", 0, 0)
 	button.ppBuffIcon = icon
@@ -548,12 +702,12 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 164, -25)
 	frame.ppSymbolIcon = region
 
-	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 0, 4, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfWisdom")
-	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 1, 24, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_FistOfJustice")
-	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 2, 44, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfSalvation")
-	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 3, 64, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_PrayerOfHealing02")
-	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 4, 84, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Magic_MageArmor")
-	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 5, 104, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Nature_LightningShield")
+	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 0, 4, "Interface\\Icons\\Spell_Holy_SealOfWisdom")
+	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 1, 24, "Interface\\Icons\\Spell_Holy_FistOfJustice")
+	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 2, 44, "Interface\\Icons\\Spell_Holy_SealOfSalvation")
+	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 3, 64, "Interface\\Icons\\Spell_Holy_PrayerOfHealing02")
+	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 4, 84, "Interface\\Icons\\Spell_Magic_MageArmor")
+	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 5, 104, "Interface\\Icons\\Spell_Nature_LightningShield")
 
 	-- Keep legacy named line regions for compatibility, but remove their presentation.
 	region = PallyPowerUI.CreateTexture(frame, "$parentLine", "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
@@ -692,12 +846,16 @@ end
 
 function PallyPowerUI.CreateAssignmentLinker(frame, key, r, g, b)
 	local linker = PallyPowerUI.CreateTexture(frame, nil, "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
+	local fade = PallyPowerUI.CreateTexture(frame, nil, "ARTWORK", "Interface\\Tooltips\\UI-Tooltip-Background")
 	linker:SetWidth(8)
 	linker:SetVertexColor(r, g, b)
 	linker.ppLinkR = r
 	linker.ppLinkG = g
 	linker.ppLinkB = b
+	linker.ppFade = fade
 	linker:Hide()
+	fade:SetWidth(8)
+	fade:Hide()
 	PallyPowerUIRefs.assignmentLinkers[key] = linker
 	return linker
 end
@@ -716,6 +874,7 @@ function PallyPowerUI.SetAssignmentLinkWidth(value)
 	local linker
 	for key, linker in pairs(PallyPowerUIRefs.assignmentLinkers) do
 		linker:SetWidth(width)
+		if linker.ppFade then linker.ppFade:SetWidth(width) end
 	end
 	return width
 end
@@ -828,15 +987,19 @@ function PallyPowerUI.ApplyAssignmentSpacing()
 		group = refs.classGroups[i]
 		icon = refs.classIcons[i - 1]
 		if group and icon then
-			group:SetWidth(layout.CLASS_PITCH)
+			group:SetWidth(layout.FLYOUT_WIDTH)
 			group:ClearAllPoints()
-			PallyPowerUI.SetPoint(group, "TOPLEFT", icon, "BOTTOMLEFT", -classOffset, -12)
+			PallyPowerUI.SetPoint(group, "BOTTOM", icon, "TOP", 0, layout.FLYOUT_GAP)
 			for j = 1, 15 do
 				button = group.playerButtons and group.playerButtons[j]
 				if button then
-					button:SetWidth(layout.CLASS_PITCH)
+					button:SetWidth(layout.FLYOUT_WIDTH - (2 * layout.FLYOUT_INSET))
 					button:ClearAllPoints()
-					PallyPowerUI.SetPoint(button, "TOPLEFT", group, "TOPLEFT", 0, -13 * (j - 1))
+					PallyPowerUI.SetPoint(
+						button, "BOTTOMLEFT", group, "BOTTOMLEFT",
+						layout.FLYOUT_INSET,
+						layout.FLYOUT_INSET + (layout.PLAYER_LABEL_HEIGHT * (j - 1))
+					)
 					PallyPowerUI.AlignPlayerOverrideContent(button)
 				end
 			end
@@ -886,16 +1049,19 @@ function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
 	local rowIndex
 	local key
 	local linker
+	local fade
 	local headerIcon
 	local lowestIcon
 	local lastVisibleIcon
 	local row
 	local cell
 	local icon
+	local texture
 
 	for i = 1, 14 do
 		key = columns[i]
 		linker = PallyPowerUIRefs.assignmentLinkers[key]
+		fade = linker and linker.ppFade
 		headerIcon = PallyPowerUIRefs.classIcons[key]
 		lowestIcon = nil
 		lastVisibleIcon = nil
@@ -906,8 +1072,12 @@ function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
 			icon = cell and cell.ppIcon
 			if icon then
 				lastVisibleIcon = icon
-				if icon:GetTexture() then
+				texture = icon:GetTexture()
+				if texture and texture ~= "" then
 					lowestIcon = icon
+					if cell.ppIconBorder then cell.ppIconBorder:Show() end
+				elseif cell.ppIconBorder then
+					cell.ppIconBorder:Hide()
 				end
 			end
 		end
@@ -920,18 +1090,41 @@ function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
 			PallyPowerUI.SetPoint(linker, "TOP", headerIcon, "CENTER", 0, 0)
 			PallyPowerUI.SetPoint(linker, "BOTTOM", lowestIcon, "CENTER", 0, 0)
 			linker:Show()
+			if fade then fade:Hide() end
 		elseif linker and headerIcon and lastVisibleIcon and numPallys > 0 then
-			-- Empty columns keep a subdued guide so the invisible assignment
-			-- cells remain spatially legible without adding placeholder icons.
 			linker:ClearAllPoints()
 			linker:SetWidth(width)
 			linker:SetVertexColor(0.35, 0.35, 0.35)
 			linker:SetAlpha(0.75)
 			PallyPowerUI.SetPoint(linker, "TOP", headerIcon, "CENTER", 0, 0)
-			PallyPowerUI.SetPoint(linker, "BOTTOM", lastVisibleIcon, "CENTER", 0, 0)
+			PallyPowerUI.SetPoint(linker, "BOTTOM", lastVisibleIcon, "TOP", 0, 0)
 			linker:Show()
+
+			if fade then
+				fade:ClearAllPoints()
+				fade:SetWidth(width)
+				PallyPowerUI.SetPoint(fade, "TOP", lastVisibleIcon, "TOP", 0, 0)
+				PallyPowerUI.SetPoint(fade, "BOTTOM", lastVisibleIcon, "BOTTOM", 0, 0)
+				fade:SetGradientAlpha(
+					"VERTICAL",
+					0.35, 0.35, 0.35, 0,
+					0.35, 0.35, 0.35, 0.75
+				)
+				fade:Show()
+			end
 		elseif linker then
 			linker:Hide()
+			if fade then fade:Hide() end
+		end
+	end
+
+	for rowIndex = numPallys + 1, 12 do
+		row = PallyPowerUIRefs.playerRows[rowIndex]
+		if row and row.ppAssignments then
+			for i = 1, 14 do
+				cell = row.ppAssignments[columns[i]]
+				if cell and cell.ppIconBorder then cell.ppIconBorder:Hide() end
+			end
 		end
 	end
 end
@@ -939,7 +1132,7 @@ end
 function PallyPowerUI.UpdateAssignmentGeometry(numPallys, numMaxClass)
 	local layout = PallyPowerUI.AssignmentLayout
 	PallyPowerUI.ApplyAssignmentSpacing()
-	local headerHeight = layout.HEADER_BASE_HEIGHT + (layout.PLAYER_LABEL_HEIGHT * numMaxClass)
+	local headerHeight = layout.HEADER_BASE_HEIGHT
 	local i
 
 	PallyPowerFrame:SetWidth(layout.FRAME_WIDTH)
@@ -1000,7 +1193,7 @@ function PallyPowerUI.CreateAssignmentEyeButton(frame, name, relativeTo, onClick
 
 	icon = PallyPowerUI.CreateTexture(
 		button, "$parentIcon", "ARTWORK",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On"
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\visibility-on.tga"
 	)
 	PallyPowerUI.SetSize(icon, 18, 18)
 	PallyPowerUI.SetPoint(icon, "CENTER", button, "CENTER", 0, 0)
@@ -1028,16 +1221,16 @@ function PallyPowerUI.CreateAssignmentUI()
 	local row
 	local oldThis
 	local classTextures = {
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Warrior",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Rogue",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Priest",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Druid",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Paladin",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Hunter",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Mage",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Warlock",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Shaman",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Pet",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-warrior.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-rogue.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-priest.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-druid.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-paladin.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-hunter.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-mage.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-warlock.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-shaman.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-pet.tga",
 	}
 	local classLinkColors = {
 		{0.78, 0.61, 0.43},
@@ -1126,27 +1319,30 @@ function PallyPowerUI.CreateAssignmentUI()
 
 	region = PallyPowerUI.CreateTexture(
 		frame, "$parentClassA", "ARTWORK",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_AuraMastery"
+		"Interface\\Icons\\Spell_Holy_AuraMastery"
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", layout.HEADER_FIRST_ICON_LEFT, -layout.HEADER_ICON_TOP)
 	PallyPowerUIRefs.classIcons.A = region
+	PallyPowerUI.CreateIconBorderFrame(frame, region, 32, 32)
 
 	region = PallyPowerUI.CreateTexture(
 		frame, "$parentClassR", "ARTWORK",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Spell_Holy_SealOfFury"
+		"Interface\\Icons\\Spell_Holy_SealOfFury"
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.A, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	PallyPowerUIRefs.classIcons.R = region
+	PallyPowerUI.CreateIconBorderFrame(frame, region, 32, 32)
 
 	region = PallyPowerUI.CreateTexture(
 		frame, "$parentClassS", "ARTWORK",
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Ability_Thunderbolt"
+		"Interface\\Icons\\Ability_Thunderbolt"
 	)
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.R, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	PallyPowerUIRefs.classIcons.S = region
+	PallyPowerUI.CreateIconBorderFrame(frame, region, 32, 32)
 
 	region = PallyPowerUI.CreateTexture(
 		frame, "$parentClassJ", "ARTWORK",
@@ -1155,6 +1351,7 @@ function PallyPowerUI.CreateAssignmentUI()
 	PallyPowerUI.SetSize(region, 32, 32)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", PallyPowerUIRefs.classIcons.S, "TOPLEFT", layout.SELF_BUFF_PITCH, 0)
 	PallyPowerUIRefs.classIcons.J = region
+	PallyPowerUI.CreateIconBorderFrame(frame, region, 32, 32)
 
 	for i = 0, 9 do
 		region = PallyPowerUI.CreateTexture(frame, "$parentClass" .. i, "ARTWORK", classTextures[i + 1])
@@ -1173,6 +1370,7 @@ function PallyPowerUI.CreateAssignmentUI()
 			)
 		end
 		PallyPowerUIRefs.classIcons[i] = region
+		PallyPowerUI.CreateClassHeaderButton(frame, i, region, classLinkColors[i + 1])
 	end
 
 	PallyPowerUI.CreateAssignmentEyeButton(
@@ -1224,7 +1422,7 @@ function PallyPowerUI.CreateAssignmentUI()
 
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "$parentCloseButton", -6,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\close.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\close.tga",
 		function() HideUIPanel(this:GetParent()) end
 	)
 
@@ -1274,7 +1472,7 @@ function PallyPowerUI.CreateAssignmentUI()
 
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "$parentRefresh", -29,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\rotate.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\rotate.tga",
 		function() PallyPower_Refresh() end
 	)
 
@@ -1283,39 +1481,39 @@ function PallyPowerUI.CreateAssignmentUI()
 
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "$parentClear", -52,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\bin.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\bin.tga",
 		function() PallyPower_ConfirmClear() end
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "$parentOptions", -75,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\config.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\config.tga",
 		function() PallyPower_Options() end
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "$parentResetPosition", -98,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\position.tga",
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\position.tga",
 		function() PallyPower_ResetPosition() end
 	)
 
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "PP_UI_LockButton", -213,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\lock.tga"
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\lock.tga"
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "PP_UI_VerboseButton", -190,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\text.tga"
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\text.tga"
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "PP_UI_SoundButton", -167,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\sound.tga"
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\sound.tga"
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "PP_UI_OrientationButton", -144,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\orientation.tga"
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\orientation.tga"
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "PP_UI_FeedbackButton", -121,
-		"Interface\\AddOns\\PallyPowerVanilla\\artwork\\announce.tga"
+		"Interface\\AddOns\\PallyPowerVanilla\\assets\\announce.tga"
 	)
 
 	button = PallyPowerUI.CreateFrame("Button", "$parentPresets", frame, "GameMenuButtonTemplate")
@@ -1358,9 +1556,9 @@ function PallyPowerUI.CreateAssignmentUI()
 	for i = 1, 10 do
 		group = PallyPowerUI.CreatePPClassColumnTemplate("$parentClassGroup" .. i, frame)
 		PallyPowerUI.SetPoint(
-			group, "TOPLEFT",
+			group, "BOTTOM",
 			PallyPowerUIRefs.classIcons[i - 1],
-			"BOTTOMLEFT", -25, -12
+			"TOP", 0, layout.FLYOUT_GAP
 		)
 		PallyPowerUIRefs.classGroups[i] = group
 	end
@@ -1440,8 +1638,8 @@ function PallyPowerUI.CreateMinimapPresetUI()
 	button:SetWidth(32)
 	button:SetHeight(32)
 	button:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
-	button:SetNormalTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Minimap")
-	button:SetPushedTexture("Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\Minimap_Down")
+	button:SetNormalTexture("Interface\\AddOns\\PallyPowerVanilla\\assets\\minimap.tga")
+	button:SetPushedTexture("Interface\\AddOns\\PallyPowerVanilla\\assets\\minimap-down.tga")
 	button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 	button:GetHighlightTexture():SetBlendMode("ADD")
 	button:SetScript("OnLoad", function()
@@ -1858,10 +2056,6 @@ PallyPowerUI.CreateBuffBarUI()
 		300, 16, "TOPLEFT", 7, -410, "LEFT"
 	)
 	PallyPowerUI.CreateAdvancedOptionsLabel(
-		frame, "$parentOption14", "GameFontHighlight", PALLYPOWER_OPTIONS_USE_HDICONS,
-		300, 16, "TOPLEFT", 18, -149, "LEFT"
-	)
-	PallyPowerUI.CreateAdvancedOptionsLabel(
 		frame, "$parentCombineSelfBuffsLabel", "GameFontHighlight", PALLYPOWER_UI_COMBINE_SELF_BUFFS,
 		260, 16, "TOPLEFT", 18, -252, "LEFT"
 	)
@@ -2065,17 +2259,6 @@ PallyPowerUI.CreateBuffBarUI()
 			PallyPower_UseUnitXPSP3Option()
 		end
 	)
-	PallyPowerUI.CreateAdvancedOptionsCheckButton(
-		frame, "UseHDIconsOptionChk", -30, -149,
-		function()
-			if PP_PerUser.usehdicons then this:SetChecked(true) else this:SetChecked(false) end
-		end,
-		function()
-			PP_PerUser.usehdicons = this:GetChecked()
-			PallyPower_UseHDIconsOption()
-		end
-	)
-
 	slider = PallyPowerUI.CreateFrame("Slider", "TransparencyOptionSlider", frame, "OptionsSliderTemplate")
 	PallyPowerUI.SetSize(slider, 210, 16)
 	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -174)

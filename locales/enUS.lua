@@ -113,7 +113,6 @@ PALLYPOWER_OPTIONS_PLAY_SOUND = "Play sound when blessings expire";
 PALLYPOWER_OPTIONS_HORIZONTAL_LAYOUT = "Horizontal BuffBar layout";
 PALLYPOWER_OPTIONS_HIDE_BLIZZ_AURA = "Hide Blizzard aura frame";
 PALLYPOWER_OPTIONS_USE_UNITXP_SP3_LOS = "Use UnitXP_SP3.dll for Line of Sight check";
-PALLYPOWER_OPTIONS_USE_HDICONS = "Use HD Icons";
 PALLYPOWER_OPTIONS_TRANSPARENCY = "Global Transparency";
 
 PALLYPOWER_TEXT_DROPDOWN_SAVENEW = "Save New Set";
@@ -252,6 +251,8 @@ PALLYPOWER_TOOLTIP_SECONDS_SUFFIX = " sec"
 PALLYPOWER_TOOLTIP_PRESENT_ON_TARGET = "Present on target"
 PALLYPOWER_TOOLTIP_MISSING_FROM_TARGET = "Missing from target"
 PALLYPOWER_TOOLTIP_BLESSING_OF = "Blessing of "
+PALLYPOWER_TOOLTIP_CLASS_OVERRIDES = "Individual Blessing Overrides"
+PALLYPOWER_TOOLTIP_CLASS_OVERRIDES_DESC = "Click to show or hide player overrides for this class. Left-click cycles, right-click clears, and the mouse wheel cycles blessings."
 
 PALLYPOWER_TOOLTIP_AURA_SUFFIX = " Aura"
 PALLYPOWER_TOOLTIP_SEAL_OF = "Seal of "
