@@ -1080,6 +1080,7 @@ local PP_PerUserDefaults = {
     useunitxp_sp3 = false,
     usehdicons = false,
     transparency = 0.5,
+    assignmentlinkwidth = 8,
     judgement_failed_attacks_refresh = false,
     verbose_judgement_refresh = true
 }
@@ -2665,23 +2666,7 @@ function PallyPowerGrid_Update(tdiff)
 
         end           
 
-        PallyPowerFrame:SetHeight(10 + 14 + 34 + 52 + (numPallys * 76) + 10 + (13 * numMaxClass)) -- Reduced footer by 12px: keeps multi-Paladin growth unchanged while tightening the bottom control band
-        PallyPowerUIRefs.playerRows[1]:ClearAllPoints()
-        PallyPowerUIRefs.playerRows[1]:SetPoint("TOPLEFT", PallyPowerFrame, "TOPLEFT", 8, -90 - 13 * numMaxClass)
-		for i = 1, PALLYPOWER_MAXCLASSES do
-			PallyPowerUIRefs.classGroups[i].ppLine:SetHeight(2 + 13 * numMaxClass)
-        end
-        PallyPowerUIRefs.specialGroups.A.ppLine:SetHeight(2 + 13 * numMaxClass)
-        PallyPowerUIRefs.specialGroups.S.ppLine:SetHeight(2 + 13 * numMaxClass)
-        PallyPowerUIRefs.specialGroups.R.ppLine:SetHeight(2 + 13 * numMaxClass)
-        PallyPowerUIRefs.specialGroups.J.ppLine:SetHeight(2 + 13 * numMaxClass)
-        for i = 1, 12 do
-            if i <= numPallys then
-                PallyPowerUIRefs.playerRows[i]:Show()
-            else
-                PallyPowerUIRefs.playerRows[i]:Hide()
-            end
-        end
+        PallyPowerUI.UpdateAssignmentGeometry(numPallys, numMaxClass)
     end
 end
 
