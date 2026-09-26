@@ -205,49 +205,32 @@ end
 
 function PallyPowerUI.CreateClassHeaderButton(parent, classID, icon, color)
 	local button = PallyPowerUI.CreateIconBorderFrame(parent, icon, 32, 32, "Button")
-	local glow = {}
-	local i
-	local edge
 
 	button.ppClass = classID
 	button.ppClassColor = color
-	button.ppGlowTextures = glow
 	button:RegisterForClicks("LeftButtonUp")
-
-	for i = 1, 4 do
-		edge = PallyPowerUI.CreateTexture(button, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
-		edge:SetVertexColor(color[1], color[2], color[3], 1)
-		edge:SetBlendMode("ADD")
-		glow[i] = edge
-	end
-	PallyPowerUI.SetSize(glow[1], 32, 2)
-	PallyPowerUI.SetPoint(glow[1], "TOP", button, "TOP", 0, 0)
-	PallyPowerUI.SetSize(glow[2], 32, 2)
-	PallyPowerUI.SetPoint(glow[2], "BOTTOM", button, "BOTTOM", 0, 0)
-	PallyPowerUI.SetSize(glow[3], 2, 32)
-	PallyPowerUI.SetPoint(glow[3], "LEFT", button, "LEFT", 0, 0)
-	PallyPowerUI.SetSize(glow[4], 2, 32)
-	PallyPowerUI.SetPoint(glow[4], "RIGHT", button, "RIGHT", 0, 0)
-	for i = 1, 4 do glow[i]:Hide() end
 
 	button:SetScript("OnClick", function()
 		PallyPowerUI.ToggleClassFlyout(this.ppClass)
 	end)
 	button:SetScript("OnEnter", function()
-		local j
-		for j = 1, 4 do this.ppGlowTextures[j]:Show() end
+		PallyPowerUI.SetBorderColor(
+			this,
+			this.ppClassColor[1],
+			this.ppClassColor[2],
+			this.ppClassColor[3],
+			1
+		)
 		GameTooltip:SetOwner(this, "ANCHOR_TOP")
 		GameTooltip:SetText(PALLYPOWER_TOOLTIP_CLASS_OVERRIDES, 1, 1, 1)
 		GameTooltip:AddLine(PALLYPOWER_TOOLTIP_CLASS_OVERRIDES_DESC, 0.9, 0.9, 0.9, 1)
 		GameTooltip:Show()
 	end)
 	button:SetScript("OnLeave", function()
-		local j
-		for j = 1, 4 do this.ppGlowTextures[j]:Hide() end
+		PallyPowerUI.SetBorderColor(this, 0, 0, 0, 1)
 		GameTooltip:Hide()
 	end)
 
-	PallyPowerUIRefs.classHeaderButtons[classID] = button
 	return button
 end
 
