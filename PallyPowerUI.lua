@@ -15,6 +15,8 @@ PallyPowerUIRefs = {
 }
 
 PallyPowerUI.AssignmentLayout = {
+	-- Retained only for hidden legacy separator compatibility objects.
+	COLUMN_WIDTH = 82,
 	CELL_SIZE = 32,
 	ROW_HEIGHT = 44,
 	PALADIN_INFO_WIDTH = 184,
