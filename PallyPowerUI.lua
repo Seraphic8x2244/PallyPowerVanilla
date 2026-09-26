@@ -179,22 +179,26 @@ function PallyPowerUI.CreateIconBorderFrame(parent, icon, width, height, frameTy
 	border.ppIcon = icon
 	border.ppBorderTextures = {}
 
-	top = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	top = PallyPowerUI.CreateTexture(border, nil, "OVERLAY")
+	top:SetTexture(1, 1, 1, 1)
 	PallyPowerUI.SetSize(top, width, 2)
 	PallyPowerUI.SetPoint(top, "TOP", border, "TOP", 0, 0)
 	border.ppBorderTextures[1] = top
 
-	bottom = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	bottom = PallyPowerUI.CreateTexture(border, nil, "OVERLAY")
+	bottom:SetTexture(1, 1, 1, 1)
 	PallyPowerUI.SetSize(bottom, width, 2)
 	PallyPowerUI.SetPoint(bottom, "BOTTOM", border, "BOTTOM", 0, 0)
 	border.ppBorderTextures[2] = bottom
 
-	left = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	left = PallyPowerUI.CreateTexture(border, nil, "OVERLAY")
+	left:SetTexture(1, 1, 1, 1)
 	PallyPowerUI.SetSize(left, 2, height)
 	PallyPowerUI.SetPoint(left, "LEFT", border, "LEFT", 0, 0)
 	border.ppBorderTextures[3] = left
 
-	right = PallyPowerUI.CreateTexture(border, nil, "OVERLAY", "Interface\\Tooltips\\UI-Tooltip-Background")
+	right = PallyPowerUI.CreateTexture(border, nil, "OVERLAY")
+	right:SetTexture(1, 1, 1, 1)
 	PallyPowerUI.SetSize(right, 2, height)
 	PallyPowerUI.SetPoint(right, "RIGHT", border, "RIGHT", 0, 0)
 	border.ppBorderTextures[4] = right
