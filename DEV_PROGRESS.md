@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.11-dev`
+- Version: `1.11.12-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -23,11 +23,12 @@
 - Stage 7 ninth-slice runtime implementation: `177a980a97cffc1cad22746dfea0490f40e89ca6` (`1.11.10-dev`)
 - Stage 7 ninth-slice user-tested build: `177a980a97cffc1cad22746dfea0490f40e89ca6` (`1.11.10-dev`)
 - Post-Stage-7 consolidated cleanup runtime implementation: `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182` (`1.11.11-dev`)
-- Branch head before this handoff update: `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182`
+- NoRF overlay corrective runtime implementation: `2e6a8e5bd3a78c9960146ed35bc31900a58f744a` (`1.11.12-dev`)
+- Branch head before this handoff update: `2e6a8e5bd3a78c9960146ed35bc31900a58f744a`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
-- Current scope boundary: Stage 7 is complete. One consolidated post-Stage-7 cleanup build (`1.11.11-dev`) intentionally bundles the previously deferred Paladin-state, preset, override-tooltip, mouse-wheel and NoRF visual fixes so they can be runtime-tested in a single game session. Preserve compatibility globals and existing assignment/comms formats.
+- Current scope boundary: Stage 7 is complete. The consolidated post-Stage-7 cleanup is largely user-verified from `1.11.11-dev`; `1.11.12-dev` changes only the failed NoRF overlay rendering from a tinted file texture to a true solid red color texture. Preserve compatibility globals and existing assignment/comms formats.
 
 ## Current Design / Development Contract
 
@@ -110,6 +111,8 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `2e6a8e5` - Fix the invisible NoRF overlay by using a true solid red texture with alpha instead of tinting `UI-Tooltip-Background`; preserve the hidden legacy named X regions and bump to `1.11.12-dev`.
+- `145b0ec` - Sync the updated development rulebook; current canonical compiler validation is Lua 5.0.3. No addon runtime files changed.
 - `3fb5aa0` - Bundle the post-Stage-7 runtime cleanups into `1.11.11-dev`: suppress VERSION advertisement on `-dev`, unify internal Paladin-state reads on `PP_IsPally` while retaining `IsPally`, restore RF/Judgement preset loading/saving, live-refresh override tooltips, enable/fix mouse-wheel cycling, and replace the visible NoRF X with red icon overlays while preserving legacy named X regions hidden.
 - `0cfdf96` - Close Stage 7 after the final compatibility-bound `getglobal()` audit; no addon runtime files changed.
 - `177a980` - Replace the eight self-buff/special-layout `getglobal()` lookups with constructor-owned direct references and bump the testable build to `1.11.10-dev`.
@@ -271,7 +274,9 @@
 - Stage 7 ninth slice is compiler-checked and user-verified on `1.11.10-dev` / `177a980a97cffc1cad22746dfea0490f40e89ca6`. Separate and combined self-buff modes, Aura/RF/Seal icons and backdrop states, clicking, the existing NoRF indicator, and horizontal/vertical geometry all passed runtime validation.
 - Stage 7 final audit is complete: the remaining 10 `getglobal()` calls are intentional template/dynamic compatibility lookups and are not candidates for further naming cleanup. Stage 7 closes with nine user-verified runtime slices; no tenth runtime delta is needed.
 - Tentative runtime observation on `1.11.11-dev`: user may be seeing a short hitch when many raid/party members become buffed in a burst. This is not yet established as a regression. Static review found no new per-member work in the mass-buff/raid-scan path from the consolidated cleanup; the existing scanner still defaults to `scanperframe = 1` and completes with the normal `PallyPower_UpdateUI()` refresh. Reproduce before changing performance behavior.
-- Post-Stage-7 consolidated cleanup build `1.11.11-dev` / `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182` is implemented and compiler-checked but not yet user runtime-tested. It intentionally combines the deferred fixes into one reload/test cycle: `PP_IsPally` is the internal Paladin-state source with legacy `IsPally` synchronized; `/pp test` therefore remains visible on non-Paladins; presets explicitly persist/restore RF and Judgement with backward fallback; player override tooltips rebuild immediately after click/wheel changes; all four Lua-created controls with wheel handlers now call `EnableMouseWheel(true)` and player-wheel direction is implemented; NoRF runtime presentation uses red overlays while the named legacy X font strings remain hidden for compatibility; and `-dev` builds suppress only the `VERSION ...` advertisement message.
+- Post-Stage-7 consolidated cleanup runtime results on exact `1.11.11-dev` / `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182`: RF/Judgement preset restore passed; player override tooltip now updates immediately and player-button mouse-wheel works; mouse-wheel cycling works everywhere tested; normal Paladin operation appears good. The NoRF state logic still cycled correctly, but the new translucent red overlay was not visible. Non-Paladin `/pp test` remains untested. Dev VERSION advertisement suppression remains statically verified but has not received a separate peer-client runtime observation.
+- NoRF corrective build `1.11.12-dev` / `2e6a8e5bd3a78c9960146ed35bc31900a58f744a` changes only overlay rendering: the runtime overlay is now an unnamed solid red texture using `SetTexture(1, 0, 0)` plus alpha, while the old named X font strings remain present and hidden for compatibility. This delta awaits runtime validation.
+- NoRF corrective real Lua 5.0.3 validation passed in VanillaTemplate run `36230916118`, job `108373778622`, validation commit `d158f9614e88119983e161c70893971bb20d40c3`: self-test passed and `Lua 5.0.3 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `ed64b58b56aea6a055b8aaecce5bceb7457d11b0`, `PallyPowerUI.lua` `a534bb816a36859ee3c422af3b0b888c163d24ef`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #19 was closed and its branch reset to the current VanillaTemplate baseline afterward.
 - Consolidated build real Lua 5.0.2 validation passed in VanillaTemplate run `36190224173`, job `108253302916`, validation commit `f9f35d0b147dd4fd92aff1575a8efbd7bde39f12`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `ed64b58b56aea6a055b8aaecce5bceb7457d11b0`, `PallyPowerUI.lua` `682544c161244e8cc32be94ca43ce0894ebd4467`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #18 was closed and its branch reset to the VanillaTemplate baseline afterward.
 - Remaining `getglobal()` lines after the ninth slice: 10 in `PallyPower.lua`, 0 in `PallyPowerUI.lua`.
 - Ninth-slice real Lua 5.0.2 validation passed in VanillaTemplate run `36185293881`, job `108237076001`, validation commit `1cd6f271d8dd89d969af0a226a892e520a86e7e7`: self-test passed and `Lua 5.0.2 syntax check passed: 3 file(s).` Checked blobs were `PallyPower.lua` `17a4dd211faa193489846128f2dc9d0f0f123d48`, `PallyPowerUI.lua` `18aef63feaaf9564c881b31864f36dbcedf92c75`, and `locales/enUS.lua` `a6a022b5a540bf4c99d61754f72bea7421471eeb`. Temporary validation PR #17 was closed and its branch reset to the VanillaTemplate baseline afterward.
@@ -284,21 +289,14 @@
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.10-dev` / runtime build `177a980a97cffc1cad22746dfea0490f40e89ca6`.
-- Environment/use: separate and combined self-buff modes plus horizontal/vertical Buff Bar layout.
-- Result: all tested paths passed: Aura/RF/Seal icons and backdrop states, clicking, existing NoRF indicator behavior, combined slots, and both layout orientations.
-- Acceptance: Stage 7 ninth slice is user-verified.
+- Version/build: `1.11.11-dev` / runtime build `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182`.
+- Result: RF/Judgement presets passed; live override-tooltip refresh passed; mouse-wheel cycling passed everywhere tested; normal Paladin behavior appears good. NoRF assignment logic still worked, but the new red overlay was not visible. Non-Paladin `/pp test` was not tested.
+- Acceptance: all tested consolidated-cleanup behavior except NoRF presentation is inherited as known-good into `1.11.12-dev`; the overlay rendering delta remains untested.
 
 ### Next Runtime Test
-- Version/build: `1.11.11-dev` / runtime `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182`.
-- One-session consolidated gate; no restart between items is required beyond loading this build.
-- Dev VERSION suppression: while grouped with another PallyPower client, confirm normal assignment/state comms still work. A `-dev` build must not advertise its own `VERSION ...` message as a newer release.
-- `/pp test` on a non-Paladin: enable a test profile and confirm the Buff Bar remains visible/usable instead of blinking away; disable test mode and confirm normal non-Paladin visibility returns.
-- Presets: save two presets with different RF states (including explicit NoRF/unassigned if practical) and different Judgement assignments, swap between them, and confirm both RF and Judgement restore with the preset alongside the existing Blessing/Aura/Seal data.
-- Player overrides: while keeping the pointer over a populated player override button, left-click to cycle and right-click to clear; the tooltip should update/disappear immediately without requiring mouse re-entry.
-- Mouse wheel: verify wheel cycling now works on player override buttons, assignment-grid cells, and Buff Bar controls that have wheel handlers. On player overrides, wheel down should cycle forward and wheel up backward; Buff Bar/grid behavior should follow their existing direction rules.
-- NoRF visual: explicit NoRF should show a translucent red overlay/tint over the RF icon in the assignment row, separate Buff Bar RF button, and combined self-buff RF slot. No red X should be visible; cycling away from NoRF should remove the overlay.
-- Run a normal Paladin smoke check afterward (Buff Bar, assignments and casting) to ensure the `PP_IsPally` cleanup did not alter normal Paladin behavior.
+1. On `1.11.12-dev` / `2e6a8e5bd3a78c9960146ed35bc31900a58f744a`, cycle RF to explicit NoRF and confirm a translucent red overlay is visibly drawn over the RF icon; cycle away and confirm it disappears. Check the assignment-row RF icon and whichever Buff Bar self-RF presentation you normally use.
+2. When next convenient on a non-Paladin, run `/pp test prot` (or another profile), confirm the Buff Bar remains visible/usable, then `/pp test off` and confirm normal non-Paladin hiding returns.
+3. Peer VERSION suppression is still runtime-unobserved: a `-dev` build should continue normal PallyPower comms but must not send its own `VERSION ...` advertisement. This is a simple centralized static gate and does not require another code change unless contradicted in runtime.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -446,4 +444,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test the consolidated post-Stage-7 build `3fb5aa00086aa509c6df8fc47a3a1d7c712cd182` (`1.11.11-dev`) using the single-session checklist above. Record each sub-area separately as pass/fail against this exact build. Do not split or version-bump again unless a failing sub-area requires a corrective runtime delta. If the consolidated gate passes, the next step is release-readiness review/promotion planning from the fully tested development baseline.
+Runtime-test the NoRF rendering correction on exact build `2e6a8e5bd3a78c9960146ed35bc31900a58f744a` (`1.11.12-dev`) using item 1 above. Preserve the already-passed `1.11.11-dev` behaviors unless the new build shows a regression. Non-Paladin `/pp test` remains an independent outstanding check for whenever that character context is convenient. If the NoRF correction passes and no regression appears, proceed to release-readiness review while recording any still-unobserved compatibility checks honestly.
