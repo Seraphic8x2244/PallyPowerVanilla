@@ -142,10 +142,19 @@ end
 
 function PallyPowerUI.CropNativeIcon(texture)
 	if texture and texture.SetTexCoord then
-		-- Native/replacement spell textures can carry a substantial baked outer rim.
-		-- Use a stronger symmetric inset so the artwork stays centred while the
-		-- separate thin black PallyPower frame remains the visible edge.
-		texture:SetTexCoord(0.10, 0.90, 0.10, 0.90)
+		-- Four source pixels on a 64x64 icon: enough to remove the normal baked
+		-- client rim without over-zooming replacement icon packs.
+		texture:SetTexCoord(0.0625, 0.9375, 0.0625, 0.9375)
+	end
+	return texture
+end
+
+function PallyPowerUI.CropClassIcon(texture)
+	if texture and texture.SetTexCoord then
+		-- Retained class assets are 64x64 and carry a baked outer rim/band.
+		-- Crop four source pixels symmetrically; keep per-class centring untouched
+		-- unless runtime evidence shows a specific source image needs correction.
+		texture:SetTexCoord(0.0625, 0.9375, 0.0625, 0.9375)
 	end
 	return texture
 end
@@ -513,6 +522,7 @@ function PallyPowerUI.CreatePPBuffBarBlessingTemplate(name, parent)
 	region = PallyPowerUI.CreateTexture(button, "$parentClassIcon", "OVERLAY", "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-paladin.tga")
 	PallyPowerUI.SetSize(region, 24, 24)
 	PallyPowerUI.SetPoint(region, "LEFT", button, "LEFT", 3, 0)
+	PallyPowerUI.CropClassIcon(region)
 	button.ppClassIcon = region
 
 	region = PallyPowerUI.CreateTexture(button, "$parentBuffIcon", "OVERLAY", "Interface\\Icons\\Spell_Holy_SealOfWisdom")
@@ -1456,6 +1466,7 @@ function PallyPowerUI.CreateAssignmentUI()
 	for i = 0, 9 do
 		region = PallyPowerUI.CreateTexture(frame, "$parentClass" .. i, "ARTWORK", classTextures[i + 1])
 		PallyPowerUI.SetSize(region, 32, 32)
+		PallyPowerUI.CropClassIcon(region)
 		if i == 0 then
 			PallyPowerUI.SetPoint(
 				region, "TOPLEFT",
