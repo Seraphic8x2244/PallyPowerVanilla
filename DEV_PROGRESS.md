@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.15-dev`
+- Version: `1.11.17-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -28,11 +28,13 @@
 - RF/Judgement grid-wheel routing corrective runtime implementation: `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`)
 - RF/Judgement grid-wheel routing user-tested build: `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`)
 - Assignment Window redesign runtime implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` (`1.11.15-dev`)
-- Branch head before this handoff update: `c2d0778d4e34e89efb398c2a78d916fac76235a8`
+- Assignment Window first corrective runtime implementation: `76a50880420ca6378d23e005bd6aedd40d5a8086` (`1.11.16-dev`)
+- Assignment Window current corrective runtime implementation: `cd22c47987fb3c40b186bc54b221771dfd3af671` (`1.11.17-dev`)
+- Branch head before this handoff update: `cd22c47987fb3c40b186bc54b221771dfd3af671`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
 - Goal: Complete the finalized Assignment Window presentation redesign and its focused runtime gate before release-readiness.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. The presentation-only Assignment Window redesign is implemented in `1.11.15-dev` at `c2d0778`; it is statically reviewed but not yet runtime-tested. Assignment semantics, comms/data formats, column order, icon artwork/sizes and existing window/background/chrome remain unchanged except for the explicitly redesigned geometry/hitbox presentation.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. The first Assignment Window redesign runtime `1.11.15-dev` / `c2d0778` received a focused in-game pass and is **not yet accepted**: its visible UI, header/row mouse-wheel paths and overall redesign were broadly successful, but invisible off-frame player-override hitboxes remained active and horizontal spacing required refinement. Corrective runtime `1.11.17-dev` / `cd22c47` is implemented and awaiting focused retest. Assignment semantics, comms/data formats and icon sizes remain unchanged; the corrective delta is limited to input visibility and the requested spacing presentation/options.
 
 ## Current Design / Development Contract
 
@@ -56,9 +58,10 @@
   - No paladins visible in the Assignment Window => no linkers.
   - Every assignment column supports a linker. Normal class columns use their class colour; Aura/RF/Seal/Judgement use Paladin pink.
   - A linker is visible only when that column has at least one assignment somewhere in the displayed paladin rows. Its lower extent reaches the lowest paladin row with an assignment in that column; therefore it passes through empty intermediate paladin slots. If nobody has an assignment in the column, no linker is drawn.
-  - Default linker width is 8 px. Add Advanced Options control `Assignment Link Width`, integer range 1-16 px, default 8, updating the visible Assignment Window immediately.
-  - Icons are the interaction truth/hitboxes. Do not retain or add oversized invisible click/mouse-wheel regions.
-  - Player label/header arrangement: individual-blessing icon immediately left of player name; player name left-aligned; fixed name position whether the individual icon exists or not; name starts slightly left of the left edge of its class icon; header area may expand upward rather than stealing vertical room from paladin rows.
+  - Default linker width is 8 px. Advanced Options control `Assignment Link Width` uses integer range 1-16 px, default 8, updating the visible Assignment Window immediately.
+  - First runtime feedback adds two live per-character layout controls: `Self-Buff Spacing` (empty pixels between Aura/RF/Seal/Judgement icons, integer 0-50, default 8) and `Class Spacing` (empty pixels between class-assignment columns and between Judgement/class 0, integer 0-50, default 42). Changing either must reflow headers, assignment rows, linkers and class-player interaction widths immediately without changing icon size.
+  - Icons are the interaction truth/hitboxes. Do not retain or add oversized invisible click/mouse-wheel regions. Inactive class-player override buttons must be hidden, not merely alpha-zero, so they cannot intercept input outside the visible frame.
+  - Player label/header arrangement: individual-blessing icon immediately left of player name; player name left-aligned; fixed name position whether the individual icon exists or not; name starts slightly left of the left edge of its class icon; header area may expand upward rather than stealing vertical room from paladin rows. The first runtime pass showed these class-player labels naturally between the header icon row and assignment rows; the user explicitly prefers that presentation, so retain it.
   - Main assignment icons remain vertically aligned by column.
   - Widen the fixed paladin-info column enough to fit its contents; do not dynamically size it from player-name length.
   - Each paladin info block uses two internal rows:
@@ -133,6 +136,8 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `cd22c47` - Restore the retained 82 px legacy separator-layout compatibility constant after static review caught three hidden separator construction anchors still reading it; bump the corrected test build to `1.11.17-dev`.
+- `76a5088` - Apply the first Assignment Window runtime corrections: hide inactive class-player override buttons so alpha-zero controls cannot intercept off-frame input, tighten the Symbol-of-Kings count presentation, add live 0-50 px Self-Buff/Class Spacing controls, and reflow headers/rows/linkers/player hitboxes from those values; initial corrective build `1.11.16-dev`.
 - `c2d0778` - Implement the finalized gridless Assignment Window redesign and bump to `1.11.15-dev`: exact Lua layout constants, fixed two-row 184 px Paladin info block, 32x32 assignment icon interaction cells, hidden legacy grid regions, class-colour centre-to-centre linkers, and live 1-16 px `Assignment Link Width` control. Assignment storage/comms paths are untouched.
 - `d0a44be` - Fix grid mouse-wheel routing for RF/Judgement by mapping `R`/`J` tokens before numeric coercion; bump to `1.11.14-dev`.
 - `833881e` - Remove the separate visible NoRF overlay region and tint the existing RF icon directly for NoRF; restore normal icon tint when cycling away and bump to `1.11.13-dev`.
@@ -319,35 +324,35 @@
 ## Testing
 
 ### Last Runtime Test
-- Version/build: `1.11.14-dev` / runtime build `d0a44be85627a05d3c4e621fc490b44f951d88da`.
-- Result: RF grid mouse-wheel works in both directions without error, Judgement grid mouse-wheel works, a normal numeric class cell still works, and the direct red NoRF tint remains correct.
-- Acceptance: the RF/Judgement grid-wheel routing correction and direct-icon NoRF presentation are user-verified.
+- Version/build: `1.11.15-dev` / runtime payload `c2d0778d4e34e89efb398c2a78d916fac76235a8`.
+- Positive results: the redesigned Assignment Window looks broadly good; normal UI operation works; mouse-wheel assignment changes work on all tested visible headers and on Revenga's visible Paladin row; the class-player labels appearing between the class headers and assignment rows are explicitly accepted/preferred by the user.
+- Required corrections: moving/wheeling below the visible lower edge could still show a tooltip/change assignments, consistent with invisible inactive class-player override buttons remaining mouse-enabled at alpha 0. Horizontal spacing also needed refinement: the six blessing-capability icons read too far from the Symbol-of-Kings area, Aura/RF/Seal/Judgement were too widely spaced as one uniform 82 px grid, and class columns should be independently tunable.
+- Acceptance: **NOT ACCEPTED YET**. The redesign direction is accepted, but the interaction leak and spacing refinements require a corrective runtime retest.
 
 ### Next Runtime Test
-Focused gate for exact runtime `1.11.15-dev` / `c2d0778d4e34e89efb398c2a78d916fac76235a8`:
-1. Open the Assignment Window with no visible Paladins and confirm no linker strips are shown.
-2. With one or more Paladins visible, confirm the grey grid/separator lines are gone while the outer backdrop/border, title/chrome and bottom Smart Buffs / Free Assignment area remain normal.
-3. Verify assignment click and mouse-wheel behavior across Aura/RF/Seal/Judgement and normal class columns; interaction should now be confined to the visible 32x32 assignment icon area.
-4. Verify class linkers use the corresponding class colour and Aura/RF/Seal/Judgement use Paladin pink.
-5. Verify a linker appears only for a column with at least one assignment, reaches exactly from the header-icon centre to the lowest assigned Paladin icon centre, crosses empty intermediate Paladin rows, and has no tail below the lowest assignment.
-6. In Advanced Options, change `Assignment Link Width` across 1-16 px and confirm the visible linkers update immediately; default/new-character value is 8 px.
-7. Verify class-player labels show the individual-blessing icon immediately left of the fixed left-aligned player name, without the name shifting when no individual blessing exists.
-8. Verify each Paladin info block is a clean two-row layout: group + name left and cooldown icons right on row 1; six blessing slots, spacer, Symbol count and Symbol icon on row 2; cooldowns align to the Symbol-icon right boundary.
-9. Verify multiple Paladins stack cleanly with no row divider, assignment columns stay vertically aligned, capability tooltips still work, and the RF explicit-off red icon state remains correct.
-10. Exercise frame scaling/movement and a populated class-player list to confirm the expanded header/row geometry remains stable.
+Focused correction gate for exact runtime `1.11.17-dev` / `cd22c47987fb3c40b186bc54b221771dfd3af671`:
+1. With only the visible Paladin rows populated, move the cursor below the Assignment Window's lower edge and mouse-wheel/click across the former invisible class-player area; confirm there is no tooltip and no assignment change.
+2. Confirm visible class-player labels remain between the class-header icons and assignment rows, with their blessing icon/name click, hover and mouse-wheel behaviour still working.
+3. Confirm the six blessing-capability icons and Symbol-of-Kings count/icon now read as one coherent second-row block; cooldown icons must remain aligned to the Symbol-icon right boundary.
+4. In Advanced Options, change `Self-Buff Spacing` from compact to wide values (0-50) and confirm Aura/RF/Seal/Judgement headers, Paladin-row cells and their linkers reflow immediately; new/default value is 8 px.
+5. Change `Class Spacing` across 0-50 and confirm all class headers, Paladin-row cells, linkers and populated class-player labels reflow immediately without overlapping interaction regions; new/default value is 42 px.
+6. Recheck mouse-wheel/click on Aura/RF/Seal/Judgement, one normal class header and Revenga's corresponding row cells after changing both spacing sliders.
+7. Confirm linker width still updates live, linker strips remain centre-to-centre with no lower tail, and the outer frame/chrome/footer resize correctly at compact and wide spacing.
+8. Exercise frame movement/scaling once at a non-default spacing and confirm geometry remains stable.
 
 Outstanding compatibility checks remain tracked after this focused gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
 
 ### Assignment Window Redesign Validation State
-- Implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
-- Geometry audit: complete. The pre-redesign Lua used 80x54 assignment buttons around 32x32 icons, visible grey separators at the root/class/special/row levels, 76 px Paladin rows and an approximately 128 px three-tier Paladin-info area.
-- Static review: passed for the documented redesign boundary. The runtime diff is limited to Assignment geometry/UI construction, the new per-user linker-width default, one localized label and the required TOC version bump; no assignment-storage or communications code changed.
-- Layout result: 82 px column pitch retained; assignment interaction cells are exactly 32x32; fixed Paladin-info width is 184 px with 44 px two-row Paladin rows; header and row assignment centres derive from the same constants.
-- Grid compatibility: legacy named separator/line regions remain present but hidden; they no longer own visible layout geometry.
-- Linkers: all 14 columns are supported; special columns use Paladin pink, class columns use class colours, and visibility/extent derives from rendered assignment icons in displayed Paladin rows.
-- Advanced Options: `Assignment Link Width` persists in `PP_PerUser.assignmentlinkwidth`, defaults to 8, clamps to integer 1-16 and updates linker width immediately.
-- Canonical Lua 5.0.3 compiler check: **not run in this chat**. The canonical checker is present in `Seraphic8x2244/VanillaTemplate/tools/lua50/`, but it is not mounted in the executable environment; outbound Git access from the container is unavailable and no system Lua/luac is installed. Do not treat this as a compiler pass.
-- In-game test: not yet performed.
+- Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
+- First in-game focused pass: **partial pass / correction required**. Visible layout and tested visible click/wheel paths work; class-player label placement is now intentionally retained. Off-frame invisible interaction and horizontal spacing prevented acceptance.
+- Corrective implementation: `76a50880420ca6378d23e005bd6aedd40d5a8086` / `1.11.16-dev`, followed by static corrective runtime `cd22c47987fb3c40b186bc54b221771dfd3af671` / `1.11.17-dev`.
+- Input correction: inactive class-player override buttons are now explicitly `Hide()`d and only populated buttons are `Show()`n. This addresses the concrete alpha-zero mouse/mouse-wheel interception path without changing assignment semantics.
+- Layout correction: Aura/RF/Seal/Judgement and class areas now use separate live spacing values while retaining exact 32x32 assignment cells. Class-player button widths follow class pitch so compact spacing does not create overlapping invisible hitboxes.
+- Paladin-info correction: the Symbol count region is widened/moved left and left-justified so the visible count sits closer to the six blessing-capability slots while the Symbol icon and cooldown right boundary remain fixed.
+- Advanced Options: `Assignment Link Width` remains 1-16/default 8. New `Self-Buff Spacing` is 0-50/default 8 and `Class Spacing` is 0-50/default 42; both persist in `PP_PerUser` and apply live.
+- Static review of the first corrective diff found one real issue before runtime testing: removing the old shared `COLUMN_WIDTH` constant left three hidden legacy separator anchors reading nil. `cd22c47` restores that compatibility-only constant and bumps the runtime to `1.11.17-dev`. The remaining `COLUMN_WIDTH` reads are limited to those hidden compatibility regions.
+- Canonical Lua 5.0.3 compiler check for `1.11.17-dev`: **not run / not claimed in this chat**. The canonical checker exists in VanillaTemplate but is not mounted in the executable environment; there is no system Lua/luac and outbound Git is unavailable from the container.
+- In-game test of `1.11.17-dev`: not yet performed.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -481,7 +486,7 @@ After generated-name/global lookup cleanup:
 - SavedVariables redesign.
 - Communication protocol redesign.
 - Keybinding-system redesign or removal of `Bindings.xml`.
-- Visual redesign of Buff Bar or unrelated Advanced Options surfaces. The Assignment Window redesign and its single linker-width option are now explicitly in scope as documented above.
+- Visual redesign of Buff Bar or unrelated Advanced Options surfaces. The Assignment Window redesign and its three documented layout controls (link width, self-buff spacing and class spacing) are explicitly in scope; broader visual-option expansion remains out of scope.
 - Feature expansion unrelated to the migration.
 - Broader module split beyond the deliberate `PallyPowerUI.lua` separation.
 - Modernizing legacy `this`/`arg1` callback style before the XML-free parity checkpoint.
@@ -495,4 +500,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Runtime-test the exact Assignment Window redesign payload `c2d0778d4e34e89efb398c2a78d916fac76235a8` (`1.11.15-dev`) using the focused gate above. Do not start release-readiness cleanup until this presentation/interaction delta is accepted or corrected. If executable access to the canonical VanillaTemplate Lua 5.0.3 checker becomes available, run it against the changed runtime Lua files before claiming compiler validation. The two older compatibility checks remain tracked after this gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
+Runtime-test the exact corrective Assignment Window payload `cd22c47987fb3c40b186bc54b221771dfd3af671` (`1.11.17-dev`) using the focused correction gate above. Record the results against that exact payload and make only corrections those results require. Do **not** begin release-readiness cleanup until the redesign is explicitly accepted. The two older compatibility checks remain tracked after this gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
