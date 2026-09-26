@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.14-dev`
+- Version: `1.11.15-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -27,11 +27,12 @@
 - NoRF direct-icon-tint corrective runtime implementation: `833881ebdcefe7f59e7b8b7d9d18157ea7356172` (`1.11.13-dev`)
 - RF/Judgement grid-wheel routing corrective runtime implementation: `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`)
 - RF/Judgement grid-wheel routing user-tested build: `d0a44be85627a05d3c4e621fc490b44f951d88da` (`1.11.14-dev`)
-- Branch head before this handoff update: `688d6e0d95b677fa2fb800f6ac0968cb87a108b6`
+- Assignment Window redesign runtime implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` (`1.11.15-dev`)
+- Branch head before this handoff update: `c2d0778d4e34e89efb398c2a78d916fac76235a8`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Convert the addon-owned UI from `PallyPower.xml` to Lua in staged parity-preserving steps, then separately modernize the legacy frame-naming/getglobal machinery after an explicit runtime-tested XML-free baseline is established.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup are accepted through `1.11.14-dev`. Before release-readiness, the user has explicitly reprioritized a presentation-only Assignment Window redesign. Preserve assignment semantics, comms/data formats, icon sizes, column order, click/wheel behavior and the existing window/background/chrome unless the redesign specification below explicitly says otherwise.
+- Goal: Complete the finalized Assignment Window presentation redesign and its focused runtime gate before release-readiness.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. The presentation-only Assignment Window redesign is implemented in `1.11.15-dev` at `c2d0778`; it is statically reviewed but not yet runtime-tested. Assignment semantics, comms/data formats, column order, icon artwork/sizes and existing window/background/chrome remain unchanged except for the explicitly redesigned geometry/hitbox presentation.
 
 ## Current Design / Development Contract
 
@@ -132,6 +133,7 @@
 - HoJ/LoH/DI utility indicators retain the current softened green/red/grey state tints.
 
 ## Recent Relevant Commits
+- `c2d0778` - Implement the finalized gridless Assignment Window redesign and bump to `1.11.15-dev`: exact Lua layout constants, fixed two-row 184 px Paladin info block, 32x32 assignment icon interaction cells, hidden legacy grid regions, class-colour centre-to-centre linkers, and live 1-16 px `Assignment Link Width` control. Assignment storage/comms paths are untouched.
 - `d0a44be` - Fix grid mouse-wheel routing for RF/Judgement by mapping `R`/`J` tokens before numeric coercion; bump to `1.11.14-dev`.
 - `833881e` - Remove the separate visible NoRF overlay region and tint the existing RF icon directly for NoRF; restore normal icon tint when cycling away and bump to `1.11.13-dev`.
 - `2e6a8e5` - Fix the invisible NoRF overlay by using a true solid red texture with alpha instead of tinting `UI-Tooltip-Background`; preserve the hidden legacy named X regions and bump to `1.11.12-dev`.
@@ -322,8 +324,30 @@
 - Acceptance: the RF/Judgement grid-wheel routing correction and direct-icon NoRF presentation are user-verified.
 
 ### Next Runtime Test
-1. When next convenient on a non-Paladin, run `/pp test prot` (or another profile), confirm the Buff Bar remains visible/usable, then `/pp test off` and confirm normal non-Paladin hiding returns.
-2. Peer VERSION suppression remains runtime-unobserved: a `-dev` build should continue normal PallyPower assignment/state comms but must not send its own `VERSION ...` advertisement.
+Focused gate for exact runtime `1.11.15-dev` / `c2d0778d4e34e89efb398c2a78d916fac76235a8`:
+1. Open the Assignment Window with no visible Paladins and confirm no linker strips are shown.
+2. With one or more Paladins visible, confirm the grey grid/separator lines are gone while the outer backdrop/border, title/chrome and bottom Smart Buffs / Free Assignment area remain normal.
+3. Verify assignment click and mouse-wheel behavior across Aura/RF/Seal/Judgement and normal class columns; interaction should now be confined to the visible 32x32 assignment icon area.
+4. Verify class linkers use the corresponding class colour and Aura/RF/Seal/Judgement use Paladin pink.
+5. Verify a linker appears only for a column with at least one assignment, reaches exactly from the header-icon centre to the lowest assigned Paladin icon centre, crosses empty intermediate Paladin rows, and has no tail below the lowest assignment.
+6. In Advanced Options, change `Assignment Link Width` across 1-16 px and confirm the visible linkers update immediately; default/new-character value is 8 px.
+7. Verify class-player labels show the individual-blessing icon immediately left of the fixed left-aligned player name, without the name shifting when no individual blessing exists.
+8. Verify each Paladin info block is a clean two-row layout: group + name left and cooldown icons right on row 1; six blessing slots, spacer, Symbol count and Symbol icon on row 2; cooldowns align to the Symbol-icon right boundary.
+9. Verify multiple Paladins stack cleanly with no row divider, assignment columns stay vertically aligned, capability tooltips still work, and the RF explicit-off red icon state remains correct.
+10. Exercise frame scaling/movement and a populated class-player list to confirm the expanded header/row geometry remains stable.
+
+Outstanding compatibility checks remain tracked after this focused gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
+
+### Assignment Window Redesign Validation State
+- Implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
+- Geometry audit: complete. The pre-redesign Lua used 80x54 assignment buttons around 32x32 icons, visible grey separators at the root/class/special/row levels, 76 px Paladin rows and an approximately 128 px three-tier Paladin-info area.
+- Static review: passed for the documented redesign boundary. The runtime diff is limited to Assignment geometry/UI construction, the new per-user linker-width default, one localized label and the required TOC version bump; no assignment-storage or communications code changed.
+- Layout result: 82 px column pitch retained; assignment interaction cells are exactly 32x32; fixed Paladin-info width is 184 px with 44 px two-row Paladin rows; header and row assignment centres derive from the same constants.
+- Grid compatibility: legacy named separator/line regions remain present but hidden; they no longer own visible layout geometry.
+- Linkers: all 14 columns are supported; special columns use Paladin pink, class columns use class colours, and visibility/extent derives from rendered assignment icons in displayed Paladin rows.
+- Advanced Options: `Assignment Link Width` persists in `PP_PerUser.assignmentlinkwidth`, defaults to 8, clamps to integer 1-16 and updates linker width immediately.
+- Canonical Lua 5.0.3 compiler check: **not run in this chat**. The canonical checker is present in `Seraphic8x2244/VanillaTemplate/tools/lua50/`, but it is not mounted in the executable environment; outbound Git access from the container is unavailable and no system Lua/luac is installed. Do not treat this as a compiler pass.
+- In-game test: not yet performed.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -471,4 +495,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Implement the finalized Assignment Window layout redesign above as the next development task, before release-readiness. First audit the current Lua-created Assignment Window geometry/line objects and identify the smallest clean layout constants/anchors needed; then remove the grey grid/separator presentation, rebuild the fixed paladin-info column/header geometry, and add the class-colour linker system plus live Advanced Options `Assignment Link Width` control. Preserve all assignment/runtime semantics and existing icon hitboxes. Any runtime/code change must bump the TOC numeric dev version from `1.11.14-dev`, receive the canonical Lua 5.0.3 compiler check, and get a focused runtime gate. The two previously outstanding compatibility checks remain tracked but are no longer the immediate next task: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
+Runtime-test the exact Assignment Window redesign payload `c2d0778d4e34e89efb398c2a78d916fac76235a8` (`1.11.15-dev`) using the focused gate above. Do not start release-readiness cleanup until this presentation/interaction delta is accepted or corrected. If executable access to the canonical VanillaTemplate Lua 5.0.3 checker becomes available, run it against the changed runtime Lua files before claiming compiler validation. The two older compatibility checks remain tracked after this gate: non-Paladin `/pp test`, and peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
