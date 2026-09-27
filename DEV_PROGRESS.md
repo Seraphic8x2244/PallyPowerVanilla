@@ -47,7 +47,7 @@
 - Branch head before peer-acceptance handoff update: `31990c504f920c5e906dc7813f4ec9e4d708c4f3`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.30` at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`
-- Goal: stable `1.11.30` is now promoted on `main` from the fully accepted `1.11.30-dev` runtime. The final Symbol of Kings counter alignment passed runtime confirmation. The next development cycle is post-release UI polish only: bring Presets into the newer Assignment UX design and replace the remaining addon-owned utility buttons with Lucide icons.
+- Goal: stable `1.11.30` is promoted on `main` from the fully accepted `1.11.30-dev` runtime. The post-release Presets UX design is now accepted; the next runtime/code step is to implement that Presets redesign on `dev`, followed separately by the remaining addon-owned utility-button Lucide replacement.
 - Current scope boundary: Stage 7, the post-Stage-7 RF/Judgement wheel + NoRF cleanup, Assignment redesign, `/pp test` compatibility, peer communication compatibility, and the final SoK counter anchor are all runtime-accepted through exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21`. Stable `main` `1.11.30` is promoted at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`. Do not fold unrelated refactors or protocol/data-model work into the next Preset/Lucide UI polish cycle.
 
 ## Current Design / Development Contract
@@ -533,8 +533,23 @@ After generated-name/global lookup cleanup:
 - Final Stage 7 audit completed after the ninth-slice runtime pass. `PallyPowerUI.lua` remains at zero `getglobal()` calls. The remaining 10 core lookups are intentionally preserved compatibility-bound/name-based interfaces rather than unfinished addon-owned UI references: `GameTooltipTemplate`-generated spell-scan regions (5), `GameTooltipTemplate`-generated Judgement target-scan text (1), Blizzard-owned `GameTooltipTextLeft/Right...` regions (2), and dynamic `PALLYPOWER_TEXT_WARNING_<type>` localization lookup (2). Replacing these merely to reach zero would either depend on unstable region-order inspection or narrow an intentionally dynamic global contract.
 - Stage 7 is therefore complete at user-tested runtime `1.11.10-dev` / `177a980a97cffc1cad22746dfea0490f40e89ca6`; no tenth runtime slice is required. The final audit/documentation changes do not alter addon runtime and therefore do not require another TOC version bump or compiler run.
 
+### Post-release Presets UX — DESIGN ACCEPTED
+- Replace the current old-style Presets dropdown workflow with a compact Assignment-UX control group:
+  - preset dropdown box;
+  - preset/status name area;
+  - one context-sensitive `Save` / `Load` action button;
+  - `+` for saving the current assignments as a new named preset;
+  - `-` for deleting the preset currently selected in the dropdown.
+- Selecting a preset in the dropdown does not immediately apply it; the action button becomes `Load`. After loading, the action button is disabled until another preset is selected or the loaded assignments are modified.
+- A loaded unchanged preset shows its normal name. As soon as any saved assignment is modified, show `<Preset Name> (Unsaved)` and change the action button to enabled `Save`.
+- Clicking `Save` overwrites the loaded named preset immediately, removes the `(Unsaved)` suffix and disables the action button again.
+- When there is no loaded/named preset, show `Unsaved Preset`; the action button is `Save` but disabled because there is no named preset to overwrite. Use `+` to create a named preset.
+- Loading another preset immediately replaces the current assignments even if the current setup has unsaved changes. No discard confirmation is required.
+- `-` deletes the preset currently selected in the dropdown immediately, with no confirmation dialog. If the deleted preset was the loaded preset, keep the current assignments untouched, clear the dropdown to a blank neutral state, show `Unsaved Preset`, and leave `Save` disabled until a named preset exists again.
+- Preset save/load/delete operations intentionally use no confirmation dialogs; accidental changes are considered low-cost and user-recoverable, and the UX should favour speed.
+- Preserve the existing per-character preset data and saved assignment scope: class Blessings plus Aura, Seal, Righteous Fury and Judgement. This is a UI/state-flow redesign, not a SavedVariables or protocol redesign.
 ## Deferred / Out of Scope
-- Post-release UI polish: bring Presets into the newer Assignment UX design and replace the remaining addon-owned utility buttons with Lucide icons. These are now the next planned UI tasks after the completed `1.11.30` main promotion.
+- Remaining post-release UI polish after the accepted Presets redesign is implemented/tested: replace the remaining addon-owned utility buttons with Lucide icons. Keep this as a separate slice.
 - SavedVariables redesign.
 - Communication protocol redesign.
 - Keybinding-system redesign or removal of `Bindings.xml`.
@@ -552,4 +567,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Start the post-release UI polish on `dev` only when requested. First planned item: bring Presets into the newer Assignment UX design; second: replace the remaining addon-owned utility buttons with Lucide icons. Keep the stable `main` `1.11.30` baseline untouched while these changes are developed and tested.
+Implement the accepted Presets UX design above on `dev` as the next isolated runtime slice. The first addon-affecting revision should bump the TOC from `1.11.30-dev` to `1.11.31-dev`. Do not mix in the later Lucide utility-button replacement or unrelated refactors/protocol/data-model work. Keep stable `main` `1.11.30` untouched.
