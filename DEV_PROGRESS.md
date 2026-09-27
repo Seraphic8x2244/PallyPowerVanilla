@@ -45,8 +45,8 @@
 - Branch head before this handoff update: `86a9fb4895964a71bfd124aadb213abebbdd3acf`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Assignment Window redesign/runtime gate remains fully user-accepted on `1.11.28-dev`. Runtime-test the `1.11.29-dev` correction for `/pp test` Judgement capability, then finish the remaining compatibility checks: non-Paladin `/pp test`, then peer verification of `-dev` VERSION-advertisement suppression. Do not begin release-readiness cleanup yet.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window redesign is fully runtime-accepted on exact `1.11.28-dev` / `d629f3c`: normal two-Paladin behaviour, finalized spacing/default/range controls, synthetic P1-assigned/P2-empty/P3-assigned continuous-linker bridge, grey lower-tail/fade, live spacing changes in test mode, clean exit back to real rows, and post-reload cleanup all pass. The synthetic mode remains runtime-only and isolated from SavedVariables, comms, roster tables and real assignments. Paladin runtime testing then exposed a separate `/pp test prot` defect: fake profiles left `SealRankInfo` empty, so Judgement capability derived Wisdom/Light/Crusader as rank 0; the Judgement assignment cell became subdued and cycling cleared it to unassignable. `1.11.29-dev` adds the three Judgement-producing fake seals to the test profile so the normal Judgement capability path sees them as available. Release-readiness cleanup remains out of scope until this correction and the remaining compatibility checks are completed.
+- Goal: Assignment Window redesign remains fully accepted, and `1.11.29-dev` test-profile Judgement correction plus non-Paladin `/pp test` compatibility are now user-accepted. The only remaining compatibility check is peer verification that `-dev` suppresses `VERSION ...` advertisement while ordinary PallyPower communications continue. Do not begin release-readiness cleanup yet.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window redesign is fully runtime-accepted on exact `1.11.28-dev` / `d629f3c`. `1.11.29-dev` / `86a9fb4` is now runtime-accepted for the corrected `/pp test` Judgement capability: the Judgement cell stays full-alpha, Wisdom/Light/Crusader cycle normally through empty and back to assigned, Seal test behaviour remains good, `/pp test off` restores the real Paladin scan, and the non-Paladin `/pp` + `/pp test prot` + `/pp test off` compatibility path is also accepted. The only remaining compatibility check is peer-client observation that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower communications continue. Release-readiness cleanup remains out of scope until that check is recorded.
 
 ## Current Design / Development Contract
 
@@ -377,16 +377,12 @@
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-Focused gate for exact runtime `1.11.29-dev` / `86a9fb4895964a71bfd124aadb213abebbdd3acf`:
-1. On the Paladin used for the reported failure, update and `/reload`; confirm normal Assignment/Judgement behaviour is unchanged before enabling test mode.
-2. Run `/pp test prot`. Confirm the Judgement assignment cell remains normal/full-alpha rather than becoming subdued.
-3. Cycle the Judgement assignment through its available fake-profile choices and empty state, then assign it again. Wisdom, Light and Crusader should all remain assignable; cycling must no longer get stuck empty.
-4. Confirm the existing Seal assignment test behaviour still works.
-5. Run `/pp test off`; confirm the real Paladin spell/capability scan returns and normal Judgement assignment remains usable.
+All local/runtime compatibility checks now pass on exact `1.11.29-dev` / `86a9fb4895964a71bfd124aadb213abebbdd3acf`.
 
-After that correction passes, the older compatibility checks still remain:
-6. On a **non-Paladin**, verify clean startup, Buff Bar hidden normally, and `/pp` opens Assignments; run `/pp test prot` then `/pp test off` and confirm no Lua errors. The known brief Buff-Bar show/hide behaviour on non-Paladins is pre-existing and acceptable.
-7. With a second PallyPower peer available, verify the `-dev` build does not advertise `VERSION ...` while ordinary PallyPower assignment/state communications still work.
+Only one compatibility check remains:
+1. With a second PallyPower peer/client available, verify this `-dev` build does **not** advertise a `VERSION ...` message while ordinary PallyPower assignment/state communications still work normally.
+
+Do not begin release-readiness cleanup until this peer observation is recorded.
 
 Older compatibility checks remain after the visual gate: non-Paladin `/pp test`, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
 
@@ -411,7 +407,7 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - In-game test of `1.11.26-dev`: **passed all ten available runtime checks**. The user accepted the unified spacing model and Advanced Options reflow, including live flyout behaviour while changing spacing.
 - In-game test of `1.11.27-dev`: **passed all eight focused checks**. The one-time 12/12/36 spacing reset occurred exactly once; subsequent spacing edits persisted across `/reload`; Link Width 0-18/default 12, Vertical 8-64/default 12, Horizontal 8-64/default 12 and Personal Divider 8-64/default 36 all behaved correctly; live linker/flyout tracking remained good.
 - In-game test of `1.11.28-dev`: **full Assignment gate pass**. User confirmed all seven checks: normal two-Paladin behaviour stayed good; synthetic bridge mode created the expected three rows; the full-colour linker remained continuous through the empty middle row; live Vertical/Horizontal/Divider changes preserved bridge geometry; tail mode correctly switched to colour through row 1 plus grey lower-tail/fade; `layouttest off` restored real rows/assignments; and a subsequent reload left no synthetic state behind.
-- In-game test of `1.11.29-dev`: not yet performed.
+- In-game test of `1.11.29-dev`: **passed gate items 1-6**. Normal Paladin Judgement behaviour stayed good; `/pp test prot` no longer subdues Judgement; Wisdom/Light/Crusader cycle through empty and back to assigned correctly; Seal test behaviour still works; `/pp test off` restores real Paladin capability normally; and the non-Paladin clean-start `/pp` + `/pp test prot` + `/pp test off` compatibility check passes with no Lua errors. Only peer VERSION-suppression verification remains.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -558,4 +554,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Verify this handoff first in a fresh chat. Assignment Window redesign remains fully user-accepted on `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269`. Runtime-test exact `1.11.29-dev` / `86a9fb4895964a71bfd124aadb213abebbdd3acf` against the focused Paladin `/pp test prot` Judgement-capability gate above. The bug was traced to empty fake `SealRankInfo`, which made all derived Judgement ranks zero; the correction supplies fake Wisdom/Crusader/Light seal capability through the existing model. If that passes, complete the non-Paladin `/pp test` compatibility check, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal comms continue. Do not start release-readiness cleanup until those checks are recorded.
+Verify this handoff first in a fresh chat. Assignment Window redesign is fully accepted, and exact `1.11.29-dev` / `86a9fb4895964a71bfd124aadb213abebbdd3acf` now passes the corrected Paladin `/pp test prot` Judgement gate and the non-Paladin `/pp test` compatibility check. The only remaining compatibility item is peer-client verification that a `-dev` build suppresses only `VERSION ...` advertisement while ordinary PallyPower assignment/state communications still work. Do not start release-readiness cleanup until that peer check is recorded.
