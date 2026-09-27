@@ -43,7 +43,7 @@
 - Branch head before this handoff update: `c808c38a2d276bfe69033ee6469ce7a88cf2241a`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Runtime-validate `1.11.27-dev` finalized Assignment defaults/ranges and one-time spacing reset while preserving the user-accepted `1.11.26-dev` unified spacing behaviour and Advanced Options reflow. The three-Paladin continuous-linker case and Buff Bar font presentation remain separately unresolved. Do not begin release-readiness cleanup.
+- Goal: `1.11.27-dev` finalized Assignment defaults/ranges and one-time spacing reset are now user-accepted. The only Assignment visual-gate case still unresolved is the three-Paladin continuous-linker case; Buff Bar font presentation also remains unresolved. Do not begin release-readiness cleanup.
 - Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. `1.11.26-dev` / `6337490` is user-tested and accepted for all available two-Paladin spacing/options cases: unified Vertical/Horizontal/Personal Divider controls, live flyout reflow, linker tracking, Advanced Options spacing, and independent link width all pass. The only Assignment visual-gate case still unverified is the three-Paladin P1-assigned/P2-empty/P3-assigned continuous-colour linker case because only two live Paladins are available. `1.11.27-dev` / `c808c38` finalizes requested defaults/ranges and performs a one-time reset of the three spacing settings to 12/12/36 per character. Buff Bar title/blessing-summary font presentation remains explicitly open. Do not begin release-readiness cleanup.
 
 ## Current Design / Development Contract
@@ -359,7 +359,7 @@
 - Latest partial runtime feedback is from exact `1.11.25-dev` / `b8af35daae11034585d81dedf31b5658d977ffce`. The user passed all five icon/border checks from focused gate item 9: retained class-icon crop looks good; normal shared border is 2 px and fully opaque black; class-header hover correctly recolours that same 2 px border to solid class colour; no translucency/additive glow remains; native blessing/spell icons with the clean 4 px inset also look good. Remaining focused-gate checks are still pending.
 - Remaining focused visual-gate gap from `1.11.25-dev`: the three-Paladin case with Paladin 1 assigned, Paladin 2 empty, Paladin 3 assigned is untested due to only two live Paladins being available. Candidate follow-up remains a dev/test-only synthetic-Paladin layout mode isolated from normal communications, saved assignments and production behaviour; it is not part of `1.11.26-dev`.
 - `1.11.26-dev` runtime gate **passed all ten available checks**: no regressions, correct control replacement/migration, equal vertical rhythm, unified horizontal spacing, independent personal divider, clean all-12 layout, linker tracking, flyout behaviour during live spacing changes, Advanced Options rhythm, and independent link width.
-- `1.11.27-dev` now requires focused validation of finalized ranges/defaults and the one-time reset only.
+- `1.11.27-dev` focused defaults/ranges/reset gate **passed all eight checks**: one-time reset occurred, subsequent edits persisted after reload, all finalized ranges/defaults were correct, and linker/flyout live reflow remained intact.
 - Earlier partial runtime feedback from exact `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` found the then-current icon crop insufficient; that failure is superseded by the accepted `1.11.25-dev` icon/border result above.
 - Earlier exact tested runtime: `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`. The user explicitly confirmed the latest screenshot was from this current build; an earlier screenshot in the preceding message was from the previous version.
 - Confirmed good: the new empty-column fade itself looks good, and the grey/linker presentation sits behind the class/assignment icons rather than covering them.
@@ -372,17 +372,11 @@
   - Buff Bar title-button font and Blessing-summary font are reported as reverted. A broader source audit now confirms the exact title construction (`GameFontNormal`, 14 px override, centred 86x18 region) and Blessing-summary/count construction (`GameFontHighlightSmall`, 28x10 region) are unchanged from `1.11.14-dev` through `1.11.20-dev`; the `1.11.19-dev` HD-icon-removal diff contains no direct changes to these font objects. The runtime presentation report remains valid/open, but its cause/target is not yet identified and must not be guessed.
 
 ### Next Runtime Test
-Focused gate for exact runtime `1.11.27-dev` / `c808c38a2d276bfe69033ee6469ce7a88cf2241a`:
-1. Update from the already-tested `1.11.26-dev` and `/reload`; confirm no Lua/UI errors.
-2. Confirm the three spacing settings reset once to **Vertical 12 / Horizontal 12 / Personal Assignment Divider 36**, regardless of their prior `1.11.26` values.
-3. Change those three spacing values, `/reload` again, and confirm your new values persist; the reset must not repeat after the revision marker is written.
-4. Confirm **Assignment Link Width** now has range **0-18** and default **12** for unset/new data. Existing users' prior link-width choice is deliberately preserved rather than forcibly reset.
-5. Confirm **Vertical Spacing** range is **8-64**, default 12, and still keeps header→row-1 and row→row visible icon gaps equal.
-6. Confirm **Horizontal Spacing** range is **8-64**, default 12, and still changes all ordinary assignment-column gaps together.
-7. Confirm **Personal Assignment Divider** range is **8-64**, default 36, and still changes only Judgement→first-class.
-8. Sanity-check that linkers/flyouts still track live spacing changes exactly as in the accepted `1.11.26-dev`.
+The finalized `1.11.27-dev` defaults/ranges/reset gate is accepted. The only remaining Assignment visual-gate case is:
+1. With three visible Paladins, assign the same column on Paladin 1 and Paladin 3 while Paladin 2 is empty. The full-colour linker must run continuously from the header through the empty Paladin-2 row to Paladin 3's assignment centre, with no grey intermediate segment.
+2. If Paladin 3 is then cleared, the coloured linker must stop at Paladin 1 and the subdued grey lower-tail/fade must resume through the lower empty rows exactly as already accepted in the two-Paladin cases.
 
-The three-Paladin P1-assigned/P2-empty/P3-assigned continuous-colour linker case remains unverified unless a third live Paladin becomes available; do not fail `1.11.27` solely for lack of that test.
+A third live Paladin is not currently available. A dev/test-only synthetic-Paladin layout mode remains a candidate if the user chooses to add it; it must not touch normal communications, saved assignments or production state.
 
 Still open after this corrective gate: the reported Buff Bar title-button font and Blessing-summary font. Direct source comparison from `1.11.14-dev` through `1.11.20-dev` shows the relevant font construction unchanged, so `1.11.21-dev` deliberately does not guess a replacement. Resolve the actual runtime presentation target/cause before accepting the Assignment redesign as complete.
 
@@ -408,7 +402,7 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - Buff Bar font report: still open. Exact source comparison confirms the Buff Bar title and Blessing-summary/count font construction is unchanged from accepted `1.11.14-dev` through `1.11.20-dev`; the HD-icon-removal commit did not directly alter those font lines. Treat the visible runtime difference as unresolved presentation evidence, not as proof of a direct font-code edit, and do not substitute a guessed font.
 - In-game test of `1.11.25-dev`: **broad pass for all available two-Paladin cases**. Runtime screenshot/user feedback confirms crops/borders, grey tails/fades, empty-column fade, layering, Aura Mastery header, flyout placement/interactions and existing live layout controls all worked; only the unavailable three-Paladin intermediate-empty-row case remained unverified.
 - In-game test of `1.11.26-dev`: **passed all ten available runtime checks**. The user accepted the unified spacing model and Advanced Options reflow, including live flyout behaviour while changing spacing.
-- In-game test of `1.11.27-dev`: not yet performed.
+- In-game test of `1.11.27-dev`: **passed all eight focused checks**. The one-time 12/12/36 spacing reset occurred exactly once; subsequent spacing edits persisted across `/reload`; Link Width 0-18/default 12, Vertical 8-64/default 12, Horizontal 8-64/default 12 and Personal Divider 8-64/default 36 all behaved correctly; live linker/flyout tracking remained good.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -555,4 +549,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Verify this handoff first in a fresh chat. Do **not** start release-readiness cleanup. Runtime-test exact `1.11.27-dev` / `c808c38a2d276bfe69033ee6469ce7a88cf2241a` against the numbered defaults/ranges/reset gate above. Correct only failures and bump the TOC for any runtime change. The three-Paladin P1-assigned/P2-empty/P3-assigned linker case remains separately unverified due to only two live Paladins; a synthetic dev/test mode is only a candidate, not implemented. The Buff Bar title-button and Blessing-summary font report remains explicitly unresolved. Only after the Assignment visual gate and font target are accepted should the older compatibility checks resume. Release-readiness remains out of scope.
+Verify this handoff first in a fresh chat. Do **not** start release-readiness cleanup. `1.11.27-dev` / `c808c38a2d276bfe69033ee6469ce7a88cf2241a` is user-accepted for all currently testable Assignment spacing/default/range/layout behaviour. Resolve the remaining three-Paladin continuous-linker visual case next, either with a live third Paladin or, if the user chooses, a minimal dev/test-only synthetic-Paladin layout mode isolated from communications/SavedVariables/production state. The Buff Bar title-button and Blessing-summary font report remains explicitly unresolved and must still be grounded before release cleanup or the older compatibility checks resume.
