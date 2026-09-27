@@ -29,7 +29,7 @@ PallyPowerUI.AssignmentLayout = {
 	HEADER_ICON_TOP = 42,
 	HEADER_BASE_HEIGHT = 92, -- recomputed from Assignment Vertical Spacing
 	PLAYER_LABEL_HEIGHT = 13,
-	FOOTER_HEIGHT = 30,
+	FOOTER_HEIGHT = 16,
 	VERTICAL_SPACING_DEFAULT = 12,
 	HORIZONTAL_SPACING_DEFAULT = 12,
 	PERSONAL_DIVIDER_DEFAULT = 36,
@@ -1352,11 +1352,14 @@ function PallyPowerUI.CreateAssignmentToolbarButton(frame, name, x, textureFile,
 	button:SetNormalTexture(textureFile)
 	texture = button:GetNormalTexture()
 	texture:ClearAllPoints()
-	PallyPowerUI.SetSize(texture, 16, 16)
+	PallyPowerUI.SetSize(texture, 15, 15)
 	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
 
-	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+	button:SetHighlightTexture(textureFile)
 	texture = button:GetHighlightTexture()
+	texture:ClearAllPoints()
+	PallyPowerUI.SetSize(texture, 15, 15)
+	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
 	texture:SetBlendMode("ADD")
 
 	if onClick then
@@ -1376,11 +1379,14 @@ function PallyPowerUI.CreateAssignmentToolbarCheckButton(frame, name, x, texture
 	button:SetNormalTexture(textureFile)
 	texture = button:GetNormalTexture()
 	texture:ClearAllPoints()
-	PallyPowerUI.SetSize(texture, 16, 16)
+	PallyPowerUI.SetSize(texture, 15, 15)
 	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
 
-	button:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Square")
+	button:SetHighlightTexture(textureFile)
 	texture = button:GetHighlightTexture()
+	texture:ClearAllPoints()
+	PallyPowerUI.SetSize(texture, 15, 15)
+	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
 	texture:SetBlendMode("ADD")
 
 	return button
@@ -1627,45 +1633,51 @@ function PallyPowerUI.CreateAssignmentUI()
 		PallyPowerGrid_Update(arg1)
 	end)
 
+	region = PallyPowerUI.CreateTexture(frame, nil, "ARTWORK")
+	region:SetHeight(1)
+	region:SetPoint("TOPLEFT", frame, "TOPLEFT", 3, -29)
+	region:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -3, -29)
+	region:SetTexture(0.45, 0.45, 0.45, 0.55)
+
 	PallyPowerUI.CreateAssignmentToolbarButton(
-		frame, "$parentClear", -274,
+		frame, "$parentClear", -295,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\bin.tga",
 		function() PallyPower_ConfirmClear() end
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
-		frame, "$parentRefresh", -251,
+		frame, "$parentRefresh", -272,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\rotate.tga",
 		function() PallyPower_Refresh() end
 	)
 	PallyPowerUI.CreateAssignmentToolbarCheckButton(
-		frame, "FreeAssignOptionChk", -228,
+		frame, "FreeAssignOptionChk", -249,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\free-assignment.tga"
 	)
 	PallyPowerUI.CreateAssignmentToolbarCheckButton(
-		frame, "PP_UI_SmartButton", -205,
+		frame, "PP_UI_SmartButton", -226,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\smart-buffs.tga"
 	)
 
 	PallyPowerUI.CreateAssignmentToolbarButton(
-		frame, "PP_UI_SoundButton", -177,
+		frame, "PP_UI_SoundButton", -191,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\sound.tga"
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
-		frame, "PP_UI_VerboseButton", -154,
+		frame, "PP_UI_VerboseButton", -168,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\text.tga"
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
-		frame, "PP_UI_FeedbackButton", -131,
+		frame, "PP_UI_FeedbackButton", -145,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\announce.tga"
 	)
 
 	PallyPowerUI.CreateAssignmentToolbarButton(
-		frame, "$parentResetPosition", -103,
+		frame, "$parentResetPosition", -110,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\position.tga",
 		function() PallyPower_ResetPosition() end
 	)
 	PallyPowerUI.CreateAssignmentToolbarButton(
-		frame, "PP_UI_OrientationButton", -80,
+		frame, "PP_UI_OrientationButton", -87,
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\orientation.tga"
 	)
 

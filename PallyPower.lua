@@ -784,7 +784,7 @@ PP_UI = {
     SCALE_MAX = 1.50,
 
     CONTROL_BUTTON = 30,
-    CONTROL_ICON = 16,
+    CONTROL_ICON = 15,
 
     BUFF_LONG = 90,
     BUFF_SHORT = 30,
@@ -1463,12 +1463,16 @@ local function PP_UI_UpdateState()
     -- Momentary/action controls remain bright.
     PP_UI_SetControlEnabled(PP_UI_OrientationButton, true)
     if PP_UI_OrientationButton and PP_UI_OrientationButton:GetNormalTexture() then
+        local normalTexture = PP_UI_OrientationButton:GetNormalTexture()
+        local highlightTexture = PP_UI_OrientationButton:GetHighlightTexture()
         if PP_PerUser.horizontal == true then
             -- Horizontal layout: show vertical arrows as the available switch.
-            PP_UI_OrientationButton:GetNormalTexture():SetTexCoord(1, 1, 0, 1, 1, 0, 0, 0)
+            normalTexture:SetTexCoord(1, 1, 0, 1, 1, 0, 0, 0)
+            if highlightTexture then highlightTexture:SetTexCoord(1, 1, 0, 1, 1, 0, 0, 0) end
         else
             -- Vertical layout: show the native horizontal-arrow artwork.
-            PP_UI_OrientationButton:GetNormalTexture():SetTexCoord(0, 1, 0, 1)
+            normalTexture:SetTexCoord(0, 1, 0, 1)
+            if highlightTexture then highlightTexture:SetTexCoord(0, 1, 0, 1) end
         end
     end
     PP_UI_SetControlEnabled(PP_UI_FeedbackButton, true)
