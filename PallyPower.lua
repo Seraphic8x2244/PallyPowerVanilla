@@ -1080,9 +1080,9 @@ local PP_PerUserDefaults = {
     useunitxp_sp3 = false,
     transparency = 0.5,
     assignmentlinkwidth = 8,
-    assignmentselfbuffspacing = 6,
-    assignmentclassspacing = 24,
-    assignmentpaladinspacing = 6,
+    assignmentverticalspacing = 12,
+    assignmenthorizontalspacing = 12,
+    assignmentpersonaldivider = 12,
     judgement_failed_attacks_refresh = false,
     verbose_judgement_refresh = true
 }
@@ -1688,12 +1688,33 @@ function PallyPower_InitConfig()
     if type(PP_PerUser) ~= "table" then
         PP_PerUser = PP_CreatePerUserDefaults()
     else
+        -- Migrate the short-lived three-slider spacing model. Preserve a
+        -- player's existing uniform tuning when the old horizontal values
+        -- already matched; otherwise use the new clean 12 px defaults.
+        if PP_PerUser.assignmentverticalspacing == nil then
+            PP_PerUser.assignmentverticalspacing = PP_PerUser.assignmentpaladinspacing
+        end
+        if PP_PerUser.assignmenthorizontalspacing == nil
+            and PP_PerUser.assignmentselfbuffspacing ~= nil
+            and PP_PerUser.assignmentselfbuffspacing == PP_PerUser.assignmentclassspacing then
+            PP_PerUser.assignmenthorizontalspacing = PP_PerUser.assignmentselfbuffspacing
+        end
+        if PP_PerUser.assignmentpersonaldivider == nil
+            and PP_PerUser.assignmentselfbuffspacing ~= nil
+            and PP_PerUser.assignmentselfbuffspacing == PP_PerUser.assignmentclassspacing then
+            PP_PerUser.assignmentpersonaldivider = PP_PerUser.assignmentselfbuffspacing
+        end
+
         for key, value in pairs(PP_PerUserDefaults) do
             if PP_PerUser[key] == nil then
                 PP_PerUser[key] = value
             end
         end
     end
+
+    PP_PerUser.assignmentselfbuffspacing = nil
+    PP_PerUser.assignmentclassspacing = nil
+    PP_PerUser.assignmentpaladinspacing = nil
 
     if PallyPowerUI and PallyPowerUI.ApplyAssignmentSpacing then
         PallyPowerUI.ApplyAssignmentSpacing()
