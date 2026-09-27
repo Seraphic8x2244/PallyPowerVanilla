@@ -1354,12 +1354,15 @@ function PallyPowerUI.CreateAssignmentToolbarButton(frame, name, x, textureFile,
 	texture:ClearAllPoints()
 	PallyPowerUI.SetSize(texture, 15, 15)
 	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
+	texture:SetVertexColor(0.98, 0.78, 0.86)
 
 	button:SetHighlightTexture(textureFile)
 	texture = button:GetHighlightTexture()
 	texture:ClearAllPoints()
-	PallyPowerUI.SetSize(texture, 15, 15)
+	PallyPowerUI.SetSize(texture, 17, 17)
 	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
+	texture:SetVertexColor(1, 1, 1, 1)
+	texture:SetAlpha(0.9)
 	texture:SetBlendMode("ADD")
 
 	if onClick then
@@ -1381,12 +1384,15 @@ function PallyPowerUI.CreateAssignmentToolbarCheckButton(frame, name, x, texture
 	texture:ClearAllPoints()
 	PallyPowerUI.SetSize(texture, 15, 15)
 	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
+	texture:SetVertexColor(0.98, 0.78, 0.86)
 
 	button:SetHighlightTexture(textureFile)
 	texture = button:GetHighlightTexture()
 	texture:ClearAllPoints()
-	PallyPowerUI.SetSize(texture, 15, 15)
+	PallyPowerUI.SetSize(texture, 17, 17)
 	PallyPowerUI.SetPoint(texture, "CENTER", button, "CENTER", 0, 0)
+	texture:SetVertexColor(1, 1, 1, 1)
+	texture:SetAlpha(0.9)
 	texture:SetBlendMode("ADD")
 
 	return button
@@ -1608,14 +1614,18 @@ function PallyPowerUI.CreateAssignmentUI()
 	)
 
 	button = PallyPowerUI.CreateFrame("Button", "$parentTitle", frame)
-	PallyPowerUI.SetSize(button, 640, 20)
+	PallyPowerUI.SetSize(button, 260, 20)
 	PallyPowerUI.SetPoint(button, "TOPLEFT", frame, "TOPLEFT", 8, -7)
 
 	label = PallyPowerUI.CreateFontString(button, "$parentText", "OVERLAY", "GameFontNormalLarge")
-	PallyPowerUI.SetSize(label, 420, 18)
+	PallyPowerUI.SetSize(label, 244, 18)
 	PallyPowerUI.SetPoint(label, "LEFT", button, "LEFT", 8, 0)
 	label:SetText(PALLYPOWER_UI_ASSIGNMENTS_TITLE)
 	label:SetJustifyH("LEFT")
+	if label.GetStringWidth then
+		label:SetWidth(label:GetStringWidth())
+		button:SetWidth(label:GetStringWidth() + 16)
+	end
 
 	button:SetScript("OnEnter", function()
 		PallyPower_ShowVersionTooltip()
@@ -1633,11 +1643,15 @@ function PallyPowerUI.CreateAssignmentUI()
 		PallyPowerGrid_Update(arg1)
 	end)
 
-	region = PallyPowerUI.CreateTexture(frame, nil, "ARTWORK")
+	region = PallyPowerUI.CreateFrame("Frame", nil, frame)
 	region:SetHeight(1)
 	region:SetPoint("TOPLEFT", frame, "TOPLEFT", 3, -29)
 	region:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -3, -29)
-	region:SetTexture(0.45, 0.45, 0.45, 0.55)
+	PallyPowerUI.SetBackdrop(
+		region, nil,
+		"Interface\\Tooltips\\UI-Tooltip-Border",
+		false, nil, 1, 0, 0, 0, 0
+	)
 
 	PallyPowerUI.CreateAssignmentToolbarButton(
 		frame, "$parentClear", -295,

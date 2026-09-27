@@ -1444,7 +1444,7 @@ end
 local function PP_UI_SetControlEnabled(button, enabled)
     if not button or not button:GetNormalTexture() then return end
     if enabled then
-        button:GetNormalTexture():SetVertexColor(1, 1, 1)
+        button:GetNormalTexture():SetVertexColor(0.98, 0.78, 0.86)
     else
         button:GetNormalTexture():SetVertexColor(0.38, 0.38, 0.38)
     end
