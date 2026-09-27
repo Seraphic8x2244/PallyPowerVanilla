@@ -3455,6 +3455,16 @@ function PallyPower_BuildTestProfile(profile)
     local function mkAura(id, rank, talent)
         return { rank = tostring(rank), id = 1, name = PallyPower_AuraID[id], talent = talent or 0 }
     end
+    local function mkSeal(id, rank)
+        return { rank = tostring(rank), id = 1, name = PallyPower_SealID[id], talent = 0 }
+    end
+
+    -- Test-mode Judgement capability is derived from SealRankInfo just like
+    -- real runtime capability. Keep the three Judgement-producing seals
+    -- available so fake profiles exercise Judgement assignment normally.
+    SealRankInfo[0] = mkSeal(0, 1) -- Wisdom
+    SealRankInfo[1] = mkSeal(1, 1) -- the Crusader
+    SealRankInfo[2] = mkSeal(2, 1) -- Light
 
     -- Common baseline blessings for all profiles
     RankInfo[0] = { rank = "6", id = 1, idsmall = 1, name = PallyPower_BlessingID[0], talent = 0 } -- Wisdom 6
