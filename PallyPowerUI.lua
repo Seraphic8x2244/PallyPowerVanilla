@@ -714,9 +714,8 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 
 	region = PallyPowerUI.CreateFontString(frame, "$parentSymbols", "OVERLAY", "GameFontHighlightSmall")
 	PallyPowerUI.SetSize(region, 38, 16)
-	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 124, -25)
 	region:SetText("999")
-	region:SetJustifyH("LEFT")
+	region:SetJustifyH("RIGHT")
 	frame.ppSymbols = region
 
 	region = PallyPowerUI.CreateTexture(frame, "$parentSymbolIcon", "OVERLAY", "Interface\\Icons\\INV_Misc_SymbolofKings_01")
@@ -724,6 +723,7 @@ function PallyPowerUI.CreatePPPaladinRowTemplate(name, parent)
 	PallyPowerUI.SetPoint(region, "TOPLEFT", frame, "TOPLEFT", 164, -25)
 	PallyPowerUI.CropNativeIcon(region)
 	frame.ppSymbolIcon = region
+	PallyPowerUI.SetPoint(frame.ppSymbols, "RIGHT", frame.ppSymbolIcon, "LEFT", -2, 0)
 
 	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 0, 4, "Interface\\Icons\\Spell_Holy_SealOfWisdom")
 	PallyPowerUI.CreatePPPaladinRowRankIcon(frame, 1, 24, "Interface\\Icons\\Spell_Holy_FistOfJustice")
