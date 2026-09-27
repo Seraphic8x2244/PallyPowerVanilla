@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.30-dev`
+- Version: `1.11.31-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -43,12 +43,14 @@
 - Assignment synthetic-layout test-mode implementation: `d629f3c8dbe093a91e851badd460273b1c1b3269` (`1.11.28-dev`)
 - Test-profile Judgement-capability corrective runtime implementation: `86a9fb4895964a71bfd124aadb213abebbdd3acf` (`1.11.29-dev`)
 - Symbol of Kings counter anchor corrective runtime implementation: `a98d92da37c1b64da818c28f53fea979ccd56e21` (`1.11.30-dev`)
+- Post-release Presets UX runtime implementation: `2c66ff874d5421baff5e541680743c0aa46be235` (`1.11.31-dev`)
+- Branch head before Presets runtime handoff update: `2c66ff874d5421baff5e541680743c0aa46be235`
 - User README/Assignment screenshot update preserved from `dee62d053704c4104a112a8edef193f18baeadc8`
 - Branch head before peer-acceptance handoff update: `31990c504f920c5e906dc7813f4ec9e4d708c4f3`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.30` at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`
-- Goal: stable `1.11.30` is promoted on `main` from the fully accepted `1.11.30-dev` runtime. The post-release Presets UX design is now accepted; the next runtime/code step is to implement that Presets redesign on `dev`, followed separately by the remaining addon-owned utility-button Lucide replacement.
-- Current scope boundary: Stage 7, the post-Stage-7 RF/Judgement wheel + NoRF cleanup, Assignment redesign, `/pp test` compatibility, peer communication compatibility, and the final SoK counter anchor are all runtime-accepted through exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21`. Stable `main` `1.11.30` is promoted at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`. Do not fold unrelated refactors or protocol/data-model work into the next Preset/Lucide UI polish cycle.
+- Goal: validate the isolated post-release Presets UX runtime `1.11.31-dev` / `2c66ff874d5421baff5e541680743c0aa46be235` in game. The remaining addon-owned utility-button Lucide replacement stays separate and must not begin until this Presets slice is accepted.
+- Current scope boundary: everything through exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21` remains runtime-accepted and stable `main` `1.11.30` remains at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`. The only unaccepted runtime delta is the isolated Presets UX at `1.11.31-dev` / `2c66ff874d5421baff5e541680743c0aa46be235`; it changes UI/state flow only and does not redesign SavedVariables, protocol or assignment data. Lucide utility-button work and unrelated refactors remain out of scope.
 
 ## Current Design / Development Contract
 
@@ -162,6 +164,7 @@
 - Rulebook asset placement is active project scope: retained addon-owned artwork and sounds must move under `assets/`, and obsolete bundled textures should be deleted during that migration.
 
 ## Recent Relevant Commits
+- `2c66ff8` - Implement the accepted post-release Presets Assignment UX in `1.11.31-dev`: compact preset selector/status controls, context-sensitive Save/Load action, direct `+` new-save and `-` delete actions, transient dropdown selection separate from the loaded preset, dirty-state comparison against the loaded preset, and no preset save/delete/discard confirmation dialogs. Preset storage scope/data remain unchanged; no Lucide utility-button work is included.
 - `86a9fb4` - Build `1.11.29-dev`: fix `/pp test` Judgement capability by adding fake Wisdom/Crusader/Light seal capability entries to `PallyPower_BuildTestProfile()`, allowing the existing `PallyPower_BuildJudgementCapability()` path to report all three test Judgements as available instead of rank 0.
 - `d629f3c` - Build `1.11.28-dev`: add `/pp layouttest bridge|tail|off`, a runtime-only synthetic three-Paladin Assignment-row renderer for visual linker QA. Bridge mode paints rows 1 and 3 assigned with row 2 empty; tail mode paints only row 1 assigned. Real scan/grid writes are suspended while active; no SavedVariables, comms, roster tables or real assignment tables are changed.
 - `c808c38` - Build `1.11.27-dev`: finalize link width at default 12/range 0-18; finalize Vertical/Horizontal at default 12/range 8-64; finalize Personal Assignment Divider at default 36/range 8-64; add a one-time per-character spacing reset to 12/12/36 while preserving subsequent user changes. Existing link-width choices are not forcibly reset.
@@ -245,6 +248,7 @@
 - Stage 7 third-slice build `4b817936e403bc455663a7c89909ccbd7e3615a8` (`1.11.4-dev`) is user-verified: the preset UI works normally, including the New Save dialog and existing preset Save/Delete warning paths, with no header/title/layout or control regression observed.
 
 ## Implemented / Awaiting Runtime Test
+- Post-release Presets UX runtime `2c66ff874d5421baff5e541680743c0aa46be235` (`1.11.31-dev`) is implemented and statically reviewed, but has not yet been exercised in game. The existing per-character `PP_Presets` payload remains unchanged: class Blessings plus Aura, Seal, Righteous Fury and Judgement. Dropdown selection is transient runtime state and is intentionally not a SavedVariable.
 - Stage 1 remains the frozen parity/scaffold baseline at `f6ee37e4ed644dd1841d84918595530f5a2c36d6`; `docs/XML_UI_PARITY_MANIFEST.md` remains unchanged and authoritative for the migration.
 - Stage 2 remains implemented at `1cd5026eae00e9ef0b405301a5f971d69f6e3fbb`.
 - Stage 3 remains implemented at `4d55d79d9c4fd908d31375f1d6b01c8e1e960b2c`; the implementation began at `02cbc118e88a654fe59ec9bd966717499fa4b094` and the follow-up commit cleanly separated the Stage 3 construction entry point from the Stage 2 wrapper.
@@ -270,6 +274,8 @@
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
 ## Static / Automated Checks
+- Focused static audit for exact Presets runtime `2c66ff874d5421baff5e541680743c0aa46be235` passed the intended scope check: compared with accepted handoff `50891098eb883116b0f5faa90a738b4e35ec6ff2`, only `PallyPower.lua`, `PallyPowerUI.lua`, `locales/enUS.lua` and `PallyPowerVanilla.toc` changed; the TOC is `1.11.31-dev`; the compact dropdown/status/Save-Load/+/- controls and dirty-state paths are present; Vanilla 1.12 legacy `UIDropDownMenu_SetWidth(width, frame)` / `UIDropDownMenu_SetText(text, frame)` ordering is used; preset persistence/protocol are unchanged; no Lucide work is present.
+- Canonical Lua 5.0.3 compiler check for `1.11.31-dev`: **not run / not claimed**. This connector-only session does not have the VanillaTemplate `tools/lua50/` checker mounted in the executable environment; no system `lua`/`luac` is available, and direct shell network checkout is unavailable. Static review is not treated as a compiler or in-game pass.
 - Prior static audit found no stale legacy locale paths.
 - Remaining literal XML text values were identified as placeholders/sample values rather than untranslated UI labels.
 - Existing Nampower and UnitXP calls remain behind their existing capability/enable checks.
@@ -362,6 +368,7 @@
 ## Testing
 
 ### Last Runtime Test
+- No in-game result exists yet for `1.11.31-dev` / `2c66ff874d5421baff5e541680743c0aa46be235`. The latest accepted runtime baseline remains exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21`, from which stable `main` `1.11.30` was promoted.
 - Latest partial runtime feedback is from exact `1.11.25-dev` / `b8af35daae11034585d81dedf31b5658d977ffce`. The user passed all five icon/border checks from focused gate item 9: retained class-icon crop looks good; normal shared border is 2 px and fully opaque black; class-header hover correctly recolours that same 2 px border to solid class colour; no translucency/additive glow remains; native blessing/spell icons with the clean 4 px inset also look good. Remaining focused-gate checks are still pending.
 - Remaining focused visual-gate gap from `1.11.25-dev`: the three-Paladin case with Paladin 1 assigned, Paladin 2 empty, Paladin 3 assigned was untestable with only two live Paladins. `1.11.28-dev` now supplies the explicitly isolated synthetic layout test mode for this case.
 - `1.11.26-dev` runtime gate **passed all ten available checks**: no regressions, correct control replacement/migration, equal vertical rhythm, unified horizontal spacing, independent personal divider, clean all-12 layout, linker tracking, flyout behaviour during live spacing changes, Advanced Options rhythm, and independent link width.
@@ -379,7 +386,15 @@
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-No release-blocking runtime test remains. The final `1.11.30-dev` SoK alignment gate passed and stable `1.11.30` is promoted. Future runtime gates should be defined per the next post-release Preset/Lucide UI slice.
+Focused Presets gate on exact `1.11.31-dev` / `2c66ff874d5421baff5e541680743c0aa46be235`:
+1. Open the Assignment window and verify the compact Presets group is clean/non-overlapping. With no loaded preset, the dropdown is blank, status is `Unsaved Preset`, and `Save` is disabled; with an existing loaded preset, its name is shown and `Save` is disabled.
+2. Select a different preset in the dropdown. Assignments must not change yet; the action button must become enabled `Load`.
+3. Click `Load`. Class Blessings plus Aura, Seal, Righteous Fury and Judgement must restore from that preset; the status must show its normal name and the action button must return to disabled `Save`.
+4. Modify one saved assignment. Status must become `<Preset Name> (Unsaved)` and `Save` must enable. Click `Save`: overwrite immediately with no confirmation, remove the suffix and disable `Save`; reselect/reload the preset to confirm the change persisted.
+5. Click `+`, save the current assignments under a new name, and verify that preset becomes loaded/selected with disabled `Save`. The existing name-entry dialog may still show overwrite help for a duplicate name, but saving must not open a second confirmation dialog.
+6. Make the loaded preset dirty, select another preset and click `Load`; it must replace the unsaved assignments immediately with no discard confirmation.
+7. With a loaded preset selected, click `-`. It must delete immediately without confirmation while leaving current assignments untouched; the dropdown becomes blank, status becomes `Unsaved Preset`, and `Save` is disabled.
+8. `/reload` and verify saved presets/data persist, the Assignment window opens without errors, and the Presets controls return in a sensible loaded/unsaved state.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
@@ -533,7 +548,7 @@ After generated-name/global lookup cleanup:
 - Final Stage 7 audit completed after the ninth-slice runtime pass. `PallyPowerUI.lua` remains at zero `getglobal()` calls. The remaining 10 core lookups are intentionally preserved compatibility-bound/name-based interfaces rather than unfinished addon-owned UI references: `GameTooltipTemplate`-generated spell-scan regions (5), `GameTooltipTemplate`-generated Judgement target-scan text (1), Blizzard-owned `GameTooltipTextLeft/Right...` regions (2), and dynamic `PALLYPOWER_TEXT_WARNING_<type>` localization lookup (2). Replacing these merely to reach zero would either depend on unstable region-order inspection or narrow an intentionally dynamic global contract.
 - Stage 7 is therefore complete at user-tested runtime `1.11.10-dev` / `177a980a97cffc1cad22746dfea0490f40e89ca6`; no tenth runtime slice is required. The final audit/documentation changes do not alter addon runtime and therefore do not require another TOC version bump or compiler run.
 
-### Post-release Presets UX — DESIGN ACCEPTED
+### Post-release Presets UX — IMPLEMENTED / RUNTIME TEST PENDING
 - Replace the current old-style Presets dropdown workflow with a compact Assignment-UX control group:
   - preset dropdown box;
   - preset/status name area;
@@ -548,6 +563,11 @@ After generated-name/global lookup cleanup:
 - `-` deletes the preset currently selected in the dropdown immediately, with no confirmation dialog. If the deleted preset was the loaded preset, keep the current assignments untouched, clear the dropdown to a blank neutral state, show `Unsaved Preset`, and leave `Save` disabled until a named preset exists again.
 - Preset save/load/delete operations intentionally use no confirmation dialogs; accidental changes are considered low-cost and user-recoverable, and the UX should favour speed.
 - Preserve the existing per-character preset data and saved assignment scope: class Blessings plus Aura, Seal, Righteous Fury and Judgement. This is a UI/state-flow redesign, not a SavedVariables or protocol redesign.
+- Implemented at `2c66ff874d5421baff5e541680743c0aa46be235` / `1.11.31-dev`. The Assignment header now owns the compact dropdown/status/action/+/- group; the old single Presets button is gone.
+- `PP_SelectedPreset` is transient runtime selection state and is deliberately separate from persisted `PP_Presets[player]["CurrentSet"]`. Selecting a dropdown entry therefore does not apply it until `Load` is clicked.
+- Dirty state is derived by comparing live player assignments against the loaded preset rather than instrumenting every assignment mutation path. The visible Assignment grid refresh path updates Preset state continuously while the window is open.
+- Existing save-name dialog is retained only for `+` naming/new-save entry. Preset save, delete and unsaved-discard actions no longer use confirmation dialogs. Existing warning-dialog compatibility code remains otherwise untouched.
+- The implementation retains legacy preset compatibility for older presets with absent special-assignment keys and the existing lowercase RF/Judgement fallbacks.
 ## Deferred / Out of Scope
 - Remaining post-release UI polish after the accepted Presets redesign is implemented/tested: replace the remaining addon-owned utility buttons with Lucide icons. Keep this as a separate slice.
 - SavedVariables redesign.
@@ -567,4 +587,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Implement the accepted Presets UX design above on `dev` as the next isolated runtime slice. The first addon-affecting revision should bump the TOC from `1.11.30-dev` to `1.11.31-dev`. Do not mix in the later Lucide utility-button replacement or unrelated refactors/protocol/data-model work. Keep stable `main` `1.11.30` untouched.
+Run the focused Presets runtime gate above on exact `1.11.31-dev` / `2c66ff874d5421baff5e541680743c0aa46be235`. Do not start the later Lucide utility-button replacement until this Presets slice is user-accepted. Keep stable `main` `1.11.30` untouched and do not mix in unrelated refactors/protocol/data-model work.
