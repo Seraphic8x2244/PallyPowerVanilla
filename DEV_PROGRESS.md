@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.29-dev`
+- Version: `1.11.30-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -42,11 +42,13 @@
 - Assignment finalized spacing defaults/ranges implementation: `c808c38a2d276bfe69033ee6469ce7a88cf2241a` (`1.11.27-dev`)
 - Assignment synthetic-layout test-mode implementation: `d629f3c8dbe093a91e851badd460273b1c1b3269` (`1.11.28-dev`)
 - Test-profile Judgement-capability corrective runtime implementation: `86a9fb4895964a71bfd124aadb213abebbdd3acf` (`1.11.29-dev`)
+- Symbol of Kings counter anchor corrective runtime implementation: `a98d92da37c1b64da818c28f53fea979ccd56e21` (`1.11.30-dev`)
+- User README/Assignment screenshot update preserved from `dee62d053704c4104a112a8edef193f18baeadc8`
 - Branch head before peer-acceptance handoff update: `31990c504f920c5e906dc7813f4ec9e4d708c4f3`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Assignment Window redesign and all compatibility gates are fully accepted on `1.11.29-dev`. Peer verification confirms `-dev` suppresses `VERSION ...` advertisement while ordinary PallyPower state/assignment communications continue normally. Release-readiness cleanup is now unblocked; do not introduce unrelated runtime/feature changes.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window redesign is fully runtime-accepted on exact `1.11.28-dev` / `d629f3c`. `1.11.29-dev` / `86a9fb4` is runtime-accepted for the corrected `/pp test` Judgement capability, non-Paladin `/pp test` compatibility, and peer-client communication compatibility. With a friend running the stable/main build, party formation produced no dev-version/newer-version message; the peer saw the dev Paladin/state normally; assignment changes propagated dev -> peer and peer -> dev. Release-readiness cleanup is now the only active next scope.
+- Goal: `1.11.30-dev` carries one final pre-release UI correction: the Symbol of Kings count is now anchored directly to the left of the Symbol of Kings icon and right-justified, so the count/icon pair stays visually coupled. All prior Assignment/compatibility gates remain accepted from `1.11.29-dev`. Main promotion is gated only on runtime confirmation of this SoK alignment; do not introduce unrelated runtime/feature changes before that check.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window redesign is fully runtime-accepted on exact `1.11.28-dev` / `d629f3c`. `1.11.29-dev` / `86a9fb4` is runtime-accepted for corrected `/pp test` Judgement capability, non-Paladin `/pp test` compatibility, and peer-client communication compatibility. `1.11.30-dev` / `a98d92d` changes only the Assignment-row SoK counter anchoring plus the required TOC version bump; that new delta is not yet user-tested. After the focused SoK alignment pass, proceed directly to main release-readiness/promotion without unrelated feature work.
 
 ## Current Design / Development Contract
 
@@ -377,7 +379,12 @@
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-All compatibility/runtime gates now pass on exact `1.11.29-dev` / `86a9fb4895964a71bfd124aadb213abebbdd3acf`, including the peer-client `-dev` VERSION-suppression check. No compatibility runtime test remains before release-readiness cleanup.
+Focused gate for exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21`:
+1. Open the Assignment window with at least two visible Paladin rows and confirm each Symbol of Kings count sits immediately to the left of its Symbol of Kings icon, vertically centred with it.
+2. Confirm different values (for example `0`, a two-digit count, and if practical a three-digit test value) remain right-aligned against the icon rather than drifting left.
+3. Confirm the SoK icon itself has not moved and the surrounding blessing/cooldown row layout is unchanged.
+
+A pass closes the final runtime gate and unblocks main promotion.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
@@ -387,7 +394,7 @@ All compatibility/runtime gates now pass on exact `1.11.29-dev` / `86a9fb4895964
 - Multi-Paladin corrective runtime: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` / `1.11.20-dev`; partially tested, with native-icon crop failure found.
 - `1.11.21-dev` / `1f784862bc157858ea93cc9cfb205e5485e5ebf7` was superseded before runtime testing once the visible icon issue was identified as the retained class assets rather than native spell icons.
 - `1.11.22-dev` / `b5174ae575836dd84aa5b53ddc8c4bc9f5dd4b4b` was superseded by the border-width correction before the focused gate was completed.
-- Current corrective runtime: `86a9fb4895964a71bfd124aadb213abebbdd3acf` / `1.11.29-dev`.
+- Current corrective runtime: `a98d92da37c1b64da818c28f53fea979ccd56e21` / `1.11.30-dev`. This changes only the SoK counter anchor/justification and the required TOC version; all prior accepted Assignment behaviour is inherited from `1.11.29-dev`.
 - Unified spacing: per-character `assignmentverticalspacing`, `assignmenthorizontalspacing` and `assignmentpersonaldivider`, all default 12 and live 0-50. The first-row anchor derives from Vertical Spacing so visible header→row-1 and row→row icon gaps stay equal; ordinary horizontal columns share one pitch, while Judgement→class-0 uses the independent divider pitch.
 - Multi-Paladin linker tail: a full-colour linker still follows the lowest assigned row rule. Empty visible rows below that final assignment receive a separate subdued grey `BORDER`-layer extension ending in the same 32 px fade at the lowest visible slot. A later assignment extends the coloured linker through intermediate empty rows instead.
 - Layering: coloured linker, grey extension and fade are now `BORDER` textures; assignment/header icon content remains `ARTWORK`/`OVERLAY`, so the bars cannot paint over the icon faces.
@@ -396,6 +403,7 @@ All compatibility/runtime gates now pass on exact `1.11.29-dev` / `86a9fb4895964
 - Flyout placement: class flyouts remain horizontally centred on the selected class icon but are offset so their bottom starts above the Assignment frame top.
 - Static post-commit audit for `1.11.27-dev`: TOC is `1.11.27-dev`; Link Width normalizes 0-18 with default 12; the three spacing controls normalize 8-64; Vertical/Horizontal defaults are 12 and Personal Divider default is 36; a one-time per-character `assignmentspacingrevision = 2` reset writes 12/12/36 and then leaves subsequent user edits persistent. Link Width is not part of that forced reset. Existing `1.11.26` layout/reflow logic is otherwise unchanged.
 - Canonical Lua 5.0.3 compiler check for `1.11.29-dev`: **not run / not claimed** because this connector-only session does not have the VanillaTemplate checker mounted in an executable repository environment.
+- Canonical Lua 5.0.3 compiler check for `1.11.30-dev`: **not run / not claimed** for the same connector-only limitation. Focused static review passed: the counter retains its 38x16 font-string box, is right-justified, and now anchors its `RIGHT` point directly to the SoK icon's `LEFT` point with a 2 px gap; the SoK icon anchor itself is unchanged.
 - In-game test of `1.11.25-dev`: **broad pass for all available two-Paladin cases**. Runtime screenshot/user feedback confirms crops/borders, grey tails/fades, empty-column fade, layering, Aura Mastery header, flyout placement/interactions and existing live layout controls all worked; only the unavailable three-Paladin intermediate-empty-row case remained unverified.
 - In-game test of `1.11.26-dev`: **passed all ten available runtime checks**. The user accepted the unified spacing model and Advanced Options reflow, including live flyout behaviour while changing spacing.
 - In-game test of `1.11.27-dev`: **passed all eight focused checks**. The one-time 12/12/36 spacing reset occurred exactly once; subsequent spacing edits persisted across `/reload`; Link Width 0-18/default 12, Vertical 8-64/default 12, Horizontal 8-64/default 12 and Personal Divider 8-64/default 36 all behaved correctly; live linker/flyout tracking remained good.
@@ -530,6 +538,7 @@ After generated-name/global lookup cleanup:
 - Stage 7 is therefore complete at user-tested runtime `1.11.10-dev` / `177a980a97cffc1cad22746dfea0490f40e89ca6`; no tenth runtime slice is required. The final audit/documentation changes do not alter addon runtime and therefore do not require another TOC version bump or compiler run.
 
 ## Deferred / Out of Scope
+- Post-release UI polish: bring Presets into the newer Assignment UX design and replace the remaining addon-owned utility buttons with Lucide icons. These are explicitly deferred until after the pending main promotion and are not blockers for `1.11.30`.
 - SavedVariables redesign.
 - Communication protocol redesign.
 - Keybinding-system redesign or removal of `Bindings.xml`.
@@ -540,11 +549,11 @@ After generated-name/global lookup cleanup:
 
 ## Release / Promotion Notes
 - Current stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`.
-- Main-only or release-only content to preserve: stable TOC Title/Version metadata and the README release heading/version. At the verified baseline, `main` says README `v1.11.0` while `dev` still says `v1.10.20`; reconcile deliberately during a future promotion.
+- Main-only or release-only content to preserve: stable TOC Title/Version metadata and the README release heading/version. The user has already updated `dev` README presentation and the Assignment screenshot/link at `dee62d053704c4104a112a8edef193f18baeadc8`; preserve those changes. Because the final SoK runtime correction required a TOC bump to `1.11.30-dev`, the stable promotion target should be `1.11.30`, and the README heading currently saying `v1.11.29` must be reconciled to `v1.11.30` during promotion without losing the new screenshot/link.
 - Stable `main` excludes development progress/status documentation.
 - Known validation debt accepted for the current release: the exact promoted stable tree did not receive a separately documented in-game run after release-only metadata/presentation/doc-removal changes.
 - External/runtime prerequisites: none required. Nampower and UnitXP are optional enhancements, not hard dependencies.
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Verify this handoff first in a fresh chat, then begin release-readiness cleanup from the fully accepted `1.11.29-dev` runtime payload `86a9fb4895964a71bfd124aadb213abebbdd3acf`. Reconcile the intended release tree against stable `main`, preserve release-only metadata/presentation deliberately, remove development-only status material from the stable tree, and run the available release/static checks before promotion. Do not mix in unrelated feature or runtime changes.
+Runtime-test the SoK counter alignment on exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21`. If the focused gate passes, record acceptance and proceed directly to main promotion/release-readiness: stable Title/Version `1.11.30`, preserve the user's new README Assignment screenshot/link while updating its heading to `v1.11.30`, exclude `DEV_PROGRESS.md` from stable `main`, verify the release-tree diff/static checks, then promote. Do not start the deferred Preset/Lucide UI polish before this release.
