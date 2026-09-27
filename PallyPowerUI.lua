@@ -1241,6 +1241,68 @@ function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
 	end
 end
 
+function PallyPowerUI.RenderAssignmentLayoutTest(mode)
+	local refs = PallyPowerUIRefs
+	local columns = {"A", "R", "S", "J", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+	local testColumn = 4
+	local testTexture = "Interface\\Icons\\Spell_Holy_SealOfWisdom"
+	local row
+	local cell
+	local i
+	local j
+
+	if mode ~= "bridge" and mode ~= "tail" then
+		return
+	end
+
+	PallyPowerUI.UpdateAssignmentGeometry(3)
+
+	for i = 1, 3 do
+		row = refs.playerRows[i]
+		if row then
+			row:Show()
+			if row.ppName then
+				row.ppName:SetText("Test Paladin " .. i)
+				row.ppName:SetTextColor(0.96, 0.55, 0.73)
+			end
+			if row.ppInGroup then row.ppInGroup:SetText("T" .. i) end
+			if row.ppSymbols then
+				row.ppSymbols:SetText("100")
+				row.ppSymbols:SetTextColor(1, 1, 0.5)
+			end
+			if row.ppHOJ then row.ppHOJ:Hide() end
+			if row.ppLH then row.ppLH:Hide() end
+			if row.ppDI then row.ppDI:Hide() end
+			for j = 0, 5 do
+				if row.ppRankIcons and row.ppRankIcons[j] then row.ppRankIcons[j]:Hide() end
+				if row.ppSkills and row.ppSkills[j] then row.ppSkills[j]:Hide() end
+			end
+			for j = 1, 14 do
+				cell = row.ppAssignments and row.ppAssignments[columns[j]]
+				if cell then
+					cell:SetAlpha(1)
+					if cell.ppIcon then
+						cell.ppIcon:SetTexture(nil)
+						cell.ppIcon:SetVertexColor(1, 1, 1)
+					end
+					if cell.ppIconBorder then cell.ppIconBorder:Hide() end
+					if cell.ppNoRF then cell.ppNoRF:Hide() end
+				end
+			end
+		end
+	end
+
+	cell = refs.playerRows[1] and refs.playerRows[1].ppAssignments[testColumn]
+	if cell and cell.ppIcon then cell.ppIcon:SetTexture(testTexture) end
+
+	if mode == "bridge" then
+		cell = refs.playerRows[3] and refs.playerRows[3].ppAssignments[testColumn]
+		if cell and cell.ppIcon then cell.ppIcon:SetTexture(testTexture) end
+	end
+
+	PallyPowerUI.UpdateAssignmentLinkers(3)
+end
+
 function PallyPowerUI.UpdateAssignmentGeometry(numPallys, numMaxClass)
 	local layout = PallyPowerUI.AssignmentLayout
 	PallyPowerUI.ApplyAssignmentSpacing()

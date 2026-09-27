@@ -1135,6 +1135,7 @@ end
 PP_Symbols = 0
 IsPally = 0
 PP_TestMode = nil -- nil = off, "prot"/"holy"/"ret" = active test profile
+PP_AssignmentLayoutTest = nil -- nil = off, "bridge"/"tail" = synthetic Assignment layout only
 lastClassBtn = 1
 lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
 hasRighteousFury = false
@@ -2323,6 +2324,39 @@ function PallyPower_SlashCommandHandler(msg)
         return true
     end
 
+    -- /pp layouttest [bridge|tail|off] - visual-only synthetic Assignment rows.
+    -- This mode never touches SavedVariables, addon comms, AllPallys or real
+    -- assignment tables; it only paints the existing row widgets for layout QA.
+    local _, _, layoutTestArg = string.find(msg, "^layouttest%s*(.*)$")
+    if layoutTestArg ~= nil then
+        layoutTestArg = string.lower(layoutTestArg)
+        if layoutTestArg == "" or layoutTestArg == "on" or layoutTestArg == "bridge" then
+            PP_AssignmentLayoutTest = "bridge"
+            if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
+                PallyPowerUI.RenderAssignmentLayoutTest("bridge")
+            end
+            PallyPowerFrame:Show()
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_BRIDGE)
+            return true
+        elseif layoutTestArg == "tail" then
+            PP_AssignmentLayoutTest = "tail"
+            if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
+                PallyPowerUI.RenderAssignmentLayoutTest("tail")
+            end
+            PallyPowerFrame:Show()
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_TAIL)
+            return true
+        elseif layoutTestArg == "off" or layoutTestArg == "clear" or layoutTestArg == "reset" then
+            PP_AssignmentLayoutTest = nil
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_OFF)
+            PallyPowerGrid_Update(1)
+            return true
+        else
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_HELP)
+            return true
+        end
+    end
+
     -- /pp test <profile> - Debug command to fake talent/spell data
     local _, _, testArg = string.find(msg, "^test%s*(.*)$")
     if testArg ~= nil then
@@ -2442,6 +2476,10 @@ function PallyPower_TableLength(T)
 end
 
 function PallyPowerGrid_Update(tdiff)
+    if PP_AssignmentLayoutTest then
+        return
+    end
+
     if not initialized then
         PallyPower_ScanSpells()
     end

@@ -274,3 +274,8 @@ PALLYPOWER_FEEDBACK_SALVATION_TANK = "Won't cast Salvation on tank: %s"
 PALLYPOWER_FEEDBACK_CANT_TARGET = "Can't target: %s"
 
 --PALLYPOWER_HUNTER_FEIGN_DEATH = "Feign Death"
+
+PALLYPOWER_MSG_LAYOUT_TEST_BRIDGE = "|cfff48cbaAssignment layout test: bridge mode (rows 1 + 3 assigned, row 2 empty).|r"
+PALLYPOWER_MSG_LAYOUT_TEST_TAIL = "|cfff48cbaAssignment layout test: tail mode (row 1 assigned, rows 2 + 3 empty).|r"
+PALLYPOWER_MSG_LAYOUT_TEST_OFF = "|cfff48cbaAssignment layout test disabled; real rows restored.|r"
+PALLYPOWER_MSG_LAYOUT_TEST_HELP = "|cfff48cbaUsage: /pp layouttest [bridge|tail|off]|r"
