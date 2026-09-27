@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.28-dev`
+- Version: `1.11.29-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -41,11 +41,12 @@
 - Assignment unified-spacing/runtime-options implementation: `6337490217dccc7ba5affcf2023ad50a0b795de0` (`1.11.26-dev`)
 - Assignment finalized spacing defaults/ranges implementation: `c808c38a2d276bfe69033ee6469ce7a88cf2241a` (`1.11.27-dev`)
 - Assignment synthetic-layout test-mode implementation: `d629f3c8dbe093a91e851badd460273b1c1b3269` (`1.11.28-dev`)
-- Branch head before this handoff update: `d629f3c8dbe093a91e851badd460273b1c1b3269`
+- Test-profile Judgement-capability corrective runtime implementation: `86a9fb4895964a71bfd124aadb213abebbdd3acf` (`1.11.29-dev`)
+- Branch head before this handoff update: `86a9fb4895964a71bfd124aadb213abebbdd3acf`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Assignment Window redesign/runtime gate is now fully user-accepted on `1.11.28-dev`, including the synthetic three-Paladin bridge/tail cases. The Buff Bar font regression is currently not reproducible / visually resolved without an identified code fix. Resume the remaining post-Stage-7 compatibility checks next: non-Paladin `/pp test`, then peer verification of `-dev` VERSION-advertisement suppression. Do not begin release-readiness cleanup yet.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window redesign is fully runtime-accepted on exact `1.11.28-dev` / `d629f3c`: normal two-Paladin behaviour, finalized spacing/default/range controls, synthetic P1-assigned/P2-empty/P3-assigned continuous-linker bridge, grey lower-tail/fade, live spacing changes in test mode, clean exit back to real rows, and post-reload cleanup all pass. The synthetic mode remains runtime-only and isolated from SavedVariables, comms, roster tables and real assignments. Buff Bar font presentation is currently not reproducible / visually resolved without a direct code fix. Remaining work is the older compatibility checks only; release-readiness cleanup remains out of scope until those are completed.
+- Goal: Assignment Window redesign/runtime gate remains fully user-accepted on `1.11.28-dev`. Runtime-test the `1.11.29-dev` correction for `/pp test` Judgement capability, then finish the remaining compatibility checks: non-Paladin `/pp test`, then peer verification of `-dev` VERSION-advertisement suppression. Do not begin release-readiness cleanup yet.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window redesign is fully runtime-accepted on exact `1.11.28-dev` / `d629f3c`: normal two-Paladin behaviour, finalized spacing/default/range controls, synthetic P1-assigned/P2-empty/P3-assigned continuous-linker bridge, grey lower-tail/fade, live spacing changes in test mode, clean exit back to real rows, and post-reload cleanup all pass. The synthetic mode remains runtime-only and isolated from SavedVariables, comms, roster tables and real assignments. Paladin runtime testing then exposed a separate `/pp test prot` defect: fake profiles left `SealRankInfo` empty, so Judgement capability derived Wisdom/Light/Crusader as rank 0; the Judgement assignment cell became subdued and cycling cleared it to unassignable. `1.11.29-dev` adds the three Judgement-producing fake seals to the test profile so the normal Judgement capability path sees them as available. Release-readiness cleanup remains out of scope until this correction and the remaining compatibility checks are completed.
 
 ## Current Design / Development Contract
 
@@ -159,6 +160,7 @@
 - Rulebook asset placement is active project scope: retained addon-owned artwork and sounds must move under `assets/`, and obsolete bundled textures should be deleted during that migration.
 
 ## Recent Relevant Commits
+- `86a9fb4` - Build `1.11.29-dev`: fix `/pp test` Judgement capability by adding fake Wisdom/Crusader/Light seal capability entries to `PallyPower_BuildTestProfile()`, allowing the existing `PallyPower_BuildJudgementCapability()` path to report all three test Judgements as available instead of rank 0.
 - `d629f3c` - Build `1.11.28-dev`: add `/pp layouttest bridge|tail|off`, a runtime-only synthetic three-Paladin Assignment-row renderer for visual linker QA. Bridge mode paints rows 1 and 3 assigned with row 2 empty; tail mode paints only row 1 assigned. Real scan/grid writes are suspended while active; no SavedVariables, comms, roster tables or real assignment tables are changed.
 - `c808c38` - Build `1.11.27-dev`: finalize link width at default 12/range 0-18; finalize Vertical/Horizontal at default 12/range 8-64; finalize Personal Assignment Divider at default 36/range 8-64; add a one-time per-character spacing reset to 12/12/36 while preserving subsequent user changes. Existing link-width choices are not forcibly reset.
 - `6337490` - Build `1.11.26-dev`: replace Self-Buff/Class/Paladin spacing with live Assignment Vertical/Horizontal/Personal Divider controls (default 12), keep header→row and row→row visible vertical icon gaps uniform, use one ordinary horizontal pitch with a separate Judgement→first-class divider, migrate/clear the superseded spacing keys, and normalize the Advanced Options section rhythm called out in runtime screenshots.
@@ -167,7 +169,7 @@
 - `a96c0b0` - Increase the shared addon-owned black icon border from 1 px to 2 px in `1.11.23-dev`; superseded for hover presentation by `1.11.24-dev`.
 - `b5174ae` - Correct the icon-crop target in `1.11.22-dev`: return native/replacement spell icons to a clean 4 px symmetric crop and add a separate 4 px symmetric crop for retained 64x64 class TGAs in Assignment headers and Buff Bar class icons. Asset inspection showed a pronounced baked outer band in the first ~1-3 px; no per-class positional offsets are added yet.
 - `1f78486` - Strengthen the client-native spell-icon texture crop in `1.11.21-dev` from symmetric `0.07-0.93` to `0.10-0.90` after runtime feedback showed the baked rim still visible. Geometry remains centred; no font code changed.
-- `4a9cca5` - Correct the user-tested `1.11.19-dev` Assignment presentation in `1.11.20-dev`: add live 0-50 px `Paladin Spacing` (initial default 6), add grey lower-tail extensions/fade below the final assigned Paladin row, force linker/guide textures to the `BORDER` layer behind icons, move class flyouts fully above the Assignment frame, restore the missing Aura Mastery header from a retained non-HD asset, and crop native spell textures inside their baked light/silver rim while retaining PallyPower's separate black frame. Buff Bar font declarations are intentionally unchanged pending an exact target.
+- `4a9cca5` - Correct the user-tested `1.11.19-dev` Assignment presentation in `1.11.20-dev`: add live 0-50 px `Paladin Spacing` (initial default 6), add grey lower-tail extensions/fade below the final assigned Paladin row, force linker/guide textures to the `BORDER` layer behind icons, move class flyouts fully above the Assignment frame, restore the missing Aura Mastery header from a retained non-HD asset, and crop native spell textures inside their baked light/silver rim while retaining PallyPower's separate black frame.
 - `7baa74e` - Implement the finalized Assignment Window flyout/native-icon/grey-fade pass and rulebook asset migration; remove the HD-icon option/runtime switching and bundled spell/HD icon copies, move 26 retained presentation/sound files to flat `assets/`, add exact 32x32 class-header hitboxes with class-colour hover glow/tooltip, move individual overrides into one-at-a-time above-header flyouts, add black icon framing, and change empty-column guides to solid grey through the top edge plus a 32 px fade to zero; bump to `1.11.19-dev`.
 - `a80f4a6` - Refine the runtime-tested Assignment Window: set tuned new-character spacing defaults to 6/24, centre each override icon+name pair as a left-oriented visual group, stop hiding active override buttons every frame so registered left-click MouseDown/MouseUp can complete, and add subdued grey guides only for wholly unassigned columns with visible Paladins; bump to `1.11.18-dev`.
 - `cd22c47` - Restore the retained 82 px legacy separator-layout compatibility constant after static review caught three hidden separator construction anchors still reading it; bump the corrected test build to `1.11.17-dev`.
@@ -362,6 +364,8 @@
 - Remaining focused visual-gate gap from `1.11.25-dev`: the three-Paladin case with Paladin 1 assigned, Paladin 2 empty, Paladin 3 assigned was untestable with only two live Paladins. `1.11.28-dev` now supplies the explicitly isolated synthetic layout test mode for this case.
 - `1.11.26-dev` runtime gate **passed all ten available checks**: no regressions, correct control replacement/migration, equal vertical rhythm, unified horizontal spacing, independent personal divider, clean all-12 layout, linker tracking, flyout behaviour during live spacing changes, Advanced Options rhythm, and independent link width.
 - `1.11.27-dev` focused defaults/ranges/reset gate **passed all eight checks**: one-time reset occurred, subsequent edits persisted after reload, all finalized ranges/defaults were correct, and linker/flyout live reflow remained intact.
+- `1.11.28-dev` Assignment synthetic-layout gate **passed all seven checks** and closes the Assignment visual redesign gate.
+- Subsequent Paladin `/pp test prot` testing found the Judgement assignment cell became subdued and cycling made it empty/unassignable while Seal assignment remained usable. Source audit identified the direct cause: `PallyPower_BuildTestProfile()` returned an empty `SealRankInfo`, while Judgement capability is intentionally derived from the Wisdom/Light/Crusader entries in that table. `1.11.29-dev` corrects only that fake-profile capability data.
 - Earlier partial runtime feedback from exact `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` found the then-current icon crop insufficient; that failure is superseded by the accepted `1.11.25-dev` icon/border result above.
 - Earlier exact tested runtime: `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`. The user explicitly confirmed the latest screenshot was from this current build; an earlier screenshot in the preceding message was from the previous version.
 - Confirmed good: the new empty-column fade itself looks good, and the grey/linker presentation sits behind the class/assignment icons rather than covering them.
@@ -371,20 +375,18 @@
   - Aura header icon vanished after the native-icon conversion;
   - native spell icons visibly show a light/silver outer rim; source review confirms PallyPower's added frame is black, so the visible silver edge belongs to the native texture content rather than the addon frame;
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
-  - Buff Bar title-button font and Blessing-summary font were previously reported as visually regressed despite unchanged direct font construction. On the current runtime the user reports the presentation has reverted to the desired appearance without a direct font-code change. Treat this as currently not reproducible / visually resolved, not as a code fix; retain the source-audit note in case it returns.
 
 ### Next Runtime Test
-Assignment visual gate is fully accepted on exact runtime `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269`.
+Focused gate for exact runtime `1.11.29-dev` / `86a9fb4895964a71bfd124aadb213abebbdd3acf`:
+1. On the Paladin used for the reported failure, update and `/reload`; confirm normal Assignment/Judgement behaviour is unchanged before enabling test mode.
+2. Run `/pp test prot`. Confirm the Judgement assignment cell remains normal/full-alpha rather than becoming subdued.
+3. Cycle the Judgement assignment through its available fake-profile choices and empty state, then assign it again. Wisdom, Light and Crusader should all remain assignable; cycling must no longer get stuck empty.
+4. Confirm the existing Seal assignment test behaviour still works.
+5. Run `/pp test off`; confirm the real Paladin spell/capability scan returns and normal Judgement assignment remains usable.
 
-Resume the two older compatibility checks:
-1. On a **non-Paladin** character, verify normal startup remains clean, Buff Bar remains hidden normally, and `/pp` still opens the Assignment Window.
-2. On that non-Paladin, run `/pp test prot` (and optionally `holy` / `ret`). The known legacy behaviour is that the fake-profile Buff Bar may only blink/show briefly before the normal non-Paladin visibility gate hides it again; that persistence mismatch is pre-existing and is **not** a failure. Confirm there is no Lua error and the test command path still works.
-3. Run `/pp test off`; confirm test mode clears cleanly and normal non-Paladin behaviour returns.
-4. With a second PallyPower client/peer available, verify a `-dev` build does **not** advertise a `VERSION ...` message while ordinary PallyPower assignment/state communications still work normally.
-
-Do not begin release-readiness cleanup until these compatibility checks are recorded.
-
-Buff Bar font note: the prior presentation regression is currently **not reproducible / visually resolved** on the user's current runtime, with no direct font-code change identified. Do not claim a font fix; reopen only if the visual regression returns.
+After that correction passes, the older compatibility checks still remain:
+6. On a **non-Paladin**, verify clean startup, Buff Bar hidden normally, and `/pp` opens Assignments; run `/pp test prot` then `/pp test off` and confirm no Lua errors. The known brief Buff-Bar show/hide behaviour on non-Paladins is pre-existing and acceptable.
+7. With a second PallyPower peer available, verify the `-dev` build does not advertise `VERSION ...` while ordinary PallyPower assignment/state communications still work.
 
 Older compatibility checks remain after the visual gate: non-Paladin `/pp test`, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms continue.
 
@@ -396,7 +398,7 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - Multi-Paladin corrective runtime: `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` / `1.11.20-dev`; partially tested, with native-icon crop failure found.
 - `1.11.21-dev` / `1f784862bc157858ea93cc9cfb205e5485e5ebf7` was superseded before runtime testing once the visible icon issue was identified as the retained class assets rather than native spell icons.
 - `1.11.22-dev` / `b5174ae575836dd84aa5b53ddc8c4bc9f5dd4b4b` was superseded by the border-width correction before the focused gate was completed.
-- Current corrective runtime: `d629f3c8dbe093a91e851badd460273b1c1b3269` / `1.11.28-dev`.
+- Current corrective runtime: `86a9fb4895964a71bfd124aadb213abebbdd3acf` / `1.11.29-dev`.
 - Unified spacing: per-character `assignmentverticalspacing`, `assignmenthorizontalspacing` and `assignmentpersonaldivider`, all default 12 and live 0-50. The first-row anchor derives from Vertical Spacing so visible header→row-1 and row→row icon gaps stay equal; ordinary horizontal columns share one pitch, while Judgement→class-0 uses the independent divider pitch.
 - Multi-Paladin linker tail: a full-colour linker still follows the lowest assigned row rule. Empty visible rows below that final assignment receive a separate subdued grey `BORDER`-layer extension ending in the same 32 px fade at the lowest visible slot. A later assignment extends the coloured linker through intermediate empty rows instead.
 - Layering: coloured linker, grey extension and fade are now `BORDER` textures; assignment/header icon content remains `ARTWORK`/`OVERLAY`, so the bars cannot paint over the icon faces.
@@ -404,12 +406,12 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - Icon crop correction: source inspection confirmed the retained class assets are 64x64 TGAs with a pronounced baked outer band concentrated in roughly the first 1-3 pixels. `1.11.22-dev` therefore uses a 4 px symmetric crop (`0.0625-0.9375`) for both native/replacement spell textures and, via a separate helper, the retained class TGAs. Class images show small intrinsic asymmetries of roughly 1-1.5 px in some files; do not introduce per-class offsets unless runtime still shows a specific icon off-centre after the rim crop.
 - Flyout placement: class flyouts remain horizontally centred on the selected class icon but are offset so their bottom starts above the Assignment frame top.
 - Static post-commit audit for `1.11.27-dev`: TOC is `1.11.27-dev`; Link Width normalizes 0-18 with default 12; the three spacing controls normalize 8-64; Vertical/Horizontal defaults are 12 and Personal Divider default is 36; a one-time per-character `assignmentspacingrevision = 2` reset writes 12/12/36 and then leaves subsequent user edits persistent. Link Width is not part of that forced reset. Existing `1.11.26` layout/reflow logic is otherwise unchanged.
-- Canonical Lua 5.0.3 compiler check for `1.11.28-dev`: **not run / not claimed** because this connector-only session does not have the VanillaTemplate checker mounted in an executable repository environment.
-- Buff Bar font report: currently not reproducible / visually resolved. The user reports the desired presentation has returned on the current runtime even though direct title/summary font construction remains unchanged. No font-fix commit is attributed; reopen if the regression returns.
+- Canonical Lua 5.0.3 compiler check for `1.11.29-dev`: **not run / not claimed** because this connector-only session does not have the VanillaTemplate checker mounted in an executable repository environment.
 - In-game test of `1.11.25-dev`: **broad pass for all available two-Paladin cases**. Runtime screenshot/user feedback confirms crops/borders, grey tails/fades, empty-column fade, layering, Aura Mastery header, flyout placement/interactions and existing live layout controls all worked; only the unavailable three-Paladin intermediate-empty-row case remained unverified.
 - In-game test of `1.11.26-dev`: **passed all ten available runtime checks**. The user accepted the unified spacing model and Advanced Options reflow, including live flyout behaviour while changing spacing.
 - In-game test of `1.11.27-dev`: **passed all eight focused checks**. The one-time 12/12/36 spacing reset occurred exactly once; subsequent spacing edits persisted across `/reload`; Link Width 0-18/default 12, Vertical 8-64/default 12, Horizontal 8-64/default 12 and Personal Divider 8-64/default 36 all behaved correctly; live linker/flyout tracking remained good.
 - In-game test of `1.11.28-dev`: **full Assignment gate pass**. User confirmed all seven checks: normal two-Paladin behaviour stayed good; synthetic bridge mode created the expected three rows; the full-colour linker remained continuous through the empty middle row; live Vertical/Horizontal/Divider changes preserved bridge geometry; tail mode correctly switched to colour through row 1 plus grey lower-tail/fade; `layouttest off` restored real rows/assignments; and a subsequent reload left no synthetic state behind.
+- In-game test of `1.11.29-dev`: not yet performed.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -556,4 +558,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Verify this handoff first in a fresh chat. Assignment Window redesign is fully user-accepted on `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269`, including the synthetic three-Paladin bridge/tail gate. Buff Bar font presentation is currently visually normal / not reproducibly regressed; no font fix is claimed. Next, complete the remaining compatibility checks only: (1) non-Paladin normal startup + `/pp` + `/pp test prot` / `off` with the known pre-existing Buff-Bar blink/hide behaviour treated as acceptable, then (2) peer-client verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms still work. Do not start release-readiness cleanup until those checks are recorded.
+Verify this handoff first in a fresh chat. Assignment Window redesign remains fully user-accepted on `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269`. Runtime-test exact `1.11.29-dev` / `86a9fb4895964a71bfd124aadb213abebbdd3acf` against the focused Paladin `/pp test prot` Judgement-capability gate above. The bug was traced to empty fake `SealRankInfo`, which made all derived Judgement ranks zero; the correction supplies fake Wisdom/Crusader/Light seal capability through the existing model. If that passes, complete the non-Paladin `/pp test` compatibility check, then peer verification that `-dev` suppresses only `VERSION ...` advertisement while normal comms continue. Do not start release-readiness cleanup until those checks are recorded.
