@@ -2173,6 +2173,7 @@ function PallyPower_OnEvent(event,arg1)
         PallyPower_MigrateAssignmentStorage()
         -- Initialise per-character settings before any startup function reads them.
         PallyPower_InitConfig()
+        PallyPower_PresetsInitialize()
         PallyPower_AdjustIcons()
         PallyPower_MinimapButton_Init()
         PallyPower_AdjustTransparency()
@@ -2721,6 +2722,7 @@ function PallyPowerGrid_Update(tdiff)
         end
 
         PallyPowerUI.UpdateAssignmentGeometry(numPallys)
+        PallyPower_PresetsRefreshState()
     end
 end
 
@@ -6767,6 +6769,7 @@ end
 -- ============================================================================
 
 PP_Presets = {}
+PP_SelectedPreset = nil
 
 function PallyPower_MinimapButton_OnClick(mouseBtn)
 	PallyPowerMinimapPresetsDropDown:Hide();
@@ -6794,6 +6797,194 @@ function PallyPower_MinimapButton_UpdatePosition()
 		52 - (80 * cos(PP_PerUser.minimapbuttonpos)),
 		(80 * sin(PP_PerUser.minimapbuttonpos)) - 52
 	);
+end
+
+
+function PallyPower_PresetsSetDropDownText(set)
+	if PallyPowerFramePresetsDropDown then
+		UIDropDownMenu_SetText(set or "", PallyPowerFramePresetsDropDown)
+	end
+end
+
+function PallyPower_PresetsDropDown_Initialize()
+	local player = UnitName("player")
+	local info = {}
+	local list = {}
+	local hasSets
+
+	if PP_Presets and PP_Presets[player] and PP_Presets[player]["s"] then
+		for setName in PP_Presets[player]["s"] do
+			tinsert(list, setName)
+		end
+		table.sort(list)
+		for _, setName in list do
+			info = {}
+			info.text = setName
+			info.notCheckable = 1
+			info.func = PallyPower_PresetsDropDown_OnClick
+			UIDropDownMenu_AddButton(info)
+			hasSets = 1
+		end
+	end
+
+	if not hasSets then
+		info = {}
+		info.text = PALLYPOWER_TEXT_DROPDOWN_NONE
+		info.disabled = 1
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info)
+	end
+end
+
+function PallyPower_PresetsDropDown_OnClick()
+	local set = this:GetText()
+	if set and PallyPower_SetExists(set) then
+		PP_SelectedPreset = set
+		PallyPower_PresetsSetDropDownText(set)
+		PallyPower_PresetsRefreshState()
+	end
+end
+
+function PallyPower_PresetMatchesCurrent(set)
+	local player = UnitName("player")
+	local preset
+	local assignments
+	local id
+	local presetRF
+	local presetJudgement
+
+	if not (PP_Presets and PP_Presets[player] and PP_Presets[player]["s"]) then
+		return false
+	end
+	preset = PP_Presets[player]["s"][set]
+	assignments = PallyPower_Assignments[player]
+	if not preset or not assignments then
+		return false
+	end
+
+	for id = 0, 9 do
+		if assignments[id] ~= preset[id] then
+			return false
+		end
+	end
+
+	-- Preserve legacy preset semantics: special assignments absent from an old
+	-- preset were not applied by PallyPower_SwapSet(), so they are ignored here.
+	if preset["A"] ~= nil and PallyPower_AuraAssignments[player] ~= preset["A"] then
+		return false
+	end
+	if preset["S"] ~= nil and PallyPower_SealAssignments[player] ~= preset["S"] then
+		return false
+	end
+
+	if preset["R"] ~= nil then
+		presetRF = preset["R"]
+	elseif preset.rf ~= nil then
+		presetRF = preset.rf
+	end
+	if preset["R"] ~= nil or preset.rf ~= nil then
+		if presetRF == false then presetRF = nil end
+		if PallyPower_RFAssignments[player] ~= presetRF then
+			return false
+		end
+	end
+
+	if preset["J"] ~= nil then
+		presetJudgement = preset["J"]
+	elseif preset.judgement ~= nil then
+		presetJudgement = preset.judgement
+	end
+	if preset["J"] ~= nil or preset.judgement ~= nil then
+		if presetJudgement == false then presetJudgement = nil end
+		if PallyPower_JudgementAssignments[player] ~= presetJudgement then
+			return false
+		end
+	end
+
+	return true
+end
+
+function PallyPower_PresetsRefreshState()
+	local player = UnitName("player")
+	local loaded = PallyPower_GetCurrentSet()
+	local selected = PP_SelectedPreset
+	local dirty = false
+
+	if not PallyPowerFramePresetsStatus or not PallyPowerFramePresetActionButton then
+		return
+	end
+
+	if loaded and not PallyPower_SetExists(loaded) then
+		if PP_Presets and PP_Presets[player] then
+			PP_Presets[player]["CurrentSet"] = nil
+		end
+		loaded = nil
+	end
+
+	if selected and not PallyPower_SetExists(selected) then
+		PP_SelectedPreset = nil
+		selected = nil
+		PallyPower_PresetsSetDropDownText(nil)
+	end
+
+	if loaded then
+		dirty = not PallyPower_PresetMatchesCurrent(loaded)
+		if dirty then
+			PallyPowerFramePresetsStatus:SetText(loaded .. PALLYPOWER_UI_PRESET_UNSAVED_SUFFIX)
+		else
+			PallyPowerFramePresetsStatus:SetText(loaded)
+		end
+	else
+		PallyPowerFramePresetsStatus:SetText(PALLYPOWER_UI_PRESET_UNSAVED)
+	end
+
+	if selected and selected ~= loaded then
+		PallyPowerFramePresetActionButton:SetText(PALLYPOWER_UI_PRESET_LOAD)
+		PallyPowerFramePresetActionButton:Enable()
+	elseif loaded and dirty then
+		PallyPowerFramePresetActionButton:SetText(PALLYPOWER_UI_PRESET_SAVE)
+		PallyPowerFramePresetActionButton:Enable()
+	else
+		PallyPowerFramePresetActionButton:SetText(PALLYPOWER_UI_PRESET_SAVE)
+		PallyPowerFramePresetActionButton:Disable()
+	end
+
+	if PallyPowerFramePresetDeleteButton then
+		if selected and PallyPower_SetExists(selected) then
+			PallyPowerFramePresetDeleteButton:Enable()
+		else
+			PallyPowerFramePresetDeleteButton:Disable()
+		end
+	end
+end
+
+function PallyPower_PresetsInitialize()
+	local current = PallyPower_GetCurrentSet()
+	if current and PallyPower_SetExists(current) then
+		PP_SelectedPreset = current
+	else
+		PP_SelectedPreset = nil
+	end
+	PallyPower_PresetsSetDropDownText(PP_SelectedPreset)
+	PallyPower_PresetsRefreshState()
+end
+
+function PallyPower_PresetAction()
+	local loaded = PallyPower_GetCurrentSet()
+	local selected = PP_SelectedPreset
+
+	if selected and PallyPower_SetExists(selected) and selected ~= loaded then
+		PallyPower_SwapSet(selected)
+	elseif loaded and PallyPower_SetExists(loaded) and not PallyPower_PresetMatchesCurrent(loaded) then
+		PallyPower_SaveSet(loaded)
+	end
+end
+
+function PallyPower_PresetDeleteSelected()
+	local set = PP_SelectedPreset
+	if set and PallyPower_SetExists(set) then
+		PallyPower_Delete(set)
+	end
 end
 
 function PallyPower_PresetsClick()
@@ -6873,9 +7064,9 @@ function PallyPower_Minimap_PresetsDropDown_OnClick()
 	if (id == 1) then
 		PallyPower_Actions_SaveNew();
 	elseif (id == 2) then
-		PallyPower_Warning("SAVE", PallyPower_SaveSet, PallyPower_GetCurrentSet());
+		PallyPower_SaveSet(PallyPower_GetCurrentSet());
 	elseif (id == 3) then
-		PallyPower_Warning("DELETE", PallyPower_Delete, PallyPower_GetCurrentSet());
+		PallyPower_Delete(PallyPower_GetCurrentSet());
 	elseif (id > 4) then
 		PallyPower_SwapSet(this:GetText());
 
@@ -6920,9 +7111,12 @@ function PallyPower_SwapSet(set)
             end
 
 			PP_Presets[player]["CurrentSet"] = set;
+			PP_SelectedPreset = set
+			PallyPower_PresetsSetDropDownText(set)
 		    PP_NextScan = 0 --PallyPower_UpdateUI()
             PP_JudgementNextScan = 0
 	        PallyPower_SendSelf()
+			PallyPower_PresetsRefreshState()
 		end
 	end
 end
@@ -6976,6 +7170,11 @@ function PallyPower_Delete(set)
 	if (PallyPower_GetCurrentSet() == set) then
 		PP_Presets[player]["CurrentSet"] = nil;
 	end
+	if PP_SelectedPreset == set then
+		PP_SelectedPreset = nil
+		PallyPower_PresetsSetDropDownText(nil)
+	end
+	PallyPower_PresetsRefreshState()
 end
 
 function PallyPower_SaveSet(set)
@@ -7014,6 +7213,9 @@ function PallyPower_SaveSet(set)
             PP_Presets[player]["s"][set]["J"] = PallyPower_JudgementAssignments[player]
         end
 		PP_Presets[player]["CurrentSet"] = set;
+		PP_SelectedPreset = set
+		PallyPower_PresetsSetDropDownText(set)
+		PallyPower_PresetsRefreshState()
 	end
 end
 

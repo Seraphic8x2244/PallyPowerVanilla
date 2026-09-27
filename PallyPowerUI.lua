@@ -15,6 +15,7 @@ PallyPowerUIRefs = {
 	buffSpecialButtons = {},
 	buffCombinedSelf = nil,
 	buffBar = nil,
+	presets = nil,
 }
 
 PallyPowerUI.AssignmentLayout = {
@@ -1400,6 +1401,7 @@ function PallyPowerUI.CreateAssignmentUI()
 	local label
 	local group
 	local row
+	local dropdown
 	local oldThis
 	local classTextures = {
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\class-warrior.tga",
@@ -1701,12 +1703,51 @@ function PallyPowerUI.CreateAssignmentUI()
 		"Interface\\AddOns\\PallyPowerVanilla\\assets\\announce.tga"
 	)
 
-	button = PallyPowerUI.CreateFrame("Button", "$parentPresets", frame, "GameMenuButtonTemplate")
-	PallyPowerUI.SetSize(button, 86, 22)
-	PallyPowerUI.SetPoint(button, "TOPLEFT", frame, "TOPLEFT", 28, -47)
-	button:SetText(PALLYPOWER_PRESETS)
+	group = PallyPowerUI.CreateFrame("Frame", "$parentPresets", frame)
+	PallyPowerUI.SetSize(group, 184, 65)
+	PallyPowerUI.SetPoint(group, "TOPLEFT", frame, "TOPLEFT", 8, -28)
+	PallyPowerUIRefs.presets = group
+
+	dropdown = PallyPowerUI.CreateFrame("Frame", "PallyPowerFramePresetsDropDown", group, "UIDropDownMenuTemplate")
+	UIDropDownMenu_SetWidth(145, dropdown)
+	PallyPowerUI.SetPoint(dropdown, "TOPLEFT", group, "TOPLEFT", -16, 0)
+	UIDropDownMenu_Initialize(dropdown, PallyPower_PresetsDropDown_Initialize)
+	UIDropDownMenu_SetText("", dropdown)
+
+	label = PallyPowerUI.CreateFontString(group, "$parentStatus", "OVERLAY", "GameFontHighlightSmall")
+	PallyPowerUI.SetSize(label, 176, 14)
+	PallyPowerUI.SetPoint(label, "TOPLEFT", group, "TOPLEFT", 4, -31)
+	label:SetText(PALLYPOWER_UI_PRESET_UNSAVED)
+	label:SetJustifyH("CENTER")
+
+	button = PallyPowerUI.CreateFrame("Button", "PallyPowerFramePresetActionButton", group, "GameMenuButtonTemplate")
+	PallyPowerUI.SetSize(button, 78, 20)
+	PallyPowerUI.SetPoint(button, "TOPLEFT", group, "TOPLEFT", 25, -45)
+	button:SetText(PALLYPOWER_UI_PRESET_SAVE)
+	button:Disable()
 	button:SetScript("OnClick", function()
-		PallyPower_PresetsClick()
+		PallyPower_PresetAction()
+	end)
+
+	button = PallyPowerUI.CreateFrame("Button", "PallyPowerFramePresetAddButton", group, "GameMenuButtonTemplate")
+	PallyPowerUI.SetSize(button, 24, 20)
+	PallyPowerUI.SetPoint(button, "LEFT", PallyPowerFramePresetActionButton, "RIGHT", 4, 0)
+	button:SetText("+")
+	button:SetScript("OnClick", function()
+		PallyPower_Actions_SaveNew()
+	end)
+
+	button = PallyPowerUI.CreateFrame("Button", "PallyPowerFramePresetDeleteButton", group, "GameMenuButtonTemplate")
+	PallyPowerUI.SetSize(button, 24, 20)
+	PallyPowerUI.SetPoint(button, "LEFT", PallyPowerFramePresetAddButton, "RIGHT", 4, 0)
+	button:SetText("-")
+	button:Disable()
+	button:SetScript("OnClick", function()
+		PallyPower_PresetDeleteSelected()
+	end)
+
+	group:SetScript("OnShow", function()
+		PallyPower_PresetsRefreshState()
 	end)
 
 	group = PallyPowerUI.CreatePPSpecialColumnTemplate("$parentClassGroupA", frame)
