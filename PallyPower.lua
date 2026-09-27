@@ -326,7 +326,8 @@ local function PP_JudgementFormatTime(seconds)
 end
 
 local function PP_JudgementSetDebug(text)
-    local label = getglobal("PallyPowerBuffBarJudgementDebug")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local label = judgement and judgement.ppDebug
     if not label then return end
 
     if PP_PerUser and PP_PerUser.verbose_judgement_refresh == false then
@@ -601,7 +602,8 @@ local function PP_UpdateJudgementCountdownVisual()
         remaining = PP_JudgementTrack.expiresAt - now
     end
 
-    local timeText = getglobal("PallyPowerBuffBarJudgementTime")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local timeText = judgement and judgement.ppTime
     if timeText then
         if remaining > 0 then
             timeText:SetText(PP_JudgementFormatTime(remaining))
@@ -612,7 +614,8 @@ local function PP_UpdateJudgementCountdownVisual()
         end
     end
 
-    local bar = getglobal("PallyPowerBuffBarJudgementDurationBar")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local bar = judgement and judgement.ppDurationBar
     if bar then
         local duration = PP_JudgementTrack.duration or 0
         if remaining > 0 and duration > 0 then
@@ -633,13 +636,15 @@ function PallyPower_UpdateJudgementTracker()
     local player = UnitName("player")
     local assignment = PallyPower_JudgementAssignments[player]
     if assignment == nil or assignment == -1 then
-        local bar = getglobal("PallyPowerBuffBarJudgementDurationBar")
+        local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local bar = judgement and judgement.ppDurationBar
         if bar then bar:Hide() end
         PallyPowerBuffBarJudgement:Hide()
         return
     end
 
-    local icon = getglobal("PallyPowerBuffBarJudgementBuffIcon")
+    local judgement = PallyPowerUIRefs.buffSpecialButtons.Judgement
+    local icon = judgement and judgement.ppBuffIcon
     if icon then icon:SetTexture(PallyPower_JudgementIcons[assignment]) end
 
     local now = GetTime()
@@ -689,8 +694,8 @@ end
 
 function PallyPower_JudgementButton_OnEnter(btn)
     if not btn then return end
-    local _, _, pnum = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)ClassJ")
-    local pallyName = pnum and getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+    local row = btn.ppRow
+    local pallyName = row and row.ppName and row.ppName:GetText()
     if not pallyName then return end
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
     GameTooltip:SetText(pallyName .. PALLYPOWER_TOOLTIP_JUDGEMENT_SUFFIX, 1, 1, 1)
@@ -751,11 +756,11 @@ function PallyPower_JudgementUI_Init()
     if not PallyPowerFrameClassJ or not PallyPowerFrameClassGroupJ then return end
     if not PallyPowerBuffBarJudgement then return end
 
-    local i = 1
-    while getglobal("PallyPowerFramePlayer" .. i) do
-        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassA") then return end
-        if not getglobal("PallyPowerFramePlayer" .. i .. "ClassJ") then return end
-        i = i + 1
+    local rows = PallyPowerUIRefs and PallyPowerUIRefs.playerRows
+    if not rows then return end
+    for i = 1, 12 do
+        local row = rows[i]
+        if not row or not row.ppAssignments or not row.ppAssignments.A or not row.ppAssignments.J then return end
     end
 
     if PallyPowerFrameJudgementFailedRefresh then
@@ -1073,8 +1078,11 @@ local PP_PerUserDefaults = {
     horizontal = false,
     hideblizzaura = false,
     useunitxp_sp3 = false,
-    usehdicons = false,
     transparency = 0.5,
+    assignmentlinkwidth = 12,
+    assignmentverticalspacing = 12,
+    assignmenthorizontalspacing = 12,
+    assignmentpersonaldivider = 36,
     judgement_failed_attacks_refresh = false,
     verbose_judgement_refresh = true
 }
@@ -1127,6 +1135,7 @@ end
 PP_Symbols = 0
 IsPally = 0
 PP_TestMode = nil -- nil = off, "prot"/"holy"/"ret" = active test profile
+PP_AssignmentLayoutTest = nil -- nil = off, "bridge"/"tail" = synthetic Assignment layout only
 lastClassBtn = 1
 lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
 hasRighteousFury = false
@@ -1268,11 +1277,8 @@ function PallyPower_UseUnitXPSP3Option()
 end
 
 function PallyPower_UseHDIconsOption()
-    if (UseHDIconsOptionChk:GetChecked() == 1) then
-        PP_PerUser.usehdicons = true
-    else
-        PP_PerUser.usehdicons = false
-    end
+    -- Compatibility entry point retained for external callers. PallyPower now
+    -- always uses native client spell icons; the old HD toggle has no effect.
     PallyPower_AdjustIcons()
 end
 
@@ -1465,8 +1471,8 @@ local function PP_UI_UpdateState()
     end
     PP_UI_SetControlEnabled(PP_UI_FeedbackButton, true)
 
-    local eyeOn = "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-On"
-    local eyeOff = "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\UI\\Visibility-Off"
+    local eyeOn = "Interface\\AddOns\\PallyPowerVanilla\\assets\\visibility-on.tga"
+    local eyeOff = "Interface\\AddOns\\PallyPowerVanilla\\assets\\visibility-off.tga"
     if PallyPowerFrameAuraEyeIcon then
         PallyPowerFrameAuraEyeIcon:SetTexture(PP_PerUser.showaurabutton and eyeOn or eyeOff)
     end
@@ -1689,6 +1695,24 @@ function PallyPower_InitConfig()
             end
         end
     end
+
+    -- 1.11.27 intentionally resets the three spacing controls once for every
+    -- character so the finalized layout starts from the same accepted baseline.
+    -- Keep a revision marker so user changes persist on subsequent reloads.
+    if PP_PerUser.assignmentspacingrevision ~= 2 then
+        PP_PerUser.assignmentverticalspacing = 12
+        PP_PerUser.assignmenthorizontalspacing = 12
+        PP_PerUser.assignmentpersonaldivider = 36
+        PP_PerUser.assignmentspacingrevision = 2
+    end
+
+    PP_PerUser.assignmentselfbuffspacing = nil
+    PP_PerUser.assignmentclassspacing = nil
+    PP_PerUser.assignmentpaladinspacing = nil
+
+    if PallyPowerUI and PallyPowerUI.ApplyAssignmentSpacing then
+        PallyPowerUI.ApplyAssignmentSpacing()
+    end
     
     -- UnitXP SP3 detection (using Puppeteer's safer method)
     if UnitXP and pcall(UnitXP, "inSight", "player", "player") then
@@ -1735,7 +1759,7 @@ function PallyPower_OnLoad()
     --Hide BuffBar if not paladin. You can still see the assignments grid
     local _, class = UnitClass("player")
     if class ~= "PALADIN" then
-        getglobal("PallyPowerBuffBar"):Hide()
+        PallyPowerUIRefs.buffBar:Hide()
     end    
 end
 
@@ -1881,14 +1905,11 @@ local function PP_UpdateBlessingTimerText()
     if not PallyPowerBuffBar or not PallyPowerBuffBar:IsVisible() then return end
 
     for i = 1, 10 do
-        local btn = getglobal("PallyPowerBuffBarBuff" .. i)
+        local btn = PallyPowerUIRefs.buffButtons[i]
         if btn and btn:IsVisible() and btn.classID ~= nil and btn.buffID ~= nil then
             local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
-            local timeText = getglobal(btn:GetName() .. "Time")
-            local time2Text = getglobal(btn:GetName() .. "Time2")
-
-            if timeText then timeText:SetText(PallyPower_FormatTime(primaryTimer)) end
-            if time2Text then time2Text:SetText(PallyPower_FormatTime(secondaryTimer)) end
+            if btn.ppTime then btn.ppTime:SetText(PallyPower_FormatTime(primaryTimer)) end
+            if btn.ppTime2 then btn.ppTime2:SetText(PallyPower_FormatTime(secondaryTimer)) end
         end
     end
 end
@@ -1940,7 +1961,7 @@ function PallyPower_OnUpdate(tdiff)
         LastCast[i] = k - tdiff
         if LastCast[i] <= 0 then
             if PP_PerUser.playsoundwhen0 == true then
-                PlaySoundFile("Interface\\Addons\\PallyPowerVanilla\\Sounds\\ding.mp3")
+                PlaySoundFile("Interface\\AddOns\\PallyPowerVanilla\\assets\\ding.mp3")
             end
             LastCast[i] = nil
         end
@@ -1949,7 +1970,7 @@ function PallyPower_OnUpdate(tdiff)
         LastCastPlayer[i] = k - tdiff
         if LastCastPlayer[i] <= 0 then
             if PP_PerUser.playsoundwhen0 == true then
-                PlaySoundFile("Interface\\Addons\\PallyPowerVanilla\\Sounds\\ding.mp3")
+                PlaySoundFile("Interface\\AddOns\\PallyPowerVanilla\\assets\\ding.mp3")
             end
             LastCastPlayer[i] = nil
             LastCastPlayerStamp[i] = nil
@@ -1986,22 +2007,14 @@ function PallyPower_GetBlessingNameFromTexture(texturePath)
 end
 
 function PallyPower_AdjustIcons()
-    local icons_prefix
-    if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
-    else
-        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
-    end
+    AuraIcons[0] = "Interface\\Icons\\Spell_Holy_DevotionAura"
+    AuraIcons[1] = "Interface\\Icons\\Spell_Holy_AuraOfLight"
+    AuraIcons[2] = "Interface\\Icons\\Spell_Holy_MindSooth"
+    AuraIcons[3] = "Interface\\Icons\\Spell_Shadow_SealOfKings"
+    AuraIcons[4] = "Interface\\Icons\\Spell_Frost_WizardMark"
+    AuraIcons[5] = "Interface\\Icons\\Spell_Fire_SealOfFire"
+    AuraIcons[6] = "Interface\\Icons\\Spell_Holy_MindVision"
 
-    AuraIcons[0] = "Interface\\"..icons_prefix.."Spell_Holy_DevotionAura"
-    AuraIcons[1] = "Interface\\"..icons_prefix.."Spell_Holy_AuraOfLight"
-    AuraIcons[2] = "Interface\\"..icons_prefix.."Spell_Holy_MindSooth"
-    AuraIcons[3] = "Interface\\"..icons_prefix.."Spell_Shadow_SealOfKings"
-    AuraIcons[4] = "Interface\\"..icons_prefix.."Spell_Frost_WizardMark"
-    AuraIcons[5] = "Interface\\"..icons_prefix.."Spell_Fire_SealOfFire"
-    AuraIcons[6] = "Interface\\"..icons_prefix.."Spell_Holy_MindVision"
-    
-    -- Aura spell names for Nampower matching
     AuraNames[0] = "Devotion Aura"
     AuraNames[1] = "Retribution Aura"
     AuraNames[2] = "Concentration Aura"
@@ -2010,16 +2023,15 @@ function PallyPower_AdjustIcons()
     AuraNames[5] = "Fire Resistance Aura"
     AuraNames[6] = "Sanctity Aura"
 
-    -- Legacy Seal IDs with language-neutral Blizzard textures.
-    -- Numeric IDs are unchanged for backwards-compatible PallyPower comms.
-    SealIcons[0] = "Interface\\"..icons_prefix.."Ability_ThunderBolt"            -- Righteousness
-    SealIcons[1] = "Interface\\"..icons_prefix.."Spell_Holy_HealingAura"        -- Light
-    SealIcons[2] = "Interface\\"..icons_prefix.."Spell_Holy_RighteousnessAura"  -- Wisdom
-    SealIcons[3] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWrath"        -- Justice
-    SealIcons[4] = "Interface\\"..icons_prefix.."Spell_Holy_HolySmite"          -- Crusader
-    SealIcons[5] = "Interface\\"..icons_prefix.."Ability_Warrior_InnerRage"     -- Command
-    
-    -- Seal spell names for Nampower matching
+    -- Legacy Seal IDs and wire values remain unchanged; only their presentation
+    -- paths now point at the client's own icon set.
+    SealIcons[0] = "Interface\\Icons\\Ability_ThunderBolt"
+    SealIcons[1] = "Interface\\Icons\\Spell_Holy_HealingAura"
+    SealIcons[2] = "Interface\\Icons\\Spell_Holy_RighteousnessAura"
+    SealIcons[3] = "Interface\\Icons\\Spell_Holy_SealOfWrath"
+    SealIcons[4] = "Interface\\Icons\\Spell_Holy_HolySmite"
+    SealIcons[5] = "Interface\\Icons\\Ability_Warrior_InnerRage"
+
     SealNames[0] = "Seal of Righteousness"
     SealNames[1] = "Seal of Light"
     SealNames[2] = "Seal of Wisdom"
@@ -2027,65 +2039,59 @@ function PallyPower_AdjustIcons()
     SealNames[4] = "Seal of the Crusader"
     SealNames[5] = "Seal of Command"
 
-    -- Judgement icons are resolved semantically from the actual learned Seal
-    -- spell textures during PallyPower_ScanSpells(). These are legacy-only
-    -- fallbacks for the brief period before the spellbook scan has completed.
-    PallyPower_JudgementIcons[0] = PallyPower_JudgementIcons[0] or SealIcons[2] -- Wisdom fallback
-    PallyPower_JudgementIcons[1] = PallyPower_JudgementIcons[1] or SealIcons[1] -- Light fallback
-    PallyPower_JudgementIcons[2] = PallyPower_JudgementIcons[2] or SealIcons[4] -- Crusader fallback
+    PallyPower_JudgementIcons[0] = PallyPower_JudgementIcons[0] or SealIcons[2]
+    PallyPower_JudgementIcons[1] = PallyPower_JudgementIcons[1] or SealIcons[1]
+    PallyPower_JudgementIcons[2] = PallyPower_JudgementIcons[2] or SealIcons[4]
 
     if (PP_PerUser.regularblessings == true) then
         RegularBlessings = true
-        BlessingIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWisdom"
-        BlessingIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_FistOfJustice"
-        BlessingIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfSalvation"
-        BlessingIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_PrayerOfHealing02"
-        BlessingIcon[4] = "Interface\\"..icons_prefix.."Spell_Nature_LightningShield"
-        BlessingIcon[5] = "Interface\\"..icons_prefix.."Spell_Magic_MageArmor"
-        BuffIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWisdom"
-        BuffIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_FistOfJustice"
-        BuffIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfSalvation"
-        BuffIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_PrayerOfHealing02"
-        BuffIcon[4] = "Interface\\"..icons_prefix.."Spell_Nature_LightningShield"
-        BuffIcon[5] = "Interface\\"..icons_prefix.."Spell_Magic_MageArmor"
-        BuffIcon[9] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfFury"
+        BlessingIcon[0] = "Interface\\Icons\\Spell_Holy_SealOfWisdom"
+        BlessingIcon[1] = "Interface\\Icons\\Spell_Holy_FistOfJustice"
+        BlessingIcon[2] = "Interface\\Icons\\Spell_Holy_SealOfSalvation"
+        BlessingIcon[3] = "Interface\\Icons\\Spell_Holy_PrayerOfHealing02"
+        BlessingIcon[4] = "Interface\\Icons\\Spell_Nature_LightningShield"
+        BlessingIcon[5] = "Interface\\Icons\\Spell_Magic_MageArmor"
     else
         RegularBlessings = false
-        BlessingIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofWisdom"
-        BlessingIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofKings"
-        BlessingIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSalvation"
-        BlessingIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofLight"
-        BlessingIcon[4] = "Interface\\"..icons_prefix.."Spell_Magic_GreaterBlessingofKings"
-        BlessingIcon[5] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSanctuary"
-        BuffIcon[0] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofWisdom"
-        BuffIcon[1] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofKings"
-        BuffIcon[2] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSalvation"
-        BuffIcon[3] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofLight"
-        BuffIcon[4] = "Interface\\"..icons_prefix.."Spell_Magic_GreaterBlessingofKings"
-        BuffIcon[5] = "Interface\\"..icons_prefix.."Spell_Holy_GreaterBlessingofSanctuary"
-        BuffIcon[9] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfFury"
-        BuffIconSmall[0] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfWisdom"
-        BuffIconSmall[1] = "Interface\\"..icons_prefix.."Spell_Holy_FistOfJustice"
-        BuffIconSmall[2] = "Interface\\"..icons_prefix.."Spell_Holy_SealOfSalvation"
-        BuffIconSmall[3] = "Interface\\"..icons_prefix.."Spell_Holy_PrayerOfHealing02"
-        BuffIconSmall[4] = "Interface\\"..icons_prefix.."Spell_Nature_LightningShield"
-        BuffIconSmall[5] = "Interface\\"..icons_prefix.."Spell_Magic_MageArmor"
+        BlessingIcon[0] = "Interface\\Icons\\Spell_Holy_GreaterBlessingofWisdom"
+        BlessingIcon[1] = "Interface\\Icons\\Spell_Holy_GreaterBlessingofKings"
+        BlessingIcon[2] = "Interface\\Icons\\Spell_Holy_GreaterBlessingofSalvation"
+        BlessingIcon[3] = "Interface\\Icons\\Spell_Holy_GreaterBlessingofLight"
+        BlessingIcon[4] = "Interface\\Icons\\Spell_Magic_GreaterBlessingofKings"
+        BlessingIcon[5] = "Interface\\Icons\\Spell_Holy_GreaterBlessingofSanctuary"
     end
 
-    PallyPower_ClassTexture[0] = "Interface\\"..icons_prefix.."Warrior"
-    PallyPower_ClassTexture[1] = "Interface\\"..icons_prefix.."Rogue"
-    PallyPower_ClassTexture[2] = "Interface\\"..icons_prefix.."Priest"
-    PallyPower_ClassTexture[3] = "Interface\\"..icons_prefix.."Druid"
-    PallyPower_ClassTexture[4] = "Interface\\"..icons_prefix.."Paladin"
-    PallyPower_ClassTexture[5] = "Interface\\"..icons_prefix.."Hunter"
-    PallyPower_ClassTexture[6] = "Interface\\"..icons_prefix.."Mage"
-    PallyPower_ClassTexture[7] = "Interface\\"..icons_prefix.."Warlock"
-    PallyPower_ClassTexture[8] = "Interface\\"..icons_prefix.."Shaman"
-    PallyPower_ClassTexture[9] = "Interface\\"..icons_prefix.."Pet" 
-    
-    PallyPower_RighteousFury = "Interface\\"..icons_prefix.."Spell_Holy_SealOfFury"
-    PallyPower_AuraMastery = "Interface\\"..icons_prefix.."Spell_Holy_AuraMastery"
-    PallyPower_AbilitySeal = "Interface\\"..icons_prefix.."Ability_Thunderbolt"
+    BuffIcon[0] = BlessingIcon[0]
+    BuffIcon[1] = BlessingIcon[1]
+    BuffIcon[2] = BlessingIcon[2]
+    BuffIcon[3] = BlessingIcon[3]
+    BuffIcon[4] = BlessingIcon[4]
+    BuffIcon[5] = BlessingIcon[5]
+    BuffIcon[9] = "Interface\\Icons\\Spell_Holy_SealOfFury"
+
+    -- Individual overrides always use the normal Blessing artwork.
+    BuffIconSmall[0] = "Interface\\Icons\\Spell_Holy_SealOfWisdom"
+    BuffIconSmall[1] = "Interface\\Icons\\Spell_Holy_FistOfJustice"
+    BuffIconSmall[2] = "Interface\\Icons\\Spell_Holy_SealOfSalvation"
+    BuffIconSmall[3] = "Interface\\Icons\\Spell_Holy_PrayerOfHealing02"
+    BuffIconSmall[4] = "Interface\\Icons\\Spell_Nature_LightningShield"
+    BuffIconSmall[5] = "Interface\\Icons\\Spell_Magic_MageArmor"
+
+    -- Class glyphs remain addon presentation assets; they are not spell icons.
+    PallyPower_ClassTexture[0] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-warrior.tga"
+    PallyPower_ClassTexture[1] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-rogue.tga"
+    PallyPower_ClassTexture[2] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-priest.tga"
+    PallyPower_ClassTexture[3] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-druid.tga"
+    PallyPower_ClassTexture[4] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-paladin.tga"
+    PallyPower_ClassTexture[5] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-hunter.tga"
+    PallyPower_ClassTexture[6] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-mage.tga"
+    PallyPower_ClassTexture[7] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-warlock.tga"
+    PallyPower_ClassTexture[8] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-shaman.tga"
+    PallyPower_ClassTexture[9] = "Interface\\AddOns\\PallyPowerVanilla\\assets\\class-pet.tga"
+
+    PallyPower_RighteousFury = "Interface\\Icons\\Spell_Holy_SealOfFury"
+    PallyPower_AuraMastery = "Interface\\AddOns\\PallyPowerVanilla\\assets\\aura-mastery.blp"
+    PallyPower_AbilitySeal = "Interface\\Icons\\Ability_ThunderBolt"
 end
 
 function PallyPower_OnEvent(event,arg1)
@@ -2318,6 +2324,39 @@ function PallyPower_SlashCommandHandler(msg)
         return true
     end
 
+    -- /pp layouttest [bridge|tail|off] - visual-only synthetic Assignment rows.
+    -- This mode never touches SavedVariables, addon comms, AllPallys or real
+    -- assignment tables; it only paints the existing row widgets for layout QA.
+    local _, _, layoutTestArg = string.find(msg, "^layouttest%s*(.*)$")
+    if layoutTestArg ~= nil then
+        layoutTestArg = string.lower(layoutTestArg)
+        if layoutTestArg == "" or layoutTestArg == "on" or layoutTestArg == "bridge" then
+            PP_AssignmentLayoutTest = "bridge"
+            if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
+                PallyPowerUI.RenderAssignmentLayoutTest("bridge")
+            end
+            PallyPowerFrame:Show()
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_BRIDGE)
+            return true
+        elseif layoutTestArg == "tail" then
+            PP_AssignmentLayoutTest = "tail"
+            if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
+                PallyPowerUI.RenderAssignmentLayoutTest("tail")
+            end
+            PallyPowerFrame:Show()
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_TAIL)
+            return true
+        elseif layoutTestArg == "off" or layoutTestArg == "clear" or layoutTestArg == "reset" then
+            PP_AssignmentLayoutTest = nil
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_OFF)
+            PallyPowerGrid_Update(1)
+            return true
+        else
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_HELP)
+            return true
+        end
+    end
+
     -- /pp test <profile> - Debug command to fake talent/spell data
     local _, _, testArg = string.find(msg, "^test%s*(.*)$")
     if testArg ~= nil then
@@ -2327,7 +2366,7 @@ function PallyPower_SlashCommandHandler(msg)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_ENABLED .. testArg)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_FAKE)
             PallyPower_ScanSpells()
-            getglobal("PallyPowerBuffBar"):Show()
+            PallyPowerUIRefs.buffBar:Show()
             PP_NextScan = 0.1
             return true
         elseif testArg == "off" or testArg == "clear" or testArg == "reset" or testArg == "" then
@@ -2339,7 +2378,7 @@ function PallyPower_SlashCommandHandler(msg)
                 -- If not actually a paladin, hide buff bar again
                 local _, class = UnitClass("player")
                 if class ~= "PALADIN" then
-                    getglobal("PallyPowerBuffBar"):Hide()
+                    PallyPowerUIRefs.buffBar:Hide()
                 end
                 PP_NextScan = 0.1
             else
@@ -2437,6 +2476,10 @@ function PallyPower_TableLength(T)
 end
 
 function PallyPowerGrid_Update(tdiff)
+    if PP_AssignmentLayoutTest then
+        return
+    end
+
     if not initialized then
         PallyPower_ScanSpells()
     end
@@ -2447,11 +2490,11 @@ function PallyPowerGrid_Update(tdiff)
     end
 
     for i = 0, 9 do
-        getglobal("PallyPowerFrameClass" .. i):SetTexture(PallyPower_ClassTexture[i])
+        PallyPowerUIRefs.classIcons[i]:SetTexture(PallyPower_ClassTexture[i])
     end
-    getglobal("PallyPowerFrameClassA"):SetTexture(PallyPower_AuraMastery)
-    getglobal("PallyPowerFrameClassS"):SetTexture(PallyPower_AbilitySeal)
-    getglobal("PallyPowerFrameClassR"):SetTexture(PallyPower_RighteousFury)
+    PallyPowerUIRefs.classIcons.A:SetTexture(PallyPower_AuraMastery)
+    PallyPowerUIRefs.classIcons.S:SetTexture(PallyPower_AbilitySeal)
+    PallyPowerUIRefs.classIcons.R:SetTexture(PallyPower_RighteousFury)
     if PallyPowerFrameClassJ then PallyPowerFrameClassJ:SetTexture("Interface\\Icons\\Spell_Holy_RighteousFury") end
 
     -- Pally 1 is always myself
@@ -2461,13 +2504,14 @@ function PallyPowerGrid_Update(tdiff)
     if PallyPowerFrame:IsVisible() then
         PallyPowerFrame:SetScale((PP_PerUser.uiscale or 1) * PP_PerUser.scalemain)
         for name, skills in AllPallys do
-            getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetText(name)
-            getglobal("PallyPowerFramePlayer" .. i .. "InGroup"):SetText(PallyPower_GetPlayerGroupID(name))
+            local row = PallyPowerUIRefs.playerRows[i]
+            row.ppName:SetText(name)
+            row.ppInGroup:SetText(PallyPower_GetPlayerGroupID(name))
 
             -- Utility cooldown summary (communicated via the legacy COOLDOWNS message).
             -- Known ready states are green, known unavailable/cooldown states are red,
             -- and unknown legacy states remain hidden.
-            local hojIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconHOJ")
+            local hojIcon = row.ppHOJ
             if skills["HammerOfJustice"] ~= nil then
                 hojIcon:SetTexture(PallyPower_HammerOfJusticeIcon)
                 if skills["HammerOfJustice"] == true then
@@ -2482,7 +2526,7 @@ function PallyPowerGrid_Update(tdiff)
                 hojIcon:Show()
             end
 
-            local lhIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconLH")
+            local lhIcon = row.ppLH
             if skills["LayOnHands"] ~= nil then
                 lhIcon:SetTexture(PallyPower_LayOnHandsIcon)
                 if skills["LayOnHands"] == true then
@@ -2497,7 +2541,7 @@ function PallyPowerGrid_Update(tdiff)
                 lhIcon:Show()
             end
 
-            local diIcon = getglobal("PallyPowerFramePlayer" .. i .. "IconDI")
+            local diIcon = row.ppDI
             if skills["DivineIntervention"] ~= nil then
                 diIcon:SetTexture(PallyPower_DivineItervention)
                 if skills["DivineIntervention"] == true then
@@ -2512,54 +2556,52 @@ function PallyPowerGrid_Update(tdiff)
                 diIcon:Show()
             end
 
-            getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetText(skills["symbols"])
-            getglobal("PallyPowerFramePlayer" .. i .. "Symbols"):SetTextColor(1, 1, 0.5)
+            row.ppSymbols:SetText(skills["symbols"])
+            row.ppSymbols:SetTextColor(1, 1, 0.5)
             -- Paladin identity uses the class colour consistently; control state is
             -- represented by assignment availability rather than recolouring the name.
-            getglobal("PallyPowerFramePlayer" .. i .. "Name"):SetTextColor(0.96, 0.55, 0.73)
+            row.ppName:SetTextColor(0.96, 0.55, 0.73)
             for id = 0, 5 do -- Blessings Icons and skills
                 if (skills[id]) then
-                    getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Show()
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Show()
+                    row.ppRankIcons[id]:Show()
+                    row.ppSkills[id]:Show()
                     local rank = tonumber(skills[id]["rank"]) or 0
                     local talent = tonumber(skills[id]["talent"]) or 0
                     local capabilityText = tostring(rank)
                     if talent > 0 then capabilityText = capabilityText .. "+" .. talent end
-                    getglobal(
-                        "PallyPowerFramePlayer" .. i .. "Skill" .. id
-                    ):SetText(capabilityText)
+                    row.ppSkills[id]:SetText(capabilityText)
                 else
-                    getglobal("PallyPowerFramePlayer" .. i .. "Icon" .. id):Hide()
-                    getglobal("PallyPowerFramePlayer" .. i .. "Skill" .. id):Hide()
+                    row.ppRankIcons[id]:Hide()
+                    row.ppSkills[id]:Hide()
                 end
             end
             for id = 0, 9 do
                 if (PallyPower_Assignments[name]) then
-                    getglobal("PallyPowerFramePlayer" .. i .. "Class" .. id .. "Icon"):SetTexture(
+                    row.ppAssignments[id].ppIcon:SetTexture(
                         BlessingIcon[PallyPower_Assignments[name][id]]
                     )
                 else
-                    getglobal("PallyPowerFramePlayer" .. i .. "Class" .. id .. "Icon"):SetTexture(nil)
+                    row.ppAssignments[id].ppIcon:SetTexture(nil)
                 end
             end
             if (PallyPower_AuraAssignments[name]) then
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassAIcon"):SetTexture(
+                row.ppAssignments.A.ppIcon:SetTexture(
                     AuraIcons[PallyPower_AuraAssignments[name]]
                 )
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassAIcon"):SetTexture(nil)
+                row.ppAssignments.A.ppIcon:SetTexture(nil)
             end
             if (PallyPower_SealAssignments[name]) then
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassSIcon"):SetTexture(
+                row.ppAssignments.S.ppIcon:SetTexture(
                     SealIcons[PallyPower_SealAssignments[name]]
                 )
             else
-                getglobal("PallyPowerFramePlayer" .. i .. "ClassSIcon"):SetTexture(nil)
+                row.ppAssignments.S.ppIcon:SetTexture(nil)
             end
-            local judgementButton = getglobal("PallyPowerFramePlayer" .. i .. "ClassJ")
+            local judgementButton = row.ppAssignments.J
             if judgementButton then
                 local assignedJudgement = PallyPower_JudgementAssignments[name]
-                local judgementIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassJIcon")
+                local judgementIcon = judgementButton.ppIcon
                 if judgementIcon then
                     if assignedJudgement ~= nil and assignedJudgement >= 0 then
                         judgementIcon:SetTexture(PallyPower_JudgementIcons[assignedJudgement])
@@ -2575,28 +2617,36 @@ function PallyPowerGrid_Update(tdiff)
                     judgementButton:SetAlpha(1)
                 end
             end
-            local rfCell = getglobal("PallyPowerFramePlayer" .. i .. "ClassR")
-            local rfIcon = getglobal("PallyPowerFramePlayer" .. i .. "ClassRIcon")
-            local rfNo = getglobal("PallyPowerFramePlayer" .. i .. "ClassRNoRF")
+            local rfCell = row.ppAssignments.R
+            local rfIcon = rfCell.ppIcon
+            local rfNo = rfCell.ppNoRF
             local rfState = PallyPower_RFAssignments[name]
             if rfCell then
                 rfCell:SetAlpha((PallyPower_RFCapabilities[name] == false and rfState ~= "off") and 0.35 or 1)
             end
             if rfState == true then
-                if rfIcon then rfIcon:SetTexture(PallyPower_RighteousFury) end
+                if rfIcon then
+                    rfIcon:SetTexture(PallyPower_RighteousFury)
+                    rfIcon:SetVertexColor(1, 1, 1)
+                end
                 if rfNo then rfNo:Hide() end
             elseif rfState == "off" then
-                if rfIcon then rfIcon:SetTexture(PallyPower_RighteousFury) end
-                if rfNo then rfNo:Show() end
+                if rfIcon then
+                    rfIcon:SetTexture(PallyPower_RighteousFury)
+                    rfIcon:SetVertexColor(1, 0.2, 0.2)
+                end
+                if rfNo then rfNo:Hide() end
             else
-                if rfIcon then rfIcon:SetTexture(nil) end
+                if rfIcon then
+                    rfIcon:SetTexture(nil)
+                    rfIcon:SetVertexColor(1, 1, 1)
+                end
                 if rfNo then rfNo:Hide() end
             end
             i = i + 1
             numPallys = numPallys + 1
         end
 
-        local numMaxClass = 0
         local currentPlayer = 0
         local assign = PallyPower_Assignments[UnitName("player")]
         local player = UnitName("player")
@@ -2604,14 +2654,8 @@ function PallyPowerGrid_Update(tdiff)
         for ii = 1, PALLYPOWER_MAXCLASSES do
             currentPlayer = 0
 
-            local fname = "PallyPowerFrameClassGroup" .. ii
+            local group = PallyPowerUIRefs.classGroups[ii]
 
-            for jj = 1, PALLYPOWER_MAXPERCLASS do
-                local pbnt = fname .. "PlayerButton" .. jj
-                getglobal(pbnt):SetFrameStrata("BACKGROUND")
-                getglobal(pbnt):SetAlpha(0)
-            end    
-            
             if CurrentBuffs[ii - 1] then
 
                 for unit, stats in CurrentBuffs[ii - 1] do
@@ -2621,57 +2665,62 @@ function PallyPowerGrid_Update(tdiff)
                         break
                     end
 
-                    local pbnt = fname .. "PlayerButton" .. (currentPlayer + 1) -- Index is based on 1
+                    local pbnt = group.playerButtons[currentPlayer + 1] -- Index is based on 1
 
                     if unit then
                         local shortname = stats.name
                         if string.find(unit,"pet") then
-                            getglobal(pbnt .. "Text"):SetText(shortname) --"|T132242:0|t "..shortname
+                            pbnt.ppText:SetText(shortname) --"|T132242:0|t "..shortname
                         else
-                            getglobal(pbnt .. "Text"):SetText(shortname)
+                            pbnt.ppText:SetText(shortname)
                         end
                         local blessing = GetNormalBlessings(player,ii - 1, shortname) --class 0 == button 1
                         if blessing ~= -1 then
-                            getglobal(pbnt .. "Icon"):SetTexture(BuffIconSmall[blessing])
+                            pbnt.ppIcon:SetTexture(BuffIconSmall[blessing])
+                            if pbnt.ppIconBorder then pbnt.ppIconBorder:Show() end
                         else
-                            getglobal(pbnt .. "Icon"):SetTexture("")
+                            pbnt.ppIcon:SetTexture("")
+                            if pbnt.ppIconBorder then pbnt.ppIconBorder:Hide() end
                         end
                         local nameColor = PP_BuffBarClassColors[ii - 1] or {1, 1, 1}
-                        getglobal(pbnt .. "Text"):SetTextColor(nameColor[1], nameColor[2], nameColor[3])
-                        getglobal(pbnt):SetFrameStrata("DIALOG")
-                        getglobal(pbnt):SetAlpha(1)        
+                        pbnt.ppText:SetTextColor(nameColor[1], nameColor[2], nameColor[3])
+                        if PallyPowerUI and PallyPowerUI.AlignPlayerOverrideContent then
+                            PallyPowerUI.AlignPlayerOverrideContent(pbnt)
+                        end
+                        pbnt:SetFrameStrata("DIALOG")
+                        pbnt:SetAlpha(1)
+                        pbnt:Show()
                         currentPlayer = currentPlayer + 1
                     else
-                        getglobal(pbnt .. "Icon"):SetTexture("")
-                        getglobal(pbnt):SetFrameStrata("BACKGROUND")
-                        getglobal(pbnt):SetAlpha(0)
+                        pbnt.ppIcon:SetTexture("")
+                        if pbnt.ppIconBorder then pbnt.ppIconBorder:Hide() end
+                        pbnt:SetFrameStrata("BACKGROUND")
+                        pbnt:SetAlpha(0)
+                        pbnt:Hide()
                     end
 
                 end
 
-                numMaxClass = math.max(numMaxClass, currentPlayer)
-
             end
 
-        end           
+            -- Hide only slots that are not populated this update. Keeping active
+            -- buttons continuously shown preserves the MouseDown/MouseUp sequence
+            -- required for registered OnClick handlers.
+            for jj = currentPlayer + 1, PALLYPOWER_MAXPERCLASS do
+                local pbnt = group.playerButtons[jj]
+                pbnt.ppIcon:SetTexture("")
+                if pbnt.ppIconBorder then pbnt.ppIconBorder:Hide() end
+                pbnt:SetFrameStrata("BACKGROUND")
+                pbnt:SetAlpha(0)
+                pbnt:Hide()
+            end
 
-        PallyPowerFrame:SetHeight(10 + 14 + 34 + 52 + (numPallys * 76) + 10 + (13 * numMaxClass)) -- Reduced footer by 12px: keeps multi-Paladin growth unchanged while tightening the bottom control band
-        getglobal("PallyPowerFramePlayer1"):ClearAllPoints()
-        getglobal("PallyPowerFramePlayer1"):SetPoint("TOPLEFT", PallyPowerFrame, "TOPLEFT", 8, -90 - 13 * numMaxClass)
-		for i = 1, PALLYPOWER_MAXCLASSES do
-			getglobal("PallyPowerFrameClassGroup" .. i .. "Line"):SetHeight( 2 + 13 * numMaxClass)
-        end        
-        getglobal("PallyPowerFrameClassGroupALine"):SetHeight( 2 + 13 * numMaxClass)
-        getglobal("PallyPowerFrameClassGroupSLine"):SetHeight( 2 + 13 * numMaxClass)
-        getglobal("PallyPowerFrameClassGroupRLine"):SetHeight( 2 + 13 * numMaxClass)
-        if PallyPowerFrameClassGroupJLine then PallyPowerFrameClassGroupJLine:SetHeight(2 + 13 * numMaxClass) end
-            for i = 1, 12 do
-            if i <= numPallys then
-                getglobal("PallyPowerFramePlayer" .. i):Show()
-            else
-                getglobal("PallyPowerFramePlayer" .. i):Hide()
+            if PallyPowerUI and PallyPowerUI.UpdateClassFlyout then
+                PallyPowerUI.UpdateClassFlyout(group, currentPlayer)
             end
         end
+
+        PallyPowerUI.UpdateAssignmentGeometry(numPallys)
     end
 end
 
@@ -2715,17 +2764,31 @@ function PallyPower_PerformPlayerCycle(delta, pname, class)
         blessing = -1
 	end
 
-    for test = blessing + 1, 6 do
-        if PallyPower_CanBuff(player, test) and (PallyPower_NeedsBuff(class, test) or IsShiftKeyDown()) then
+    if delta and delta > 0 then
+        -- Mouse-wheel up mirrors the grid/Buff Bar reverse-cycle direction.
+        local current = blessing
+        if current == -1 then current = 6 end
+        blessing = -1
+        for test = current - 1, -1, -1 do
             blessing = test
-            do
+            if test == -1 or (PallyPower_CanBuff(player, test) and (PallyPower_NeedsBuff(class, test) or IsShiftKeyDown())) then
                 break
             end
         end
-    end
+    else
+        -- Left-click and mouse-wheel down retain the existing forward cycle.
+        for test = blessing + 1, 6 do
+            if PallyPower_CanBuff(player, test) and (PallyPower_NeedsBuff(class, test) or IsShiftKeyDown()) then
+                blessing = test
+                do
+                    break
+                end
+            end
+        end
 
-    if (blessing == 6) then
-        blessing = -1
+        if (blessing == 6) then
+            blessing = -1
+        end
     end
 
     SetNormalBlessings(player, class, pname, blessing)
@@ -2735,8 +2798,10 @@ function PallyPowerPlayerButton_OnMouseWheel(btn, arg1)
     if btn then
         local _, _, class, pnum = strfind(btn:GetName(), "PallyPowerFrameClassGroup(.+)PlayerButton(.+)")
         class = tonumber(class) - 1 --class 0 == button 1
-        local pname = getglobal(btn:GetName() .. "Text"):GetText()
+        local pname = btn.ppText:GetText()
         PallyPower_PerformPlayerCycle(arg1, pname, class)
+        GameTooltip:Hide()
+        PallyPowerPlayerButton_OnEnter(btn)
     end
 end
 
@@ -2767,7 +2832,7 @@ function PallyPowerPlayerButton_OnClick(plbtn, mouseBtn)
     if plbtn then
         local _, _, class, pnum = strfind(plbtn:GetName(), "PallyPowerFrameClassGroup(.+)PlayerButton(.+)")
         class = tonumber(class) - 1 --class 0 == button 1
-        local pname = getglobal(plbtn:GetName() .. "Text"):GetText()
+        local pname = plbtn.ppText:GetText()
         if mouseBtn == "RightButton" then
             if PallyPower_NormalAssignments[UnitName("player")] and 
                PallyPower_NormalAssignments[UnitName("player")][class] and 
@@ -2775,8 +2840,12 @@ function PallyPowerPlayerButton_OnClick(plbtn, mouseBtn)
                 PallyPower_NormalAssignments[UnitName("player")][class][pname] = -1
             end
             PP_NextScan = 0.1 --PallyPower_UpdateUI()
+            GameTooltip:Hide()
+            PallyPowerPlayerButton_OnEnter(plbtn)
         elseif mouseBtn == "LeftButton" then
             PallyPower_PerformPlayerCycle(nil, pname, class)
+            GameTooltip:Hide()
+            PallyPowerPlayerButton_OnEnter(plbtn)
         else
             if PallyPower_Tanks[pname] and PallyPower_Tanks[pname] == true then
                 PallyPower_Tanks[pname] = nil
@@ -2846,7 +2915,7 @@ function PallyPowerPlayerButton_OnEnter(plbtn)
     if not class then return end
     
     local classIndex = tonumber(class) - 1 -- class 0 == button 1
-    local playerName = getglobal(btnName .. "Text"):GetText()
+    local playerName = plbtn.ppText:GetText()
     if not playerName then return end
     
     -- Get the current player's blessing assignments
@@ -2868,11 +2937,11 @@ end
 local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
     if not btn then return end
 
-    local classIcon = getglobal(btn:GetName() .. "ClassIcon")
-    local buffIcon = getglobal(btn:GetName() .. "BuffIcon")
-    local timeText = getglobal(btn:GetName() .. "Time")
-    local time2Text = getglobal(btn:GetName() .. "Time2")
-    local countText = getglobal(btn:GetName() .. "Text")
+    local classIcon = btn.ppClassIcon
+    local buffIcon = btn.ppBuffIcon
+    local timeText = btn.ppTime
+    local time2Text = btn.ppTime2
+    local countText = btn.ppText
 
     if horizontal then
         btn:SetWidth(PP_UI.BUFF_SHORT)
@@ -2950,31 +3019,52 @@ local function PallyPower_ApplyBlessingButtonGeometry(btn, horizontal)
     end
 end
 
+local function PP_GetCombinedSelfSlot(kind)
+    local combined = PallyPowerUIRefs.buffCombinedSelf
+    return combined and combined.ppSlots and combined.ppSlots[kind]
+end
+
 local function PP_SetSelfBuffIcon(kind, texture)
-    local separate = getglobal("PallyPowerBuffBar" .. kind .. "BuffIcon")
-    local combined = getglobal("PallyPowerBuffBarSelfCombined" .. kind .. "BuffIcon")
+    local separateButton = PallyPowerUIRefs.buffSpecialButtons[kind]
+    local combinedButton = PP_GetCombinedSelfSlot(kind)
+    local separate = separateButton and separateButton.ppBuffIcon
+    local combined = combinedButton and combinedButton.ppBuffIcon
     if separate then separate:SetTexture(texture) end
     if combined then combined:SetTexture(texture) end
 end
 
 local function PP_SetSelfBuffBackdrop(kind, r, g, b)
-    local separate = getglobal("PallyPowerBuffBar" .. kind)
-    local combined = getglobal("PallyPowerBuffBarSelfCombined" .. kind)
+    local separate = PallyPowerUIRefs.buffSpecialButtons[kind]
+    local combined = PP_GetCombinedSelfSlot(kind)
     if separate then separate:SetBackdropColor(r, g, b, PP_PerUser.transparency) end
     if combined then combined:SetBackdropColor(r, g, b, PP_PerUser.transparency) end
 end
 
 local function PP_SetRFNoOverlay(show)
-    local separate = getglobal("PallyPowerBuffBarRFNoRF")
-    local combined = getglobal("PallyPowerBuffBarSelfCombinedRFNoRF")
-    if separate then if show then separate:Show() else separate:Hide() end end
-    if combined then if show then combined:Show() else combined:Hide() end end
+    local separateButton = PallyPowerUIRefs.buffSpecialButtons.RF
+    local combinedButton = PP_GetCombinedSelfSlot("RF")
+    local separateIcon = separateButton and separateButton.ppBuffIcon
+    local combinedIcon = combinedButton and combinedButton.ppBuffIcon
+    local r, g, b = 1, 1, 1
+    if show then
+        g = 0.2
+        b = 0.2
+    end
+    if separateIcon then separateIcon:SetVertexColor(r, g, b) end
+    if combinedIcon then combinedIcon:SetVertexColor(r, g, b) end
+
+    -- Legacy named NoRF font strings remain present for compatibility, but
+    -- presentation is now a tint on the existing RF icon itself.
+    local separateNoRF = separateButton and separateButton.ppNoRF
+    local combinedNoRF = combinedButton and combinedButton.ppNoRF
+    if separateNoRF then separateNoRF:Hide() end
+    if combinedNoRF then combinedNoRF:Hide() end
 end
 
 local function PallyPower_ApplyCombinedSelfGeometry(frame, horizontal)
     if not frame then return end
     frame:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
-    local slots = { getglobal(frame:GetName() .. "Aura"), getglobal(frame:GetName() .. "RF"), getglobal(frame:GetName() .. "Seal") }
+    local slots = { frame.ppSlots.Aura, frame.ppSlots.RF, frame.ppSlots.Seal }
     if horizontal then
         frame:SetWidth(PP_UI.BUFF_SHORT); frame:SetHeight(PP_UI.BUFF_LONG)
         for i, slot in slots do if slot then slot:SetWidth(26); slot:SetHeight(28); slot:ClearAllPoints(); slot:SetPoint("TOP", frame, "TOP", 0, -1 - ((i - 1) * 30)) end end
@@ -2995,7 +3085,7 @@ local function PallyPower_ApplySpecialButtonGeometry(btn, horizontal)
         btn:SetHeight(PP_UI.BUFF_SHORT)
     end
 
-    local icon = getglobal(btn:GetName() .. "BuffIcon")
+    local icon = btn.ppBuffIcon
     if icon then
         icon:SetWidth(PP_UI.BUFF_ICON)
         icon:SetHeight(PP_UI.BUFF_ICON)
@@ -3021,10 +3111,10 @@ function PallyPower_UpdateLayout()
     local hasSeal = PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1
     local hasJudgement = PallyPower_JudgementAssignments[namePlayer] ~= nil and PallyPower_JudgementAssignments[namePlayer] ~= -1
     local rfAssignmentState = PallyPower_RFAssignments[namePlayer]
-    local showRF = (PP_PerUser.showrfbutton == true and (rfAssignmentState == true or rfAssignmentState == "off")) and (IsPally == 1)
-    local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (IsPally == 1)
-    local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (IsPally == 1)
-    local showJudgement = (PP_PerUser.showjudgementbutton == true and hasJudgement == true and PallyPowerBuffBarJudgement ~= nil) and (IsPally == 1)
+    local showRF = (PP_PerUser.showrfbutton == true and (rfAssignmentState == true or rfAssignmentState == "off")) and (PP_IsPally == true)
+    local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (PP_IsPally == true)
+    local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (PP_IsPally == true)
+    local showJudgement = (PP_PerUser.showjudgementbutton == true and hasJudgement == true and PallyPowerBuffBarJudgement ~= nil) and (PP_IsPally == true)
     local separateSelf = { PallyPowerBuffBarAura, PallyPowerBuffBarRF, PallyPowerBuffBarSeal }
     for _, button in separateSelf do button:Hide(); PallyPower_ApplySpecialButtonGeometry(button, horizontal) end
     PallyPowerBuffBarJudgement:Hide(); PallyPower_ApplySpecialButtonGeometry(PallyPowerBuffBarJudgement, horizontal)
@@ -3032,7 +3122,7 @@ function PallyPower_UpdateLayout()
     if showAura then PallyPowerBuffBarSelfCombinedAura:Show() else PallyPowerBuffBarSelfCombinedAura:Hide() end
     if showRF then PallyPowerBuffBarSelfCombinedRF:Show() else PallyPowerBuffBarSelfCombinedRF:Hide() end
     if showSeal then PallyPowerBuffBarSelfCombinedSeal:Show() else PallyPowerBuffBarSelfCombinedSeal:Hide() end
-    for i = 1, 10 do PallyPower_ApplyBlessingButtonGeometry(getglobal("PallyPowerBuffBarBuff" .. i), horizontal) end
+    for i = 1, 10 do PallyPower_ApplyBlessingButtonGeometry(PallyPowerUIRefs.buffButtons[i], horizontal) end
     local selfSpecials = {}
     if PP_PerUser.combineselfbuffs == true then
         if showAura or showRF or showSeal then table.insert(selfSpecials, PallyPowerBuffBarSelfCombined) end
@@ -3068,7 +3158,7 @@ function PallyPower_UpdateLayout()
         end
     end
 
-    local firstBlessing = PallyPowerBuffBarBuff1
+    local firstBlessing = PallyPowerUIRefs.buffButtons[1]
     PallyPowerBuffBarTitle:ClearAllPoints()
     local previous = nil
 
@@ -3096,7 +3186,7 @@ function PallyPower_UpdateLayout()
         previous = button
     end
     PP_AnchorAfter(firstBlessing, previous)
-    for i = 2, 10 do local button=getglobal("PallyPowerBuffBarBuff"..i); local previous=getglobal("PallyPowerBuffBarBuff"..(i-1)); PP_AnchorAfter(button, previous); button:Hide() end
+    for i = 2, 10 do local button=PallyPowerUIRefs.buffButtons[i]; local previous=PallyPowerUIRefs.buffButtons[i - 1]; PP_AnchorAfter(button, previous); button:Hide() end
     return table.getn(above) + table.getn(below)
 end
 
@@ -3118,16 +3208,15 @@ function PallyPower_UpdateUI()
     PP_SetSelfBuffIcon("RF", PallyPower_RighteousFury)
 
 
-    local pclass, eclass = UnitClass("player")
     local namePlayer = UnitName("player")
 
-    if eclass == "PALADIN" then
-        IsPally = 1
-    end
+    -- Keep the legacy compatibility global synchronized, but use PP_IsPally
+    -- as the single internal state source (including /pp test profiles).
+    IsPally = PP_IsPally and 1 or 0
 
     local specialButtonCount = 0
 
-    if ((IsPally == 1) or (GetNumRaidMembers() > 0 and GetNumPartyMembers() > 0)) then
+    if ((PP_IsPally == true) or (GetNumRaidMembers() > 0 and GetNumPartyMembers() > 0)) then
         if PP_PerUser.frameslocked == true then
             PallyPowerBuffBarResizeButton:Hide()
         else
@@ -3136,13 +3225,6 @@ function PallyPower_UpdateUI()
 
         specialButtonCount = PallyPower_UpdateLayout()
 
-        local icons_prefix
-        if PP_PerUser.usehdicons == true then
-            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
-        else
-            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
-        end
-        
         -- RF tri-state truth:
         -- RF assignment: green when present, red when missing.
         -- no-RF assignment: green when absent, red when incorrectly present.
@@ -3184,7 +3266,7 @@ function PallyPower_UpdateUI()
                     testUnitBuff = UnitBuff("player",i) 
                     if (testUnitBuff and PallyPower_AuraAssignments[namePlayer] ~= nil and 
                         AuraIcons[PallyPower_AuraAssignments[namePlayer]] ~= nil and
-                        testUnitBuff == string.gsub(AuraIcons[PallyPower_AuraAssignments[namePlayer]],icons_prefix,"")) then 
+                        testUnitBuff == AuraIcons[PallyPower_AuraAssignments[namePlayer]]) then 
                         PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
                         break
                     end 
@@ -3205,7 +3287,7 @@ function PallyPower_UpdateUI()
             -- This works with or without Nampower and avoids depending on
             -- custom-server spell-name records for player buffs.
             if assignedSealIcon then
-                local wantedTexture = string.gsub(assignedSealIcon, icons_prefix, "")
+                local wantedTexture = assignedSealIcon
                 for i = 1, 40 do
                     testUnitBuff = UnitBuff("player", i)
                     if testUnitBuff and testUnitBuff == wantedTexture then
@@ -3227,17 +3309,15 @@ function PallyPower_UpdateUI()
             local assign = PallyPower_Assignments[namePlayer]
             for class = 0, 9 do
                 if (assign[class] and assign[class] ~= -1) then
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "ClassIcon"):SetTexture(
-                        PallyPower_ClassTexture[class]
-                    )
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "BuffIcon"):SetTexture(BlessingIcon[assign[class]])
+                    local btn = PallyPowerUIRefs.buffButtons[BuffNum]
+                    btn.ppClassIcon:SetTexture(PallyPower_ClassTexture[class])
+                    btn.ppBuffIcon:SetTexture(BlessingIcon[assign[class]])
 
-                    local btn = getglobal("PallyPowerBuffBarBuff" .. BuffNum)
                     btn.classID = class
                     btn.buffID = assign[class]
-                    local countText = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text")
-                    local timeText = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time")
-                    local time2Text = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2")
+                    local countText = btn.ppText
+                    local timeText = btn.ppTime
+                    local time2Text = btn.ppTime2
                     local classColor = PP_BuffBarClassColors[class]
                     if classColor then
                         if timeText then timeText:SetTextColor(classColor[1], classColor[2], classColor[3]) end
@@ -3306,10 +3386,10 @@ function PallyPower_UpdateUI()
                     end
 
                     local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time"):SetText(PallyPower_FormatTime(primaryTimer))
-                    getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Time2"):SetText(PallyPower_FormatTime(secondaryTimer))
+                    btn.ppTime:SetText(PallyPower_FormatTime(primaryTimer))
+                    btn.ppTime2:SetText(PallyPower_FormatTime(secondaryTimer))
 
-                    local counter = getglobal("PallyPowerBuffBarBuff" .. BuffNum .. "Text")
+                    local counter = btn.ppText
                     if nneed == 0 then
                         counter:SetText("")
                         counter:Hide()
@@ -3339,7 +3419,7 @@ function PallyPower_UpdateUI()
             end
         end
         for rest = BuffNum, 10 do
-            local btn = getglobal("PallyPowerBuffBarBuff" .. rest)
+            local btn = PallyPowerUIRefs.buffButtons[rest]
             btn.classID = {}
             btn.buffID = {}
             btn.need = {}
@@ -3375,6 +3455,16 @@ function PallyPower_BuildTestProfile(profile)
     local function mkAura(id, rank, talent)
         return { rank = tostring(rank), id = 1, name = PallyPower_AuraID[id], talent = talent or 0 }
     end
+    local function mkSeal(id, rank)
+        return { rank = tostring(rank), id = 1, name = PallyPower_SealID[id], talent = 0 }
+    end
+
+    -- Test-mode Judgement capability is derived from SealRankInfo just like
+    -- real runtime capability. Keep the three Judgement-producing seals
+    -- available so fake profiles exercise Judgement assignment normally.
+    SealRankInfo[0] = mkSeal(0, 1) -- Wisdom
+    SealRankInfo[1] = mkSeal(1, 1) -- the Crusader
+    SealRankInfo[2] = mkSeal(2, 1) -- Light
 
     -- Common baseline blessings for all profiles
     RankInfo[0] = { rank = "6", id = 1, idsmall = 1, name = PallyPower_BlessingID[0], talent = 0 } -- Wisdom 6
@@ -3559,6 +3649,7 @@ function PallyPower_ScanSpells()
         AllPallysJudgements[UnitName("player")] = PallyPower_BuildJudgementCapability(SealRankInfo)
         PallyPower_RFCapabilities[UnitName("player")] = hasRighteousFury == true
         PP_IsPally = true
+        IsPally = 1
         initialized = true
         if not PallyPower_Assignments[UnitName("player")] then
             PallyPower_Assignments[UnitName("player")] = {}
@@ -3576,13 +3667,6 @@ function PallyPower_ScanSpells()
     hasRighteousFury = false
     nameRighteousFury = nil
     local i = 1
-
-    local icons_prefix
-    if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
-    else
-        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
-    end
 
     while true do
         local spellName, spellRank = GetSpellName(i, BOOKTYPE_SPELL)
@@ -3709,12 +3793,14 @@ function PallyPower_ScanSpells()
         AllPallysJudgements[UnitName("player")] = PallyPower_BuildJudgementCapability(SealRankInfo)
         PallyPower_RFCapabilities[UnitName("player")] = hasRighteousFury == true
         PP_IsPally = true
+        IsPally = 1
         if initialized then
             PallyPower_SendSelf()
         end
     else
         PP_Debug("I'm not a paladin?? " .. class)
         PP_IsPally = nil
+        IsPally = 0
         initialized = true
     end
 
@@ -3923,6 +4009,9 @@ function PallyPower_SendSelf()
 end
 
 function PallyPower_SendVersion()
+    -- Development builds participate in normal PallyPower comms but never
+    -- advertise their development version to other PallyPower clients.
+    if ADDON_VERSION and string.find(ADDON_VERSION, "%-dev") then return end
     PallyPower_SendMessage("VERSION " .. PallyPower_Version)
 end
 
@@ -4291,11 +4380,9 @@ local function PP_TooltipIcon(texture, size)
 end
 
 local function PP_GetPlayerIndexFromFrame(frame)
-    if not frame or not frame.GetName then return nil end
-    local frameName = frame:GetName()
-    if not frameName then return nil end
-    local _, _, index = string.find(frameName, "PallyPowerFramePlayer(%d+)")
-    return tonumber(index)
+    if not frame then return nil end
+    local row = frame.ppRow or frame
+    return row and row.ppIndex
 end
 
 local function PP_GetPlayerNameByIndex(index)
@@ -4565,14 +4652,13 @@ end
 
 function PallyPowerGridButton_OnClick(btn, mouseBtn)
     local nameplayer = UnitName("player")
-    local _, _, pnum, class = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class(.+)")
+    local class = btn.ppClass
     if class == "A" then class = PALLYPOWER_AURA_CLASS end
     if class == "S" then class = PALLYPOWER_SEAL_CLASS end
     if class == "R" then class = PALLYPOWER_RF_CLASS end
     if class == "J" then class = PALLYPOWER_JUDGEMENT_CLASS end
-    pnum = pnum + 0
     class = class + 0
-    pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+    pname = btn.ppRow.ppName:GetText()
     if not PallyPower_CanControl(pname) then
         return false
     end
@@ -4615,20 +4701,17 @@ function PallyPowerGridButton_OnLeave(btn)
 end
 
 function PallyPowerGridButton_OnEnter(btn)
-    local btnName = btn:GetName()
-    if not btnName then return end
-    
-    -- Parse button name: PallyPowerFramePlayer#Class# or PallyPowerFramePlayer#ClassA/S
-    local _, _, pnum, class = string.find(btnName, "PallyPowerFramePlayer(.+)Class(.+)")
-    if not class then return end
-    
+    local class = btn.ppClass
+    local row = btn.ppRow
+    if not class or not row or not row.ppName then return end
+    local pallyName = row.ppName:GetText()
+    if not pallyName then return end
+
     local spellName = nil
     
     -- Check if it's an Aura assignment (ClassA)
     if class == "A" then
-        -- Get the paladin name from the row
-        local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-        if pallyName and PallyPower_AuraAssignments[pallyName] then
+        if PallyPower_AuraAssignments[pallyName] then
             local auraIndex = PallyPower_AuraAssignments[pallyName]
             if auraIndex >= 0 and PallyPower_AuraID[auraIndex] then
                 spellName = PallyPower_AuraID[auraIndex] .. PALLYPOWER_TOOLTIP_AURA_SUFFIX
@@ -4636,9 +4719,7 @@ function PallyPowerGridButton_OnEnter(btn)
         end
     -- Check if it's a Seal assignment (ClassS)
     elseif class == "S" then
-        -- Get the paladin name from the row
-        local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-        if pallyName and PallyPower_SealAssignments[pallyName] then
+        if PallyPower_SealAssignments[pallyName] then
             local sealIndex = PallyPower_SealAssignments[pallyName]
             if sealIndex >= 0 and PallyPower_SealID[sealIndex] then
                 spellName = PALLYPOWER_TOOLTIP_SEAL_OF .. PallyPower_SealID[sealIndex]
@@ -4648,7 +4729,6 @@ function PallyPowerGridButton_OnEnter(btn)
         PallyPower_JudgementButton_OnEnter(btn)
         return
     elseif class == "R" then
-        local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
         if pallyName then
             if PallyPower_RFAssignments[pallyName] == true then
                 spellName = PALLYPOWER_TOOLTIP_RF
@@ -4660,9 +4740,7 @@ function PallyPowerGridButton_OnEnter(btn)
     else
         local classIndex = tonumber(class)
         if classIndex then
-            -- Get the paladin name from the row
-            local pallyName = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
-            if pallyName and PallyPower_Assignments[pallyName] and PallyPower_Assignments[pallyName][classIndex] then
+            if PallyPower_Assignments[pallyName] and PallyPower_Assignments[pallyName][classIndex] then
                 local blessingIndex = PallyPower_Assignments[pallyName][classIndex]
                 if blessingIndex >= 0 and PallyPower_BlessingID[blessingIndex] then
                     spellName = PALLYPOWER_TOOLTIP_BLESSING_OF .. PallyPower_BlessingID[blessingIndex]
@@ -5503,21 +5581,13 @@ function PallyPower_GetClassID(class)
 end
 
 function PallyPower_GetBuffTextureID(text)
-    local icons_prefix
-    if PP_PerUser.usehdicons == true then
-        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
-    else
-        icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
-    end
-
     for id, name in BuffIcon do
-        if (string.gsub(name,icons_prefix,"Interface\\Icons\\") == text) then
+        if name == text then
             return id
         end
     end
-    -- Check also the small buffs
     for id, name in BuffIconSmall do
-        if (string.gsub(name,icons_prefix,"Interface\\Icons\\") == text) then
+        if name == text then
             return id
         end
     end
@@ -5547,7 +5617,7 @@ function PallyPowerBuffButton_OnLoad(btn)
 end
 
 function PallyPowerBuffButton_OnClick(btn, mousebtn)
-    if btn == getglobal("PallyPowerBuffBarRF") then
+    if btn == PallyPowerUIRefs.buffSpecialButtons.RF then
         local rfState = PallyPower_RFAssignments[UnitName("player")]
         if rfState == "off" then
             if PallyPower_CheckRighteousFury() then
@@ -5562,7 +5632,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
         return
     end
 
-    if btn == getglobal("PallyPowerBuffBarAura") then
+    if btn == PallyPowerUIRefs.buffSpecialButtons.Aura then
         local auraId = PallyPower_AuraAssignments[UnitName("player")]
         if auraId ~= -1 and 
            AllPallysAuras[UnitName("player")] and 
@@ -5578,7 +5648,7 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
         return
     end
 
-    if btn == getglobal("PallyPowerBuffBarSeal") then
+    if btn == PallyPowerUIRefs.buffSpecialButtons.Seal then
         PallyPower_CastSeal()
         return
     end
@@ -5908,7 +5978,7 @@ function PallyPower_AutoBless(mousebutton)
 
     classbtn = lastClassBtn
     lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
-    local btn = getglobal("PallyPowerBuffBarBuff" .. classbtn)
+    local btn = PallyPowerUIRefs.buffButtons[classbtn]
 
     if (btn ~= nil and btn.classID and 
         PallyPower_Assignments[UnitName("player")][btn.classID] and 
@@ -6264,9 +6334,9 @@ function PallyPowerBuffBarButton_OnMouseWheel(btn, arg1)
 
     if btn:GetName() == "PallyPowerBuffBarRF" or btn:GetName() == "PallyPowerBuffBarTitle" then return end
 
-    if btn == getglobal("PallyPowerBuffBarAura") then 
+    if btn == PallyPowerUIRefs.buffSpecialButtons.Aura then 
         class = PALLYPOWER_AURA_CLASS 
-    elseif btn == getglobal("PallyPowerBuffBarSeal") then 
+    elseif btn == PallyPowerUIRefs.buffSpecialButtons.Seal then 
         class = PALLYPOWER_SEAL_CLASS 
     else
         class = btn.classID
@@ -6285,12 +6355,13 @@ function PallyPowerBuffBarButton_OnMouseWheel(btn, arg1)
 end
 
 function PallyPowerGridButton_OnMouseWheel(btn, arg1)
-    local _, _, pnum, class = string.find(btn:GetName(), "PallyPowerFramePlayer(.+)Class(.+)")
+    local class = btn.ppClass
     if class == "A" then class = PALLYPOWER_AURA_CLASS end
     if class == "S" then class = PALLYPOWER_SEAL_CLASS end
-    pnum = pnum + 0
+    if class == "R" then class = PALLYPOWER_RF_CLASS end
+    if class == "J" then class = PALLYPOWER_JUDGEMENT_CLASS end
     class = class + 0
-    pname = getglobal("PallyPowerFramePlayer" .. pnum .. "Name"):GetText()
+    pname = btn.ppRow.ppName:GetText()
     if not PallyPower_CanControl(pname) then
         return false
     end
@@ -6331,9 +6402,9 @@ function PallyPower_AutoBuffAll() --Test
 
     -- Iterate through all buff buttons and simulate clicks
     for i = 1, 10 do
-        local btn = getglobal("PallyPowerBuffBarBuff" .. i)
+        local btn = PallyPowerUIRefs.buffButtons[i]
         if btn and btn:IsVisible() then
-            local nneed = getglobal("PallyPowerBuffBarBuff" .. i .. "Text"):GetText()
+            local nneed = btn.ppText:GetText()
             if nneed and nneed ~= "" and tonumber(nneed) > 0 then
                 -- Simulate a left-click to cast the greater blessing
                 PallyPowerBuffButton_OnClick(btn, "LeftButton")
@@ -6350,14 +6421,6 @@ function PallyPower_CastSeal()
     local sealId = PallyPower_SealAssignments[playerName]
 
     if class == "PALADIN" and sealId and sealId ~= -1 then
-        -- Determine icon prefix (matches other checks in this file)
-        local icons_prefix
-        if PP_PerUser and PP_PerUser.usehdicons == true then
-            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\"
-        else
-            icons_prefix = "AddOns\\PallyPowerVanilla\\artwork\\Icons\\"
-        end
-
         -- If the player already has the seal buff active, don't re-cast
         local alreadyActive = false
         if SealIcons[sealId] then
@@ -6382,7 +6445,7 @@ function PallyPower_CastSeal()
                 for i = 1, 40 do
                     local testUnitBuff = UnitBuff("player", i)
                     if (testUnitBuff and SealIcons[sealId] ~= nil and
-                        testUnitBuff == string.gsub(SealIcons[sealId], icons_prefix, "Interface\\Icons\\")) then
+                        testUnitBuff == SealIcons[sealId]) then
                         alreadyActive = true
                         break
                     end
@@ -6540,8 +6603,7 @@ SlashCmdList["PPDBG"] = function()
   if BuffIcon then
     for i = 0, 9 do
       if BuffIcon[i] then
-        local short = string.gsub(BuffIcon[i], "Interface\\AddOns\\PallyPowerVanilla\\", "")
-        short = string.gsub(short, "Interface\\AddOns\\PallyPowerVanilla\\HD", "HD")
+        local short = BuffIcon[i]
         log("BuffIcon[" .. i .. "]: " .. short)
       end
     end
@@ -6555,8 +6617,7 @@ SlashCmdList["PPDBG"] = function()
   if BlessingIcon then
     for i = 0, 9 do
       if BlessingIcon[i] then
-        local short = string.gsub(BlessingIcon[i], "Interface\\AddOns\\PallyPowerVanilla\\", "")
-        short = string.gsub(short, "Interface\\AddOns\\PallyPowerVanilla\\HD", "HD")
+        local short = BlessingIcon[i]
         log("BlessingIcon[" .. i .. "]: " .. short)
       end
     end
@@ -6570,8 +6631,7 @@ SlashCmdList["PPDBG"] = function()
   if BuffIconSmall then
     for i = 0, 9 do
       if BuffIconSmall[i] then
-        local short = string.gsub(BuffIconSmall[i], "Interface\\AddOns\\PallyPowerVanilla\\", "")
-        short = string.gsub(short, "Interface\\AddOns\\PallyPowerVanilla\\HD", "HD")
+        local short = BuffIconSmall[i]
         log("BuffIconSmall[" .. i .. "]: " .. short)
       end
     end
@@ -6592,8 +6652,7 @@ SlashCmdList["PPDBG"] = function()
       -- Check if it matches any BuffIcon
       for idx = 0, 9 do
         if BuffIcon and BuffIcon[idx] then
-          local checkIcon = string.gsub(BuffIcon[idx], "Interface\\AddOns\\PallyPowerVanilla\\artwork\\Icons\\", "Interface\\Icons\\")
-          checkIcon = string.gsub(checkIcon, "Interface\\AddOns\\PallyPowerVanilla\\artwork\\IconsHD\\", "Interface\\Icons\\")
+          local checkIcon = BuffIcon[idx]
           if checkIcon == icon then
             log("  -> Matches BuffIcon[" .. idx .. "]")
           end
@@ -6828,17 +6887,41 @@ function PallyPower_SwapSet(set)
 	-- Swap a set
 	if (set) then
 		if (PP_Presets and PP_Presets[player] and PP_Presets[player]["s"] and PP_Presets[player]["s"][set]) then
+            local preset = PP_Presets[player]["s"][set]
 			for id = 0, 9 do
-				PallyPower_Assignments[player][id] = PP_Presets[player]["s"][set][id];
-				if PP_Presets[player]["s"][set]["A"] then
-					PallyPower_AuraAssignments[player] = PP_Presets[player]["s"][set]["A"]
-				end
-				if PP_Presets[player]["s"][set]["S"] then
-					PallyPower_SealAssignments[player] = PP_Presets[player]["s"][set]["S"]
-				end
-				PP_Presets[UnitName("player")]["CurrentSet"] = set;
+				PallyPower_Assignments[player][id] = preset[id];
 			end
+            if preset["A"] ~= nil then
+                PallyPower_AuraAssignments[player] = preset["A"]
+            end
+            if preset["S"] ~= nil then
+                PallyPower_SealAssignments[player] = preset["S"]
+            end
+
+            -- New explicit keys preserve nil as false; lowercase fallbacks
+            -- recover RF/Judgement from presets saved after storage unification.
+            if preset["R"] ~= nil then
+                if preset["R"] == false then
+                    PallyPower_RFAssignments[player] = nil
+                else
+                    PallyPower_RFAssignments[player] = preset["R"]
+                end
+            elseif preset.rf ~= nil then
+                PallyPower_RFAssignments[player] = preset.rf
+            end
+            if preset["J"] ~= nil then
+                if preset["J"] == false then
+                    PallyPower_JudgementAssignments[player] = nil
+                else
+                    PallyPower_JudgementAssignments[player] = preset["J"]
+                end
+            elseif preset.judgement ~= nil then
+                PallyPower_JudgementAssignments[player] = preset.judgement
+            end
+
+			PP_Presets[player]["CurrentSet"] = set;
 		    PP_NextScan = 0 --PallyPower_UpdateUI()
+            PP_JudgementNextScan = 0
 	        PallyPower_SendSelf()
 		end
 	end
@@ -6918,6 +7001,18 @@ function PallyPower_SaveSet(set)
 		if PallyPower_SealAssignments[player] then
 			PP_Presets[player]["s"][set]["S"] = PallyPower_SealAssignments[player];
 		end
+
+        -- false is a preset-only sentinel for an explicit nil assignment.
+        if PallyPower_RFAssignments[player] == nil then
+            PP_Presets[player]["s"][set]["R"] = false
+        else
+            PP_Presets[player]["s"][set]["R"] = PallyPower_RFAssignments[player]
+        end
+        if PallyPower_JudgementAssignments[player] == nil then
+            PP_Presets[player]["s"][set]["J"] = false
+        else
+            PP_Presets[player]["s"][set]["J"] = PallyPower_JudgementAssignments[player]
+        end
 		PP_Presets[player]["CurrentSet"] = set;
 	end
 end

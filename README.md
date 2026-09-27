@@ -1,4 +1,4 @@
-# PallyPowerVanilla v1.11.0
+# PallyPowerVanilla v1.11.30
 
 PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** for World of Warcraft 1.12.1.
 
@@ -42,7 +42,7 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 - Improved handling of large raid rosters and class lists.
 - Assignment storage has been consolidated while retaining compatibility with older SavedVariables and PallyPower behaviour.
 
-![Updated Assignments](github-images/pp_assignments-1-10-8.png)
+![Updated Assignments](github-images/pp_assignments-1-11-29.png)
 
 ## Compatibility
 

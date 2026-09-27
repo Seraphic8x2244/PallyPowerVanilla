@@ -113,7 +113,6 @@ PALLYPOWER_OPTIONS_PLAY_SOUND = "Play sound when blessings expire";
 PALLYPOWER_OPTIONS_HORIZONTAL_LAYOUT = "Horizontal BuffBar layout";
 PALLYPOWER_OPTIONS_HIDE_BLIZZ_AURA = "Hide Blizzard aura frame";
 PALLYPOWER_OPTIONS_USE_UNITXP_SP3_LOS = "Use UnitXP_SP3.dll for Line of Sight check";
-PALLYPOWER_OPTIONS_USE_HDICONS = "Use HD Icons";
 PALLYPOWER_OPTIONS_TRANSPARENCY = "Global Transparency";
 
 PALLYPOWER_TEXT_DROPDOWN_SAVENEW = "Save New Set";
@@ -168,6 +167,10 @@ PALLYPOWER_UI_SHOW_BUTTON = "Show Button"
 PALLYPOWER_UI_BUTTON_POSITION = "Button Position"
 PALLYPOWER_UI_HIDE_BLIZZARD_AURA_FRAME = "Hide Blizzard Aura Frame"
 PALLYPOWER_UI_COMBINE_SELF_BUFFS = "Combine Self Buffs"
+PALLYPOWER_UI_ASSIGNMENT_LINK_WIDTH = "Assignment Link Width"
+PALLYPOWER_UI_ASSIGNMENT_VERTICAL_SPACING = "Assignment Vertical Spacing"
+PALLYPOWER_UI_ASSIGNMENT_HORIZONTAL_SPACING = "Assignment Horizontal Spacing"
+PALLYPOWER_UI_ASSIGNMENT_PERSONAL_DIVIDER = "Personal Assignment Divider"
 PALLYPOWER_UI_SELF_BUFFS_ABOVE_HEADER = "Self Buffs Above Header"
 PALLYPOWER_UI_JUDGEMENT_ABOVE_HEADER = "Judgement Above Header"
 PALLYPOWER_UI_VERBOSE_JUDGEMENT_REFRESH = "Verbose Judgement Refresh"
@@ -249,6 +252,8 @@ PALLYPOWER_TOOLTIP_SECONDS_SUFFIX = " sec"
 PALLYPOWER_TOOLTIP_PRESENT_ON_TARGET = "Present on target"
 PALLYPOWER_TOOLTIP_MISSING_FROM_TARGET = "Missing from target"
 PALLYPOWER_TOOLTIP_BLESSING_OF = "Blessing of "
+PALLYPOWER_TOOLTIP_CLASS_OVERRIDES = "Individual Blessing Overrides"
+PALLYPOWER_TOOLTIP_CLASS_OVERRIDES_DESC = "Click to show or hide player overrides for this class. Left-click cycles, right-click clears, and the mouse wheel cycles blessings."
 
 PALLYPOWER_TOOLTIP_AURA_SUFFIX = " Aura"
 PALLYPOWER_TOOLTIP_SEAL_OF = "Seal of "
@@ -269,3 +274,8 @@ PALLYPOWER_FEEDBACK_SALVATION_TANK = "Won't cast Salvation on tank: %s"
 PALLYPOWER_FEEDBACK_CANT_TARGET = "Can't target: %s"
 
 --PALLYPOWER_HUNTER_FEIGN_DEATH = "Feign Death"
+
+PALLYPOWER_MSG_LAYOUT_TEST_BRIDGE = "|cfff48cbaAssignment layout test: bridge mode (rows 1 + 3 assigned, row 2 empty).|r"
+PALLYPOWER_MSG_LAYOUT_TEST_TAIL = "|cfff48cbaAssignment layout test: tail mode (row 1 assigned, rows 2 + 3 empty).|r"
+PALLYPOWER_MSG_LAYOUT_TEST_OFF = "|cfff48cbaAssignment layout test disabled; real rows restored.|r"
+PALLYPOWER_MSG_LAYOUT_TEST_HELP = "|cfff48cbaUsage: /pp layouttest [bridge|tail|off]|r"
