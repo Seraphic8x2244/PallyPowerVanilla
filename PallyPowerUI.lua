@@ -1707,6 +1707,9 @@ function PallyPowerUI.CreateAssignmentUI()
 	PallyPowerUI.SetSize(group, 184, 65)
 	PallyPowerUI.SetPoint(group, "TOPLEFT", frame, "TOPLEFT", 8, -28)
 	PallyPowerUIRefs.presets = group
+	-- Keep the accepted Presets runtime/state code available, but hide the
+	-- user-facing controls pending a possible future header-based design.
+	group:Hide()
 
 	dropdown = PallyPowerUI.CreateFrame("Frame", "PallyPowerFramePresetsDropDown", group, "UIDropDownMenuTemplate")
 	UIDropDownMenu_SetWidth(145, dropdown)
