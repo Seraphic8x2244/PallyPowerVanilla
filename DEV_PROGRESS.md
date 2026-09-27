@@ -348,7 +348,9 @@
 ## Testing
 
 ### Last Runtime Test
-- Latest partial runtime feedback is from exact `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da`. Gate item 9 failed: the native spell/blessing crop was not zoomed enough to remove the baked rim, and some icons appeared visually off-centre. The user deferred the remaining Paladin-dependent gate checks until later.
+- Latest partial runtime feedback is from exact `1.11.25-dev` / `b8af35daae11034585d81dedf31b5658d977ffce`. The user passed all five icon/border checks from focused gate item 9: retained class-icon crop looks good; normal shared border is 2 px and fully opaque black; class-header hover correctly recolours that same 2 px border to solid class colour; no translucency/additive glow remains; native blessing/spell icons with the clean 4 px inset also look good. Remaining focused-gate checks are still pending.
+- Before any next runtime build, the user wants to revise the spacing options; do not implement another build until those requested spacing-option changes are specified.
+- Earlier partial runtime feedback from exact `1.11.20-dev` / `4a9cca5a7ca487eed0588fc75b5225dc0d4523da` found the then-current icon crop insufficient; that failure is superseded by the accepted `1.11.25-dev` icon/border result above.
 - Earlier exact tested runtime: `1.11.19-dev` / `7baa74e6b4c3d7eac82aa63d118d06e1c5f79eaa`. The user explicitly confirmed the latest screenshot was from this current build; an earlier screenshot in the preceding message was from the previous version.
 - Confirmed good: the new empty-column fade itself looks good, and the grey/linker presentation sits behind the class/assignment icons rather than covering them.
 - Current-build findings:
@@ -395,7 +397,7 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - Static post-commit audit for `1.11.25-dev`: TOC is `1.11.25-dev`; native and class crop helpers both remain symmetric `0.0625-0.9375`; class crop remains applied to Assignment header and Buff Bar class textures; shared icon-border edge thickness remains 2 px and its four edges now use solid colour textures instead of `UI-Tooltip-Background`; class-header hover recolours that same opaque border to class colour and restores black on leave; no font construction changed.
 - Canonical Lua 5.0.3 compiler check for `1.11.25-dev`: **not run / not claimed**. This correction changes only the shared icon-border texture source plus TOC bump; no compiler pass is claimed.
 - Buff Bar font report: still open. Exact source comparison confirms the Buff Bar title and Blessing-summary/count font construction is unchanged from accepted `1.11.14-dev` through `1.11.20-dev`; the HD-icon-removal commit did not directly alter those font lines. Treat the visible runtime difference as unresolved presentation evidence, not as proof of a direct font-code edit, and do not substitute a guessed font.
-- In-game test of `1.11.25-dev`: not yet performed. Runtime screenshot feedback on `1.11.24-dev` showed both the black and class-colour 2 px border states remained visually translucent; `1.11.25-dev` corrects the underlying texture source. `1.11.20-dev` received the earlier partial gate result recorded above.
+- In-game test of `1.11.25-dev`: **partial pass**. Runtime screenshot/user feedback confirms focused gate item 9 passes: class-icon crop, 2 px opaque black border, solid class-colour hover replacement, no translucency/glow, and native blessing/spell 4 px inset are all good. Remaining focused-gate items are pending. Before the next runtime build, spacing-option changes are to be specified by the user.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
