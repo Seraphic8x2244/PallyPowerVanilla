@@ -44,8 +44,8 @@
 - Branch head before this handoff update: `d629f3c8dbe093a91e851badd460273b1c1b3269`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.0` at `8c520ca1335f6de23409c2b94dd7b7e8a52c2b09`
-- Goal: Runtime-validate `1.11.28-dev` synthetic Assignment layout-test mode to close the otherwise untestable three-Paladin continuous-linker case. `1.11.27-dev` spacing/default/range behaviour is accepted. The previously reported Buff Bar font regression has now returned to the desired presentation without a direct font-code change and is currently not reproducible; do not claim a font fix. Do not begin release-readiness cleanup.
-- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. `1.11.27-dev` / `c808c38` is accepted for all available Assignment spacing/default/range/layout behaviour. The only remaining Assignment visual-gate case is the three-Paladin P1-assigned/P2-empty/P3-assigned continuous-colour linker case, which cannot be produced with the user's two live Paladins. `1.11.28-dev` / `d629f3c` adds a runtime-only synthetic Assignment layout test mode specifically for that gate. It does not write SavedVariables, add fake players to roster tables, send addon comms or modify real assignment tables. The previously reported Buff Bar title/blessing-summary font regression has spontaneously returned to the desired presentation on the current runtime without any direct font-code change; record it as currently not reproducible/visually resolved, not as a known code fix. Do not begin release-readiness cleanup.
+- Goal: Assignment Window redesign/runtime gate is now fully user-accepted on `1.11.28-dev`, including the synthetic three-Paladin bridge/tail cases. The Buff Bar font regression is currently not reproducible / visually resolved without an identified code fix. Resume the remaining post-Stage-7 compatibility checks next: non-Paladin `/pp test`, then peer verification of `-dev` VERSION-advertisement suppression. Do not begin release-readiness cleanup yet.
+- Current scope boundary: Stage 7 and the post-Stage-7 RF/Judgement wheel + NoRF cleanup remain accepted through `1.11.14-dev`. Assignment Window redesign is fully runtime-accepted on exact `1.11.28-dev` / `d629f3c`: normal two-Paladin behaviour, finalized spacing/default/range controls, synthetic P1-assigned/P2-empty/P3-assigned continuous-linker bridge, grey lower-tail/fade, live spacing changes in test mode, clean exit back to real rows, and post-reload cleanup all pass. The synthetic mode remains runtime-only and isolated from SavedVariables, comms, roster tables and real assignments. Buff Bar font presentation is currently not reproducible / visually resolved without a direct code fix. Remaining work is the older compatibility checks only; release-readiness cleanup remains out of scope until those are completed.
 
 ## Current Design / Development Contract
 
@@ -374,16 +374,15 @@
   - Buff Bar title-button font and Blessing-summary font were previously reported as visually regressed despite unchanged direct font construction. On the current runtime the user reports the presentation has reverted to the desired appearance without a direct font-code change. Treat this as currently not reproducible / visually resolved, not as a code fix; retain the source-audit note in case it returns.
 
 ### Next Runtime Test
-Focused gate for exact runtime `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269`:
-1. Update and `/reload`; confirm no Lua/UI errors and that normal two-Paladin Assignment behaviour still looks unchanged before enabling test mode.
-2. Run `/pp layouttest bridge` (plain `/pp layouttest` is the same). Three synthetic rows should appear as `Test Paladin 1/2/3`; in the Paladin-class column, rows 1 and 3 are assigned and row 2 is empty.
-3. In bridge mode, confirm the full-colour linker runs continuously from the header through empty row 2 to row 3's assignment centre, with no grey intermediate segment.
-4. While bridge mode is active, change Vertical/Horizontal/Divider spacing and confirm the synthetic rows/linker follow the live geometry without corrupting the test state.
-5. Run `/pp layouttest tail`. Only row 1 remains assigned; rows 2 and 3 are empty. Confirm the coloured linker stops at row 1 and the accepted subdued grey extension/fade continues through the lower empty tail.
-6. Run `/pp layouttest off`. Real rows must return immediately with real assignments intact.
-7. Re-open/reload once after leaving test mode and confirm no synthetic names/assignments persist.
+Assignment visual gate is fully accepted on exact runtime `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269`.
 
-The mode is intentionally runtime-only: no SavedVariables, addon comms, fake roster entries or real assignment mutation.
+Resume the two older compatibility checks:
+1. On a **non-Paladin** character, verify normal startup remains clean, Buff Bar remains hidden normally, and `/pp` still opens the Assignment Window.
+2. On that non-Paladin, run `/pp test prot` (and optionally `holy` / `ret`). The known legacy behaviour is that the fake-profile Buff Bar may only blink/show briefly before the normal non-Paladin visibility gate hides it again; that persistence mismatch is pre-existing and is **not** a failure. Confirm there is no Lua error and the test command path still works.
+3. Run `/pp test off`; confirm test mode clears cleanly and normal non-Paladin behaviour returns.
+4. With a second PallyPower client/peer available, verify a `-dev` build does **not** advertise a `VERSION ...` message while ordinary PallyPower assignment/state communications still work normally.
+
+Do not begin release-readiness cleanup until these compatibility checks are recorded.
 
 Buff Bar font note: the prior presentation regression is currently **not reproducible / visually resolved** on the user's current runtime, with no direct font-code change identified. Do not claim a font fix; reopen only if the visual regression returns.
 
@@ -410,7 +409,7 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - In-game test of `1.11.25-dev`: **broad pass for all available two-Paladin cases**. Runtime screenshot/user feedback confirms crops/borders, grey tails/fades, empty-column fade, layering, Aura Mastery header, flyout placement/interactions and existing live layout controls all worked; only the unavailable three-Paladin intermediate-empty-row case remained unverified.
 - In-game test of `1.11.26-dev`: **passed all ten available runtime checks**. The user accepted the unified spacing model and Advanced Options reflow, including live flyout behaviour while changing spacing.
 - In-game test of `1.11.27-dev`: **passed all eight focused checks**. The one-time 12/12/36 spacing reset occurred exactly once; subsequent spacing edits persisted across `/reload`; Link Width 0-18/default 12, Vertical 8-64/default 12, Horizontal 8-64/default 12 and Personal Divider 8-64/default 36 all behaved correctly; live linker/flyout tracking remained good.
-- In-game test of `1.11.28-dev`: **partial pass**. User confirmed gate items 1-3: normal two-Paladin Assignment behaviour remains good after update/reload; `/pp layouttest bridge` produces the expected three synthetic Paladin rows with rows 1 and 3 assigned and row 2 empty; the full-colour linker remains continuous through the empty intermediate row with no grey section. Gate items 4-7 remain pending.
+- In-game test of `1.11.28-dev`: **full Assignment gate pass**. User confirmed all seven checks: normal two-Paladin behaviour stayed good; synthetic bridge mode created the expected three rows; the full-colour linker remained continuous through the empty middle row; live Vertical/Horizontal/Divider changes preserved bridge geometry; tail mode correctly switched to colour through row 1 plus grey lower-tail/fade; `layouttest off` restored real rows/assignments; and a subsequent reload left no synthetic state behind.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
@@ -557,4 +556,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Verify this handoff first in a fresh chat. Do **not** start release-readiness cleanup. Runtime-test exact `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269` using `/pp layouttest bridge`, `/pp layouttest tail` and `/pp layouttest off` against the numbered gate above. This synthetic mode exists only to close the otherwise untestable three-Paladin linker case and must remain isolated from SavedVariables/comms/real assignment state. The prior Buff Bar font regression is currently not reproducible/visually resolved without an identified code fix; reopen only if it returns. Correct only runtime-test failures and bump the TOC for any runtime change. Release-readiness remains out of scope.
+Verify this handoff first in a fresh chat. Assignment Window redesign is fully user-accepted on `1.11.28-dev` / `d629f3c8dbe093a91e851badd460273b1c1b3269`, including the synthetic three-Paladin bridge/tail gate. Buff Bar font presentation is currently visually normal / not reproducibly regressed; no font fix is claimed. Next, complete the remaining compatibility checks only: (1) non-Paladin normal startup + `/pp` + `/pp test prot` / `off` with the known pre-existing Buff-Bar blink/hide behaviour treated as acceptable, then (2) peer-client verification that `-dev` suppresses only `VERSION ...` advertisement while normal PallyPower comms still work. Do not start release-readiness cleanup until those checks are recorded.
