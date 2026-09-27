@@ -152,7 +152,7 @@ PALLYPOWER_MSG_NOASSIGNMENTS ="|cffffff00PallyPower: No assignments found.|r"
 
 -- Modernized UI / status text
 PALLYPOWER_UI_TITLE = "PallyPower"
-PALLYPOWER_UI_ASSIGNMENTS_TITLE = "PallyPower - Blessing Management"
+PALLYPOWER_UI_ASSIGNMENTS_TITLE = "PallyPowerVanilla - Assignments"
 PALLYPOWER_UI_ADVANCED = "Advanced"
 PALLYPOWER_UI_ADVANCED_TITLE = "PallyPower - Advanced Options"
 PALLYPOWER_UI_SECTION_MINIMAP = "Minimap"
