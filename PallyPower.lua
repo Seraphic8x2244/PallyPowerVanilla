@@ -1079,10 +1079,10 @@ local PP_PerUserDefaults = {
     hideblizzaura = false,
     useunitxp_sp3 = false,
     transparency = 0.5,
-    assignmentlinkwidth = 8,
+    assignmentlinkwidth = 12,
     assignmentverticalspacing = 12,
     assignmenthorizontalspacing = 12,
-    assignmentpersonaldivider = 12,
+    assignmentpersonaldivider = 36,
     judgement_failed_attacks_refresh = false,
     verbose_judgement_refresh = true
 }
@@ -1688,28 +1688,21 @@ function PallyPower_InitConfig()
     if type(PP_PerUser) ~= "table" then
         PP_PerUser = PP_CreatePerUserDefaults()
     else
-        -- Migrate the short-lived three-slider spacing model. Preserve a
-        -- player's existing uniform tuning when the old horizontal values
-        -- already matched; otherwise use the new clean 12 px defaults.
-        if PP_PerUser.assignmentverticalspacing == nil then
-            PP_PerUser.assignmentverticalspacing = PP_PerUser.assignmentpaladinspacing
-        end
-        if PP_PerUser.assignmenthorizontalspacing == nil
-            and PP_PerUser.assignmentselfbuffspacing ~= nil
-            and PP_PerUser.assignmentselfbuffspacing == PP_PerUser.assignmentclassspacing then
-            PP_PerUser.assignmenthorizontalspacing = PP_PerUser.assignmentselfbuffspacing
-        end
-        if PP_PerUser.assignmentpersonaldivider == nil
-            and PP_PerUser.assignmentselfbuffspacing ~= nil
-            and PP_PerUser.assignmentselfbuffspacing == PP_PerUser.assignmentclassspacing then
-            PP_PerUser.assignmentpersonaldivider = PP_PerUser.assignmentselfbuffspacing
-        end
-
         for key, value in pairs(PP_PerUserDefaults) do
             if PP_PerUser[key] == nil then
                 PP_PerUser[key] = value
             end
         end
+    end
+
+    -- 1.11.27 intentionally resets the three spacing controls once for every
+    -- character so the finalized layout starts from the same accepted baseline.
+    -- Keep a revision marker so user changes persist on subsequent reloads.
+    if PP_PerUser.assignmentspacingrevision ~= 2 then
+        PP_PerUser.assignmentverticalspacing = 12
+        PP_PerUser.assignmenthorizontalspacing = 12
+        PP_PerUser.assignmentpersonaldivider = 36
+        PP_PerUser.assignmentspacingrevision = 2
     end
 
     PP_PerUser.assignmentselfbuffspacing = nil

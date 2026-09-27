@@ -31,8 +31,9 @@ PallyPowerUI.AssignmentLayout = {
 	FOOTER_HEIGHT = 30,
 	VERTICAL_SPACING_DEFAULT = 12,
 	HORIZONTAL_SPACING_DEFAULT = 12,
-	PERSONAL_DIVIDER_DEFAULT = 12,
-	SPACING_MAX = 50,
+	PERSONAL_DIVIDER_DEFAULT = 36,
+	SPACING_MIN = 8,
+	SPACING_MAX = 64,
 	FLYOUT_WIDTH = 120,
 	FLYOUT_INSET = 4,
 	FLYOUT_GAP = 4,
@@ -873,7 +874,7 @@ function PallyPowerUI.CreateAssignmentLinker(frame, key, r, g, b)
 	local linker = PallyPowerUI.CreateTexture(frame, nil, "BORDER", "Interface\\Tooltips\\UI-Tooltip-Background")
 	local extension = PallyPowerUI.CreateTexture(frame, nil, "BORDER", "Interface\\Tooltips\\UI-Tooltip-Background")
 	local fade = PallyPowerUI.CreateTexture(frame, nil, "BORDER", "Interface\\Tooltips\\UI-Tooltip-Background")
-	linker:SetWidth(8)
+	linker:SetWidth(12)
 	linker:SetVertexColor(r, g, b)
 	linker.ppLinkR = r
 	linker.ppLinkG = g
@@ -892,10 +893,10 @@ function PallyPowerUI.CreateAssignmentLinker(frame, key, r, g, b)
 end
 
 function PallyPowerUI.NormalizeAssignmentLinkWidth(value)
-	local width = tonumber(value) or 8
+	local width = tonumber(value) or 12
 	width = math.floor(width + 0.5)
-	if width < 1 then width = 1 end
-	if width > 16 then width = 16 end
+	if width < 0 then width = 0 end
+	if width > 18 then width = 18 end
 	return width
 end
 
@@ -915,7 +916,9 @@ function PallyPowerUI.NormalizeAssignmentSpacing(value, defaultValue)
 	local spacing = tonumber(value)
 	if spacing == nil then spacing = defaultValue end
 	spacing = math.floor(spacing + 0.5)
-	if spacing < 0 then spacing = 0 end
+	if spacing < PallyPowerUI.AssignmentLayout.SPACING_MIN then
+		spacing = PallyPowerUI.AssignmentLayout.SPACING_MIN
+	end
 	if spacing > PallyPowerUI.AssignmentLayout.SPACING_MAX then
 		spacing = PallyPowerUI.AssignmentLayout.SPACING_MAX
 	end
@@ -1117,7 +1120,7 @@ end
 function PallyPowerUI.UpdateAssignmentLinkers(numPallys)
 	local columns = {"A", "R", "S", "J", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 	local width = PallyPowerUI.NormalizeAssignmentLinkWidth(
-		PP_PerUser and PP_PerUser.assignmentlinkwidth or 8
+		PP_PerUser and PP_PerUser.assignmentlinkwidth or 12
 	)
 	local i
 	local rowIndex
@@ -2400,14 +2403,14 @@ PallyPowerUI.CreateBuffBarUI()
 	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentLinkWidthSlider", frame, "OptionsSliderTemplate")
 	PallyPowerUI.SetSize(slider, 140, 16)
 	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -315)
-	slider:SetMinMaxValues(1, 16)
+	slider:SetMinMaxValues(0, 18)
 	slider:SetValueStep(1)
-	if AssignmentLinkWidthSliderLow then AssignmentLinkWidthSliderLow:SetText("1") end
-	if AssignmentLinkWidthSliderHigh then AssignmentLinkWidthSliderHigh:SetText("16") end
-	if AssignmentLinkWidthSliderText then AssignmentLinkWidthSliderText:SetText("8") end
+	if AssignmentLinkWidthSliderLow then AssignmentLinkWidthSliderLow:SetText("0") end
+	if AssignmentLinkWidthSliderHigh then AssignmentLinkWidthSliderHigh:SetText("18") end
+	if AssignmentLinkWidthSliderText then AssignmentLinkWidthSliderText:SetText("12") end
 	slider:SetScript("OnShow", function()
 		local width = PallyPowerUI.NormalizeAssignmentLinkWidth(
-			PP_PerUser and PP_PerUser.assignmentlinkwidth or 8
+			PP_PerUser and PP_PerUser.assignmentlinkwidth or 12
 		)
 		this:SetValue(width)
 		if AssignmentLinkWidthSliderText then
@@ -2426,10 +2429,10 @@ PallyPowerUI.CreateBuffBarUI()
 	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentVerticalSpacingSlider", frame, "OptionsSliderTemplate")
 	PallyPowerUI.SetSize(slider, 140, 16)
 	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -340)
-	slider:SetMinMaxValues(0, 50)
+	slider:SetMinMaxValues(8, 64)
 	slider:SetValueStep(1)
-	if AssignmentVerticalSpacingSliderLow then AssignmentVerticalSpacingSliderLow:SetText("0") end
-	if AssignmentVerticalSpacingSliderHigh then AssignmentVerticalSpacingSliderHigh:SetText("50") end
+	if AssignmentVerticalSpacingSliderLow then AssignmentVerticalSpacingSliderLow:SetText("8") end
+	if AssignmentVerticalSpacingSliderHigh then AssignmentVerticalSpacingSliderHigh:SetText("64") end
 	if AssignmentVerticalSpacingSliderText then AssignmentVerticalSpacingSliderText:SetText("12") end
 	slider:SetScript("OnShow", function()
 		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
@@ -2459,10 +2462,10 @@ PallyPowerUI.CreateBuffBarUI()
 	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentHorizontalSpacingSlider", frame, "OptionsSliderTemplate")
 	PallyPowerUI.SetSize(slider, 140, 16)
 	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -365)
-	slider:SetMinMaxValues(0, 50)
+	slider:SetMinMaxValues(8, 64)
 	slider:SetValueStep(1)
-	if AssignmentHorizontalSpacingSliderLow then AssignmentHorizontalSpacingSliderLow:SetText("0") end
-	if AssignmentHorizontalSpacingSliderHigh then AssignmentHorizontalSpacingSliderHigh:SetText("50") end
+	if AssignmentHorizontalSpacingSliderLow then AssignmentHorizontalSpacingSliderLow:SetText("8") end
+	if AssignmentHorizontalSpacingSliderHigh then AssignmentHorizontalSpacingSliderHigh:SetText("64") end
 	if AssignmentHorizontalSpacingSliderText then AssignmentHorizontalSpacingSliderText:SetText("12") end
 	slider:SetScript("OnShow", function()
 		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
@@ -2492,11 +2495,11 @@ PallyPowerUI.CreateBuffBarUI()
 	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentPersonalDividerSlider", frame, "OptionsSliderTemplate")
 	PallyPowerUI.SetSize(slider, 140, 16)
 	PallyPowerUI.SetPoint(slider, "TOPRIGHT", frame, "TOPRIGHT", -30, -390)
-	slider:SetMinMaxValues(0, 50)
+	slider:SetMinMaxValues(8, 64)
 	slider:SetValueStep(1)
-	if AssignmentPersonalDividerSliderLow then AssignmentPersonalDividerSliderLow:SetText("0") end
-	if AssignmentPersonalDividerSliderHigh then AssignmentPersonalDividerSliderHigh:SetText("50") end
-	if AssignmentPersonalDividerSliderText then AssignmentPersonalDividerSliderText:SetText("12") end
+	if AssignmentPersonalDividerSliderLow then AssignmentPersonalDividerSliderLow:SetText("8") end
+	if AssignmentPersonalDividerSliderHigh then AssignmentPersonalDividerSliderHigh:SetText("64") end
+	if AssignmentPersonalDividerSliderText then AssignmentPersonalDividerSliderText:SetText("36") end
 	slider:SetScript("OnShow", function()
 		local spacing = PallyPowerUI.NormalizeAssignmentSpacing(
 			PP_PerUser and PP_PerUser.assignmentpersonaldivider,
