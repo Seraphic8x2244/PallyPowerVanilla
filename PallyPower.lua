@@ -784,7 +784,7 @@ PP_UI = {
     SCALE_MAX = 1.50,
 
     CONTROL_BUTTON = 30,
-    CONTROL_ICON = 18,
+    CONTROL_ICON = 16,
 
     BUFF_LONG = 90,
     BUFF_SHORT = 30,
@@ -795,7 +795,7 @@ PP_UI = {
 
     MANAGEMENT_ROW = 76,
     ASSIGNMENT_COLUMN = 82,
-    EYE_BUTTON = 18,
+    EYE_BUTTON = 16,
 }
 
 
@@ -1454,6 +1454,8 @@ local function PP_UI_UpdateState()
     if not PP_UI_READY then return end
 
     -- Toggle controls: bright = enabled/current; grey = disabled.
+    PP_UI_SetControlEnabled(FreeAssignOptionChk, PP_PerUser.freeassign == true)
+    PP_UI_SetControlEnabled(PP_UI_SmartButton, PP_PerUser.smartbuffs and true or false)
     PP_UI_SetControlEnabled(PP_UI_LockButton, PP_PerUser.frameslocked == true)
     PP_UI_SetControlEnabled(PP_UI_VerboseButton, PP_PerUser.verbosebuffs == true)
     PP_UI_SetControlEnabled(PP_UI_SoundButton, PP_PerUser.playsoundwhen0 == true)
@@ -1502,8 +1504,11 @@ local function PP_UI_UpdateState()
         end
     end
 
+    if FreeAssignOptionChk then
+        FreeAssignOptionChk:SetChecked(PP_PerUser.freeassign == true)
+    end
     if PP_UI_SmartButton then
-        PP_UI_SmartButton:SetChecked(PP_PerUser.smartbuffs)
+        PP_UI_SmartButton:SetChecked(PP_PerUser.smartbuffs and true or false)
     end
 end
 
@@ -1554,6 +1559,7 @@ function PallyPower_UI_Init()
 
     -- Keep the Management header control strip above the drag surface.
     local headerControls = {
+        FreeAssignOptionChk, PP_UI_SmartButton,
         PP_UI_LockButton, PP_UI_VerboseButton, PP_UI_SoundButton,
         PP_UI_OrientationButton, PP_UI_FeedbackButton
     }
@@ -1564,6 +1570,12 @@ function PallyPower_UI_Init()
         end
     end
 
+    FreeAssignOptionChk:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, PALLYPOWER_FREEASSIGN, PALLYPOWER_FREEASSIGN_DESC)
+    end)
+    PP_UI_SmartButton:SetScript("OnEnter", function()
+        PP_UI_SetTooltip(this, PALLYPOWER_OPTIONS_SMARTBUFFS)
+    end)
     PP_UI_LockButton:SetScript("OnEnter", function()
         PP_UI_SetTooltip(this, PALLYPOWER_TOOLTIP_FRAME_LOCK_TITLE, PALLYPOWER_TOOLTIP_FRAME_LOCK_DESC)
     end)
@@ -1594,6 +1606,8 @@ function PallyPower_UI_Init()
     end)
 
 
+    FreeAssignOptionChk:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    PP_UI_SmartButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_LockButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_VerboseButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PP_UI_SoundButton:SetScript("OnLeave", function() GameTooltip:Hide() end)
@@ -1603,6 +1617,19 @@ function PallyPower_UI_Init()
     PallyPowerFrameClear:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PallyPowerFrameOptions:SetScript("OnLeave", function() GameTooltip:Hide() end)
     PallyPowerFrameResetPosition:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    FreeAssignOptionChk:SetScript("OnClick", function()
+        PallyPower_FreeAssignOption()
+        PP_UI_UpdateState()
+    end)
+
+    PP_UI_SmartButton:SetScript("OnClick", function()
+        PP_PerUser.smartbuffs = (this:GetChecked() == 1)
+        if PallyPower_OptionsFrameSmart then
+            PallyPower_OptionsFrameSmart:SetChecked(this:GetChecked())
+        end
+        PP_UI_UpdateState()
+    end)
 
     PP_UI_LockButton:SetScript("OnClick", function()
         FramesLockedOptionChk:SetChecked(not PP_PerUser.frameslocked)
@@ -1637,13 +1664,8 @@ function PallyPower_UI_Init()
         PallyPowerFrameTitleText:SetTextColor(0.96, 0.55, 0.73)
     end
 
-    -- Smart Buffs and Free Assignment are positioned/created by XML.
-    if PP_UI_SmartButton then
-        PP_UI_SmartButton:SetChecked(PP_PerUser.smartbuffs)
-    end
-    if PallyPowerFrameTitleFreeAssignText then
-        PallyPowerFrameTitleFreeAssignText:SetText(PALLYPOWER_FREEASSIGN)
-    end
+    -- Smart Buffs and Free Assignment now live in the Assignment toolbar.
+    -- Their checked/bright state is synchronized by PP_UI_UpdateState().
 
     if PallyPowerFrameOptions then PallyPowerFrameOptions:SetText(PALLYPOWER_UI_ADVANCED) end
     if PallyPowerFrameOptionButton then PallyPowerFrameOptionButton:SetText(PALLYPOWER_UI_ADVANCED) end
