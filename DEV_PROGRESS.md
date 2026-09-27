@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.35-dev`
+- Version: `1.11.36-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -48,14 +48,15 @@
 - Lucide asset-payload corrective runtime implementation: `3ef88c98fc2f5a7461a6e27e2e0221709feb6f43` (`1.11.32-dev`, superseded before runtime test)
 - Assignment toolbar/eye refinement runtime implementation: `bcedadc5920ab027fd0aa6fae58a74cee329ec26` (`1.11.33-dev`, first focused runtime reviewed)
 - Assignment title-shortening runtime implementation: `21d906e9bca8fb8cf437f4703107b4d51bb5ee88` (`1.11.34-dev`, superseded before runtime test)
-- Assignment toolbar/header polish runtime implementation: `f3964f4c71c6491b6f0610d0eb88053ee2ac0486` (`1.11.35-dev`, exact runtime to test)
+- Assignment toolbar/header polish runtime implementation: `f3964f4c71c6491b6f0610d0eb88053ee2ac0486` (`1.11.35-dev`, focused runtime reviewed)
+- Assignment tint/title-hitbox refinement runtime implementation: `f22ca0d934231bd7773d539551260a9eab3d8b98` (`1.11.36-dev`, exact runtime to test)
 - Branch head before Presets runtime handoff update: `2c66ff874d5421baff5e541680743c0aa46be235`
 - User README/Assignment screenshot update preserved from `dee62d053704c4104a112a8edef193f18baeadc8`
 - Branch head before peer-acceptance handoff update: `31990c504f920c5e906dc7813f4ec9e4d708c4f3`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.30` at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`
-- Goal: validate exact `1.11.35-dev` / `f3964f4c71c6491b6f0610d0eb88053ee2ac0486`: retain hidden Presets and the accepted Assignment model while testing the focused header/toolbar polish — shortened `PallyPowerVanilla - Assignments` title, 15x15 toolbar Lucide glyphs inside unchanged 20x20 hitboxes, 15 px empty group gaps, icon-only additive hover, a restrained 1 px grey header divider matching the SoloCraftBots Preset Manager group treatment, and a reduced 16 px footer reserved only for the resize grip.
-- Current scope boundary: everything through exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21` remains runtime-accepted and stable `main` `1.11.30` remains at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`. Presets behavior from `1.11.31-dev` is user-verified but its visible UI remains intentionally hidden. `1.11.32-dev` was not runtime-tested. Exact `1.11.33-dev` received focused visual runtime review: the toolbar/eyes render and remain on one line, but the long title crowded several toolbar hitboxes, the blue square hover was aesthetically rejected for this experiment, and the user noticed dead footer space after moving Smart/Free to the toolbar. `1.11.34-dev` was superseded before runtime test. `1.11.35-dev` is presentation/layout-only apart from keeping the orientation highlight texcoord synchronized with its existing normal-texture rotation. No SavedVariables, assignment protocol or core assignment model redesign is in scope.
+- Goal: validate exact `1.11.36-dev` / `f22ca0d934231bd7773d539551260a9eab3d8b98`: retain hidden Presets and the accepted Assignment model while refining only the focused header/toolbar presentation — title mouse/tooltip/drag region fits the rendered `PallyPowerVanilla - Assignments` text, divider uses the same `UI-Tooltip-Border` edge texture as the Assignment frame, toolbar glyphs keep the 15x15/20x20 geometry and 15 px group gaps, enabled/action glyphs use a pale Paladin-pink tint, and hover uses a larger white additive glyph overlay for a clearer glow.
+- Current scope boundary: everything through exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21` remains runtime-accepted and stable `main` `1.11.30` remains at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`. Presets behavior from `1.11.31-dev` is user-verified but its visible UI remains intentionally hidden. `1.11.32-dev` was not runtime-tested. Exact `1.11.35-dev` received focused runtime review: the new divider and shortened title were liked, but the title hover/tooltip hitbox still extended much too far right; the icon-only highlight direction was liked but judged too subtle; the user asked for the divider to use the same texture as the PallyPower outer border and for resting toolbar glyphs to carry a faint Paladin-pink tint that goes white with a stronger glow on hover. `1.11.36-dev` changes only those presentation details plus TOC version. No SavedVariables, assignment protocol or core assignment model redesign is in scope.
 
 ## Current Design / Development Contract
 
@@ -169,6 +170,7 @@
 - Rulebook asset placement is active project scope: retained addon-owned artwork and sounds must move under `assets/`, and obsolete bundled textures should be deleted during that migration.
 
 ## Recent Relevant Commits
+- `f22ca0d` - Build `1.11.36-dev`: shrink the Assignment title button/hitbox to the actual rendered title width; render the header divider through the same `Interface\\Tooltips\\UI-Tooltip-Border` edge texture as the Assignment frame; tint normal/enabled toolbar glyphs pale Paladin pink (`0.98, 0.78, 0.86`) while preserving grey disabled toggles; strengthen hover by enlarging the same Lucide glyph to 17x17, tinting it white at 0.9 alpha, and blending additively. Toolbar geometry/order/gaps, footer height, eyes, Presets-hidden state, assignment logic and protocol are unchanged.
 - `f3964f4` - Build `1.11.35-dev`: render toolbar Lucide glyphs at 15x15 inside unchanged 20x20 hitboxes; expand each of the three toolbar group breaks to 15 px while retaining 3 px ordinary spacing; replace the stock blue square hover with an additive overlay of the icon itself; keep the orientation hover overlay rotated with the normal orientation glyph; add a 1 px grey header divider using the same 0.45 grey / 0.55 alpha treatment as SoloCraftBots Preset Manager group headers; reduce Assignment footer allowance from 30 px to 16 px now that Smart Buffs / Free Assignment no longer occupy the footer.
 - `21d906e` - Build `1.11.34-dev`: shorten the Assignment header from `PallyPower - Blessing Management` to `PallyPowerVanilla - Assignments`; no Lua/runtime logic changes. This addresses the focused `1.11.33-dev` screenshot showing the longer title crowding toolbar hitboxes.
 - `bcedadc` - Build `1.11.33-dev`: render Assignment toolbar Lucide artwork at 16x16 inside the existing 20x20 hitboxes; move Smart Buffs and Free Assignment from labelled bottom checkboxes into the top toolbar using exact upstream Lucide `brain` and `handshake`; reorder the single-line strip to Clear, Refresh, Free, Smart / Sound, Verbose, Report / Position, Orientation / Settings, Lock, Close with 3 px ordinary gaps and 8 px group gaps; move 16x16 visibility eyes to the centred top edge of each special icon with 4 px overlap; move the Judgement failed-refresh checkbox to the bottom-right corner. Presets remain hidden.
@@ -284,6 +286,8 @@
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
 ## Static / Automated Checks
+- Focused `1.11.36-dev` / `f22ca0d934231bd7773d539551260a9eab3d8b98` static review passed: changed runtime files are limited to `PallyPower.lua`, `PallyPowerUI.lua`, and the TOC. Toolbar hitboxes remain 20x20, normal glyphs remain 15x15, group/ordinary spacing is unchanged, and highlight glyphs are 17x17 white additive overlays. The title button now defaults to a safe 260 px fallback but, when `GetStringWidth()` is available, immediately shrinks itself and its label to the rendered string width plus 16 px total horizontal inset. The divider remains at the accepted y=-29 geometry but now uses the same `UI-Tooltip-Border` edge file as the main Assignment frame with a 1 px edge size. `main` remains unchanged at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`.
+- Canonical Lua 5.0.3 compiler check for `1.11.36-dev`: **not run / not claimed**. This session has repository access through the connector but no executable checkout of the vendored checker; focused static review of the changed Lua paths passed.
 - Focused `1.11.35-dev` / `f3964f4c71c6491b6f0610d0eb88053ee2ac0486` static review passed: changed runtime files are limited to `PallyPower.lua`, `PallyPowerUI.lua`, and the TOC. Toolbar hitboxes remain 20x20; glyphs are 15x15; ordinary anchor pitch remains 23 px (3 px empty hitbox gap); group pitch is 35 px (15 px empty hitbox gap) at Smart→Sound, Report→Position, and Orientation→Settings. The new divider is 1 px high at y=-29 with 3 px horizontal inset and matches the SoloCraftBots Preset Manager group-divider colour/alpha. `FOOTER_HEIGHT` is reduced from 30 to 16, exactly matching the existing 16x16 resize grip allowance. Orientation normal/highlight texcoords are updated together.
 - Canonical Lua 5.0.3 compiler check for `1.11.35-dev`: **not run / not claimed**. This session has repository access through the connector but no executable checkout of the vendored checker; focused static review of the changed Lua paths passed.
 - Focused `1.11.34-dev` / `21d906e9bca8fb8cf437f4703107b4d51bb5ee88` scope check: only `locales/enUS.lua` and `PallyPowerVanilla.toc` changed from the documented `1.11.33-dev` handoff; no Lua file changed, so no new Lua compiler claim is needed for this title-only revision.
@@ -386,6 +390,7 @@
 ## Testing
 
 ### Last Runtime Test
+- `1.11.35-dev` / `f3964f4c71c6491b6f0610d0eb88053ee2ac0486`: focused runtime review — the 1 px divider was judged great and the shortened `PallyPowerVanilla - Assignments` title was judged great. Remaining presentation findings: the title's mouseover/tooltip region clearly extended too far right; the icon-only additive highlight was liked but too subtle; requested follow-up was to use the PallyPower border texture for the divider, give resting toolbar icons a faint Paladin-pink tint, and make hover go white with a stronger glow. No new complaint was raised about the 15 px glyph size, 15 px group gaps, or reduced footer in this feedback.
 - `1.11.33-dev` / `bcedadc5920ab027fd0aa6fae58a74cee329ec26`: focused screenshot/runtime review confirmed the Lucide toolbar and special-eye presentation renders in-game and remains on one line. User findings: 16 px toolbar glyphs looked broadly appropriate but worth trying at 15 px; the long `PallyPower - Blessing Management` title overlapped/crowded several toolbar hitboxes; the stock blue square mouseover highlight was not preferred; the user also noticed footer dead space consistent with the now-unused 30 px footer after Smart Buffs / Free Assignment moved to the toolbar. `1.11.34-dev` was superseded before runtime test by the combined polish pass.
 - `1.11.31-dev` / `2c66ff874d5421baff5e541680743c0aa46be235`: Presets behavior passed user runtime testing — the user reported it does everything as agreed. Presentation was not accepted: the compact visible Presets block looked out of place relative to the redesigned Assignment window. This is why `1.11.32-dev` hides the UI while retaining the behavior/code.
 - No in-game result exists yet for `1.11.31-dev` / `2c66ff874d5421baff5e541680743c0aa46be235`. The latest accepted runtime baseline remains exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21`, from which stable `main` `1.11.30` was promoted.
@@ -406,16 +411,15 @@
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-Focused Assignment-header/toolbar gate on exact `1.11.35-dev` / `f3964f4c71c6491b6f0610d0eb88053ee2ac0486`:
-1. Confirm the title reads `PallyPowerVanilla - Assignments` and no title/drag hitbox interferes with toolbar buttons.
-2. Judge the 15x15 toolbar glyph size against the previous 16x16 screenshot; all hitboxes remain 20x20.
-3. Confirm the three group breaks are visibly stronger: each is 15 px of empty space, while ordinary neighbours remain 3 px apart.
-4. Hover several toolbar buttons, including a disabled/grey toggle and Orientation: there should be no blue square; only the Lucide glyph itself should brighten additively. Orientation hover must match the current rotated glyph exactly.
-5. Confirm the new 1 px grey divider cleanly separates title/toolbar from the Assignment header icons without crossing the visibility eyes.
-6. Confirm the excess lower dead space is reduced, while the 16x16 bottom-right resize grip remains usable and does not overlap the lowest visible assignment row.
-7. Confirm Presets remain completely hidden.
-8. Toggle Smart Buffs, Free Assignment, Sound, Verbose, Lock, Orientation, and the four eye controls once; exercise Report, Position, Settings, Refresh, Clear/confirmation and Close once.
-9. `/reload` and confirm clean persistence/presentation with no Lua/UI errors.
+Focused Assignment-header/toolbar gate on exact `1.11.36-dev` / `f22ca0d934231bd7773d539551260a9eab3d8b98`:
+1. Hover the title text and move rightward: the version tooltip/drag hitbox should end just after the rendered `PallyPowerVanilla - Assignments` text rather than extending across the header.
+2. Confirm the divider keeps the accepted position/weight but now visually matches the Assignment window's outer border texture.
+3. Judge the resting toolbar tint: enabled/action icons should read as a light Paladin-pink accent rather than white; off toggles must remain visibly grey.
+4. Hover several toolbar icons, including Orientation and an off toggle: the hovered Lucide glyph should turn visibly white and produce a stronger but still clean additive glow, with no square background.
+5. Confirm the existing 15x15 glyph size, 20x20 hitboxes, 3 px ordinary spacing, 15 px group spacing and single-line order are unchanged.
+6. Confirm the reduced footer/resize-grip spacing, eye placement, Judgement checkbox and hidden Presets remain unchanged.
+7. Toggle Smart Buffs, Free Assignment, Sound, Verbose, Lock and Orientation once; exercise Report, Position, Settings, Refresh, Clear/confirmation and Close once.
+8. `/reload` and confirm clean persistence/presentation with no Lua/UI errors.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
@@ -595,8 +599,9 @@ After generated-name/global lookup cleanup:
 - Initial `1.11.32-dev` runtime `3ef88c98fc2f5a7461a6e27e2e0221709feb6f43` was superseded before user runtime testing.
 - `1.11.33-dev` / `bcedadc5920ab027fd0aa6fae58a74cee329ec26` received focused visual runtime review: the toolbar/eye presentation is visible and the toolbar is on one line; the long title crowded several toolbar hitboxes, the stock blue square hover was not preferred, and the user asked to try 15 px toolbar glyphs with substantially larger group breaks.
 - `1.11.34-dev` / `21d906e9bca8fb8cf437f4703107b4d51bb5ee88` was superseded before runtime testing.
-- Exact runtime to test: `f3964f4c71c6491b6f0610d0eb88053ee2ac0486` / `1.11.35-dev`.
-- Assignment toolbar Lucide artwork now renders at 15x15 inside unchanged 20x20 hitboxes. Smart Buffs and Free Assignment are no longer labelled bottom checkboxes; they are toolbar CheckButtons using exact upstream Lucide `brain` and `handshake`, with bright/grey state feedback synchronized with their existing per-character state.
+- `1.11.35-dev` / `f3964f4c71c6491b6f0610d0eb88053ee2ac0486` focused runtime review liked the divider and title but found the title hover region too wide and the icon-only highlight too subtle.
+- Exact runtime to test: `f22ca0d934231bd7773d539551260a9eab3d8b98` / `1.11.36-dev`.
+- Assignment toolbar Lucide artwork renders at 15x15 inside unchanged 20x20 hitboxes. Enabled/action glyphs now use a pale Paladin-pink normal tint; disabled toggles remain grey. Hover overlays the same glyph at 17x17 in white additive blend for a clearer glow. Smart Buffs and Free Assignment remain toolbar CheckButtons using exact upstream Lucide `brain` and `handshake`, with state feedback synchronized with their existing per-character state.
 - Existing runtime filenames/wiring are deliberately preserved; only addon-owned artwork changed. Mapping: close=`x`, refresh=`refresh-cw`, clear=`trash`, options=`settings`, reset-position=`locate-fixed`, lock=`lock`, verbose=`message-square-text`, sound=`volume-2`, orientation=`move-horizontal`, feedback=`megaphone`, visibility-on=`eye`, visibility-off=`eye-off`.
 - The existing orientation runtime `SetTexCoord` rotation is retained, so the Lucide move-horizontal glyph must still flip with layout state without new behavior code.
 - Dormant future Presets assets are bundled but unused: `preset-save.tga` (`save`), `preset-load.tga` (`folder-open`), `preset-add.tga` (`plus`), `preset-delete.tga` (`trash`), and `preset-chevron.tga` (`chevron-down`). Their presence does not re-expose Presets UI.
@@ -626,4 +631,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Run the focused `1.11.35-dev` Assignment-header/toolbar gate above on exact runtime `f3964f4c71c6491b6f0610d0eb88053ee2ac0486`. Judge the 15 px glyphs, 15 px group gaps, icon-only additive hover, new header divider, and reduced footer together before further tuning. Keep stable `main` `1.11.30` untouched; Presets remain hidden unless a later fresh chat explicitly opens a new header-based Presets experiment.
+Run the focused `1.11.36-dev` Assignment-header/toolbar gate above on exact runtime `f22ca0d934231bd7773d539551260a9eab3d8b98`, concentrating on the title hitbox boundary, border-textured divider, pale-pink resting glyphs and stronger white hover glow. Keep stable `main` `1.11.30` untouched; Presets remain hidden unless a later fresh chat explicitly opens a new header-based Presets experiment.
