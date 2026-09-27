@@ -410,7 +410,7 @@ Older compatibility checks remain after the visual gate: non-Paladin `/pp test`,
 - In-game test of `1.11.25-dev`: **broad pass for all available two-Paladin cases**. Runtime screenshot/user feedback confirms crops/borders, grey tails/fades, empty-column fade, layering, Aura Mastery header, flyout placement/interactions and existing live layout controls all worked; only the unavailable three-Paladin intermediate-empty-row case remained unverified.
 - In-game test of `1.11.26-dev`: **passed all ten available runtime checks**. The user accepted the unified spacing model and Advanced Options reflow, including live flyout behaviour while changing spacing.
 - In-game test of `1.11.27-dev`: **passed all eight focused checks**. The one-time 12/12/36 spacing reset occurred exactly once; subsequent spacing edits persisted across `/reload`; Link Width 0-18/default 12, Vertical 8-64/default 12, Horizontal 8-64/default 12 and Personal Divider 8-64/default 36 all behaved correctly; live linker/flyout tracking remained good.
-- In-game test of `1.11.28-dev`: not yet performed.
+- In-game test of `1.11.28-dev`: **partial pass**. User confirmed gate items 1-3: normal two-Paladin Assignment behaviour remains good after update/reload; `/pp layouttest bridge` produces the expected three synthetic Paladin rows with rows 1 and 3 assigned and row 2 empty; the full-colour linker remains continuous through the empty intermediate row with no grey section. Gate items 4-7 remain pending.
 
 ### Stage 2 Validation State
 - Static parity review: passed for the documented Stage 2 boundary.
