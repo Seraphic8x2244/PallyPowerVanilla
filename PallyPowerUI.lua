@@ -1401,9 +1401,11 @@ end
 function PallyPowerUI.CreateAssignmentEyeButton(frame, name, relativeTo, onClick, tooltipText)
 	local button = PallyPowerUI.CreateFrame("Button", name, frame)
 	local icon
+	local highlight
 
 	PallyPowerUI.SetSize(button, 16, 16)
 	PallyPowerUI.SetPoint(button, "BOTTOM", relativeTo, "TOP", 0, -4)
+	button:SetFrameLevel(frame:GetFrameLevel() + 10)
 
 	icon = PallyPowerUI.CreateTexture(
 		button, "$parentIcon", "ARTWORK",
@@ -1411,6 +1413,16 @@ function PallyPowerUI.CreateAssignmentEyeButton(frame, name, relativeTo, onClick
 	)
 	PallyPowerUI.SetSize(icon, 16, 16)
 	PallyPowerUI.SetPoint(icon, "CENTER", button, "CENTER", 0, 0)
+	icon:SetVertexColor(0.98, 0.78, 0.86)
+
+	button:SetHighlightTexture("Interface\\AddOns\\PallyPowerVanilla\\assets\\visibility-on.tga")
+	highlight = button:GetHighlightTexture()
+	highlight:ClearAllPoints()
+	PallyPowerUI.SetSize(highlight, 18, 18)
+	PallyPowerUI.SetPoint(highlight, "CENTER", button, "CENTER", 0, 0)
+	highlight:SetVertexColor(1, 1, 1, 1)
+	highlight:SetAlpha(0.9)
+	highlight:SetBlendMode("ADD")
 
 	button:SetScript("OnClick", onClick)
 	button:SetScript("OnEnter", function()

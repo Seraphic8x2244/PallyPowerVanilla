@@ -1480,16 +1480,32 @@ local function PP_UI_UpdateState()
     local eyeOn = "Interface\\AddOns\\PallyPowerVanilla\\assets\\visibility-on.tga"
     local eyeOff = "Interface\\AddOns\\PallyPowerVanilla\\assets\\visibility-off.tga"
     if PallyPowerFrameAuraEyeIcon then
-        PallyPowerFrameAuraEyeIcon:SetTexture(PP_PerUser.showaurabutton and eyeOn or eyeOff)
+        local texture = PP_PerUser.showaurabutton and eyeOn or eyeOff
+        PallyPowerFrameAuraEyeIcon:SetTexture(texture)
+        if PallyPowerFrameAuraEye and PallyPowerFrameAuraEye:GetHighlightTexture() then
+            PallyPowerFrameAuraEye:GetHighlightTexture():SetTexture(texture)
+        end
     end
     if PallyPowerFrameRFEyeIcon then
-        PallyPowerFrameRFEyeIcon:SetTexture(PP_PerUser.showrfbutton and eyeOn or eyeOff)
+        local texture = PP_PerUser.showrfbutton and eyeOn or eyeOff
+        PallyPowerFrameRFEyeIcon:SetTexture(texture)
+        if PallyPowerFrameRFEye and PallyPowerFrameRFEye:GetHighlightTexture() then
+            PallyPowerFrameRFEye:GetHighlightTexture():SetTexture(texture)
+        end
     end
     if PallyPowerFrameSealEyeIcon then
-        PallyPowerFrameSealEyeIcon:SetTexture(PP_PerUser.showsealbutton and eyeOn or eyeOff)
+        local texture = PP_PerUser.showsealbutton and eyeOn or eyeOff
+        PallyPowerFrameSealEyeIcon:SetTexture(texture)
+        if PallyPowerFrameSealEye and PallyPowerFrameSealEye:GetHighlightTexture() then
+            PallyPowerFrameSealEye:GetHighlightTexture():SetTexture(texture)
+        end
     end
     if PallyPowerFrameJudgementEyeIcon then
-        PallyPowerFrameJudgementEyeIcon:SetTexture(PP_PerUser.showjudgementbutton and eyeOn or eyeOff)
+        local texture = PP_PerUser.showjudgementbutton and eyeOn or eyeOff
+        PallyPowerFrameJudgementEyeIcon:SetTexture(texture)
+        if PallyPowerFrameJudgementEye and PallyPowerFrameJudgementEye:GetHighlightTexture() then
+            PallyPowerFrameJudgementEye:GetHighlightTexture():SetTexture(texture)
+        end
     end
 
     if PP_UI_NampowerState then
