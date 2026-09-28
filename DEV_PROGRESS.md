@@ -57,9 +57,9 @@
 - User README/Assignment screenshot update preserved from `dee62d053704c4104a112a8edef193f18baeadc8`
 - Branch head before peer-acceptance handoff update: `31990c504f920c5e906dc7813f4ec9e4d708c4f3`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
-- Stable baseline: `main` / `1.11.30` at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`
-- Goal: promote user-accepted exact runtime `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda` to stable `main` as `1.11.39`, preserving hidden Presets, accepted toolbar/eye/header presentation and all existing assignment behavior. Release-only changes are stable TOC/README metadata and omission of development-only documentation.
-- Current scope boundary: exact `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda` is user-accepted in game. The user confirmed the fixed title box resolves the remaining truncation issue after previously accepting the eye treatment/layering and toolbar/header polish. Stable `main` is still `1.11.30` / `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141` until the authorized promotion completes. Presets behavior remains retained but its user-facing UI remains intentionally hidden. No SavedVariables, assignment protocol or core assignment model redesign is in scope.
+- Stable baseline: `main` / `1.11.39` at `fb4e960751b87ba2077c4277ec93325f65c39ed7`
+- Goal: stable `1.11.39` promotion is complete. Preserve `main` as the accepted release baseline; no new PallyPower work is active. Presets remain hidden unless a later fresh scope explicitly reopens their presentation.
+- Current scope boundary: exact `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda` is the user-accepted runtime source for stable `1.11.39`. Stable `main` is now `fb4e960751b87ba2077c4277ec93325f65c39ed7`. Presets behavior remains retained but its user-facing UI remains intentionally hidden. No SavedVariables, assignment protocol or core assignment model redesign is in scope.
 
 ## Current Design / Development Contract
 
@@ -632,12 +632,13 @@ After generated-name/global lookup cleanup:
 - Modernizing legacy `this`/`arg1` callback style before the XML-free parity checkpoint.
 
 ## Release / Promotion Notes
-- Current stable baseline: `main` / `1.11.30` at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`.
-- Main-only/release-only result for `1.11.30`: stable TOC Title/Version is `PallyPowerVanilla` / `1.11.30`; README heading is `v1.11.30`; the user's new Assignment screenshot/link is preserved. `DEV_PROGRESS.md`, `dev_rulebook.md`, and the XML parity manifest were excluded from the stable product tree; old `PallyPower.xml`, `Sounds/`, and `artwork/` trees remain removed.
-- Stable `main` excludes development progress/status documentation.
-- Known validation debt for `1.11.30`: the exact promoted stable tree did not receive a separate in-game run after release-only metadata/presentation/development-document removal. Its runtime Lua, bindings, locales, assets, and screenshot tree were verified byte-for-byte identical to the accepted `1.11.30-dev` payload; only stable TOC/README metadata and dev-file omission differ.
+- Current stable baseline: `main` / `1.11.39` at `fb4e960751b87ba2077c4277ec93325f65c39ed7`.
+- Stable `1.11.39` was promoted from user-accepted runtime `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda`.
+- Stable TOC Title/Version is `PallyPowerVanilla` / `1.11.39`; README heading is `v1.11.39`.
+- `DEV_PROGRESS.md`, `dev_rulebook.md`, and `docs/XML_UI_PARITY_MANIFEST.md` are excluded from stable `main`.
+- Release-tree audit passed before moving `main`: every non-metadata product blob (Lua, locale, bindings, assets, README body) matches the accepted runtime payload exactly; release-only differences are stable TOC/README metadata and development-file omission. The Lucide assets/license used by the accepted toolbar/eye runtime are included.
+- Known validation debt: the exact stable `1.11.39` tree did not receive a separate in-game run after release-only metadata/development-file changes. Do not rewrite this as a stable-tree runtime test.
 - External/runtime prerequisites: none required. Nampower and UnitXP are optional enhancements, not hard dependencies.
-- Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Promote accepted runtime `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda` to stable `main` as `1.11.39`: apply stable TOC Title/Version, update README heading to `v1.11.39`, exclude `DEV_PROGRESS.md`, `dev_rulebook.md` and `docs/XML_UI_PARITY_MANIFEST.md`, preserve the accepted runtime Lua/locales/assets/bindings exactly, then record the exact stable commit here. Presets remain hidden.
+No active PallyPower development task. Stable `main` is `1.11.39` / `fb4e960751b87ba2077c4277ec93325f65c39ed7`. Start any future work from `dev`, re-read this document, and keep Presets hidden unless a new scope explicitly reopens their presentation.
