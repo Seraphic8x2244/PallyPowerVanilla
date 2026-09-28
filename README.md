@@ -2,10 +2,6 @@
 
 PallyPowerVanilla is a modernised, compatibility-focused fork of **PallyPower** for World of Warcraft 1.12.1.
 
-The aim is to preserve the familiar PallyPower experience and compatibility with existing versions while improving the addon for modern Vanilla clients and servers.
-
-## Project Goals
-
 - **Modernisation** — improve PallyPower without changing what makes it PallyPower, with a cleaner interface and less reliance on inherited hardcoded behaviour.
 - **Compatibility** — support a broad range of World of Warcraft 1.12.1-based clients and servers while retaining compatibility with the existing PallyPower ecosystem.
 
@@ -15,6 +11,7 @@ The aim is to preserve the familiar PallyPower experience and compatibility with
 - Backwards compatible with existing PallyPower clients and communication.
 - Dynamic spell, rank, mana, range and duration handling where practical, with Vanilla-safe fallbacks.
 - Improved compatibility with modern Vanilla clients and optional enhancements such as Nampower and UnitXP without requiring them.
+- Support for custom servers, spell edits and talents.
 
 ### Buff Bar
 
