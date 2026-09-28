@@ -1626,19 +1626,14 @@ function PallyPowerUI.CreateAssignmentUI()
 	)
 
 	button = PallyPowerUI.CreateFrame("Button", "$parentTitle", frame)
-	PallyPowerUI.SetSize(button, 436, 20)
+	PallyPowerUI.SetSize(button, 260, 20)
 	PallyPowerUI.SetPoint(button, "TOPLEFT", frame, "TOPLEFT", 8, -7)
 
 	label = PallyPowerUI.CreateFontString(button, "$parentText", "OVERLAY", "GameFontNormalLarge")
-	PallyPowerUI.SetSize(label, 420, 18)
+	PallyPowerUI.SetSize(label, 244, 18)
 	PallyPowerUI.SetPoint(label, "LEFT", button, "LEFT", 8, 0)
 	label:SetText(PALLYPOWER_UI_ASSIGNMENTS_TITLE)
 	label:SetJustifyH("LEFT")
-	if label.GetStringWidth then
-		local titleWidth = label:GetStringWidth()
-		label:SetWidth(titleWidth + 2)
-		button:SetWidth(titleWidth + 18)
-	end
 
 	button:SetScript("OnEnter", function()
 		PallyPower_ShowVersionTooltip()
