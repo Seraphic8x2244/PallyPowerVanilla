@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.38-dev`
+- Version: `1.11.39-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -51,14 +51,15 @@
 - Assignment toolbar/header polish runtime implementation: `f3964f4c71c6491b6f0610d0eb88053ee2ac0486` (`1.11.35-dev`, focused runtime reviewed)
 - Assignment tint/title-hitbox refinement runtime implementation: `f22ca0d934231bd7773d539551260a9eab3d8b98` (`1.11.36-dev`, focused runtime reviewed)
 - Assignment title-measurement corrective runtime implementation: `0ebf5635bf5306ab0d7a3872029eb7f9a346f30b` (`1.11.37-dev`, superseded before runtime test)
-- Assignment eye-style/layering refinement runtime implementation: `45aeddee4026d805c19cd99824b104e346d96cdd` (`1.11.38-dev`, exact runtime to test)
+- Assignment eye-style/layering refinement runtime implementation: `45aeddee4026d805c19cd99824b104e346d96cdd` (`1.11.38-dev`, focused runtime reviewed)
+- Assignment fixed-title-box corrective runtime implementation: `903bdf0ba7f1fc2cea59724a50678ef17024feda` (`1.11.39-dev`, exact runtime to test)
 - Branch head before Presets runtime handoff update: `2c66ff874d5421baff5e541680743c0aa46be235`
 - User README/Assignment screenshot update preserved from `dee62d053704c4104a112a8edef193f18baeadc8`
 - Branch head before peer-acceptance handoff update: `31990c504f920c5e906dc7813f4ec9e4d708c4f3`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.30` at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`
-- Goal: validate exact `1.11.38-dev` / `45aeddee4026d805c19cd99824b104e346d96cdd`: retain hidden Presets and the accepted Assignment model while closing the focused header/toolbar pass — preserve the working pale-Paladin-pink toolbar/white additive hover and border-textured divider, correct title measurement so `PallyPowerVanilla - Assignments` renders in full while its tooltip/drag hitbox still hugs the text, and give Aura/RF/Seal/Judgement eye controls the same pink→white additive treatment while explicitly raising them above the self-buff header icons.
-- Current scope boundary: everything through exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21` remains runtime-accepted and stable `main` `1.11.30` remains at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`. Presets behavior from `1.11.31-dev` is user-verified but its visible UI remains intentionally hidden. Exact `1.11.36-dev` received focused runtime review: the border-textured divider, shortened/tighter title hitbox, pale Paladin-pink resting toolbar glyphs and stronger white additive hover all worked; the only remaining visible defect was the title string being truncated/ellipsized because width was measured after first constraining the font string. `1.11.37-dev` corrects that measurement but was superseded before runtime testing when the user requested the same visual treatment for the eye controls and explicit foreground layering. `1.11.38-dev` adds only that eye styling/layering on top. No SavedVariables, assignment protocol or core assignment model redesign is in scope.
+- Goal: validate exact `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda`: retain hidden Presets and the accepted Assignment model while closing the focused header/toolbar pass — preserve the accepted eye treatment/layering, toolbar tint/glow, divider texture and reduced footer, and replace the unreliable Vanilla dynamic title measurement with a fixed 244 px title text box inside a 260 px title button so the full `PallyPowerVanilla - Assignments` string renders without restoring the old 640 px hover/drag region.
+- Current scope boundary: everything through exact `1.11.30-dev` / `a98d92da37c1b64da818c28f53fea979ccd56e21` remains runtime-accepted and stable `main` `1.11.30` remains at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`. Presets behavior from `1.11.31-dev` is user-verified but its visible UI remains intentionally hidden. Exact `1.11.38-dev` received focused runtime review: the eye treatment/layering is good, but the title still displayed as `PallyPowerVanilla - ...`; the prior dynamic measurement correction did not behave reliably on Vanilla. `1.11.39-dev` therefore removes the dynamic shrink entirely and uses a fixed 244 px label / 260 px title button, preserving a much tighter hover/drag region than the original 640 px title control. No SavedVariables, assignment protocol or core assignment model redesign is in scope.
 
 ## Current Design / Development Contract
 
@@ -172,6 +173,7 @@
 - Rulebook asset placement is active project scope: retained addon-owned artwork and sounds must move under `assets/`, and obsolete bundled textures should be deleted during that migration.
 
 ## Recent Relevant Commits
+- `903bdf0` - Build `1.11.39-dev`: remove the unreliable dynamic `GetStringWidth()` title shrink on Vanilla and use a fixed 244 px title text box inside a 260 px title button. This is deliberately large enough for `PallyPowerVanilla - Assignments` while remaining far smaller than the old 640 px title/tooltip/drag region. No toolbar, eye, divider, footer, Presets, assignment or protocol behavior changes.
 - `45aeddee` - Build `1.11.38-dev`: give Aura/RF/Seal/Judgement eye controls the same pale Paladin-pink resting tint and larger white additive hover treatment as the toolbar, keep the hover glyph synchronized with the current eye/eye-off state, and raise the eye buttons 10 frame levels above the Assignment frame so they remain visually in front of the underlying self-buff icons.
 - `0ebf563` - Build `1.11.37-dev`: fix title truncation by measuring `PallyPowerVanilla - Assignments` while the font string still has a wide temporary width, then shrink the label/button to the measured string width plus small padding. Superseded before runtime test by `1.11.38-dev`.
 - `f22ca0d` - Build `1.11.36-dev`: shrink the Assignment title button/hitbox to the actual rendered title width; render the header divider through the same `Interface\\Tooltips\\UI-Tooltip-Border` edge texture as the Assignment frame; tint normal/enabled toolbar glyphs pale Paladin pink (`0.98, 0.78, 0.86`) while preserving grey disabled toggles; strengthen hover by enlarging the same Lucide glyph to 17x17, tinting it white at 0.9 alpha, and blending additively. Toolbar geometry/order/gaps, footer height, eyes, Presets-hidden state, assignment logic and protocol are unchanged.
@@ -290,6 +292,8 @@
 - The exact stable `main` release tree was not separately documented as an in-game test after promotion; it inherits the tested runtime code from the approved `1.11.0-dev` source, with promotion changes limited to release metadata/presentation and development-document removal.
 
 ## Static / Automated Checks
+- Focused `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda` static review passed: runtime changes from `1.11.38-dev` are limited to `PallyPowerUI.lua` title sizing and the TOC version. The title button is fixed at 260x20 with a 244x18 font string and no runtime `GetStringWidth()` shrink. Eye controls, toolbar geometry/tint/hover, divider, footer and hidden Presets are unchanged. Stable `main` remains `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`.
+- Canonical Lua 5.0.3 compiler check for `1.11.39-dev`: **not run / not claimed**. This session has repository access through the connector but no executable checkout of the vendored checker; focused static review passed.
 - Focused `1.11.38-dev` / `45aeddee4026d805c19cd99824b104e346d96cdd` static review passed: eye buttons retain 16x16 hitboxes and 16x16 normal glyphs, use pale Paladin-pink normal tint, overlay an 18x18 white additive highlight at 0.9 alpha, update the highlight texture whenever eye/eye-off state changes, and use `frame:GetFrameLevel() + 10` so the eye regions render above the Aura/RF/Seal/Judgement textures. The title-measurement correction from `1.11.37-dev` remains intact. Stable `main` is still unchanged at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`.
 - Canonical Lua 5.0.3 compiler check for `1.11.38-dev`: **not run / not claimed**. This session has repository access through the connector but no executable checkout of the vendored checker; focused static review of the changed Lua paths passed.
 - Focused `1.11.36-dev` / `f22ca0d934231bd7773d539551260a9eab3d8b98` static review passed: changed runtime files are limited to `PallyPower.lua`, `PallyPowerUI.lua`, and the TOC. Toolbar hitboxes remain 20x20, normal glyphs remain 15x15, group/ordinary spacing is unchanged, and highlight glyphs are 17x17 white additive overlays. The title button now defaults to a safe 260 px fallback but, when `GetStringWidth()` is available, immediately shrinks itself and its label to the rendered string width plus 16 px total horizontal inset. The divider remains at the accepted y=-29 geometry but now uses the same `UI-Tooltip-Border` edge file as the main Assignment frame with a 1 px edge size. `main` remains unchanged at `2c4fb9e1c7a39069e1beec774615dcc6b3c2a141`.
@@ -396,6 +400,7 @@
 ## Testing
 
 ### Last Runtime Test
+- `1.11.38-dev` / `45aeddee4026d805c19cd99824b104e346d96cdd`: focused screenshot/runtime review — the user confirmed the eye symbols are good. Remaining issue: the title still truncates to `PallyPowerVanilla - ...`, so the dynamic title-measurement approach is rejected. `1.11.39-dev` replaces it with a fixed-width title box while retaining the tighter-than-original hover/drag region.
 - `1.11.36-dev` / `f22ca0d934231bd7773d539551260a9eab3d8b98`: focused screenshot/runtime review — the user reported the pass works. The border-textured divider, tightened title hover region, pale Paladin-pink toolbar treatment and stronger white additive hover were accepted in practice. The only remaining visible issue was the title text itself truncating to `PallyPowerVanilla - ...`; source review showed `GetStringWidth()` was being called after the label had already been constrained to 244 px, causing ellipsized measurement. `1.11.37-dev` fixes only that measurement and was superseded before runtime test by the eye-style request.
 - `1.11.35-dev` / `f3964f4c71c6491b6f0610d0eb88053ee2ac0486`: focused runtime review — the 1 px divider was judged great and the shortened `PallyPowerVanilla - Assignments` title was judged great. Remaining presentation findings: the title's mouseover/tooltip region clearly extended too far right; the icon-only additive highlight was liked but too subtle; requested follow-up was to use the PallyPower border texture for the divider, give resting toolbar icons a faint Paladin-pink tint, and make hover go white with a stronger glow. No new complaint was raised about the 15 px glyph size, 15 px group gaps, or reduced footer in this feedback.
 - `1.11.33-dev` / `bcedadc5920ab027fd0aa6fae58a74cee329ec26`: focused screenshot/runtime review confirmed the Lucide toolbar and special-eye presentation renders in-game and remains on one line. User findings: 16 px toolbar glyphs looked broadly appropriate but worth trying at 15 px; the long `PallyPower - Blessing Management` title overlapped/crowded several toolbar hitboxes; the stock blue square mouseover highlight was not preferred; the user also noticed footer dead space consistent with the now-unused 30 px footer after Smart Buffs / Free Assignment moved to the toolbar. `1.11.34-dev` was superseded before runtime test by the combined polish pass.
@@ -418,14 +423,12 @@
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-Focused Assignment-header/toolbar gate on exact `1.11.38-dev` / `45aeddee4026d805c19cd99824b104e346d96cdd`:
-1. Confirm the full title renders as `PallyPowerVanilla - Assignments` with no ellipsis, while the tooltip/drag hitbox still ends just after the text.
-2. Confirm the border-textured divider, 15x15 toolbar glyphs, pale Paladin-pink resting tint and strong white additive toolbar hover remain unchanged from the working `1.11.36-dev` presentation.
-3. Inspect all four eye controls: each should use the same pale Paladin-pink resting tint and turn white with a clear additive glow on hover.
-4. Toggle each eye on/off and confirm both the normal and hover glyph switch together between `eye` and `eye-off`.
-5. Confirm every eye remains visually in front of its Aura/RF/Seal/Judgement self-buff icon, including while hovered.
-6. Confirm the Judgement failed-refresh checkbox, reduced footer/resize grip, 15 px toolbar group gaps and hidden Presets remain unchanged.
-7. `/reload` and confirm clean persistence/presentation with no Lua/UI errors.
+Focused Assignment-title gate on exact `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda`:
+1. Confirm the header renders the full `PallyPowerVanilla - Assignments` string with no ellipsis.
+2. Hover across the title and then move right: the version tooltip/drag region should end around the 260 px title control, far before the toolbar and far shorter than the original 640 px region.
+3. Confirm the eye symbols remain accepted: pale Paladin-pink at rest, white additive glow on hover, correct eye/eye-off state, and visually in front of the self-buff icons.
+4. Confirm toolbar tint/glow, divider texture, 15 px group gaps, reduced footer/resize grip, Judgement checkbox and hidden Presets are unchanged.
+5. `/reload` and confirm clean presentation with no Lua/UI errors.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
@@ -608,7 +611,8 @@ After generated-name/global lookup cleanup:
 - `1.11.35-dev` / `f3964f4c71c6491b6f0610d0eb88053ee2ac0486` focused runtime review liked the divider and title but found the title hover region too wide and the icon-only highlight too subtle.
 - `1.11.36-dev` / `f22ca0d934231bd7773d539551260a9eab3d8b98` focused runtime review passed the toolbar tint/glow, divider texture and title-hitbox direction; only title truncation remained.
 - `1.11.37-dev` / `0ebf5635bf5306ab0d7a3872029eb7f9a346f30b` corrected title measurement but was superseded before runtime testing.
-- Exact runtime to test: `45aeddee4026d805c19cd99824b104e346d96cdd` / `1.11.38-dev`.
+- `1.11.38-dev` / `45aeddee4026d805c19cd99824b104e346d96cdd` focused runtime review accepted the eye treatment/layering but still showed title truncation.
+- Exact runtime to test: `903bdf0ba7f1fc2cea59724a50678ef17024feda` / `1.11.39-dev`.
 - Assignment toolbar Lucide artwork renders at 15x15 inside unchanged 20x20 hitboxes. Enabled/action glyphs now use a pale Paladin-pink normal tint; disabled toggles remain grey. Hover overlays the same glyph at 17x17 in white additive blend for a clearer glow. Smart Buffs and Free Assignment remain toolbar CheckButtons using exact upstream Lucide `brain` and `handshake`, with state feedback synchronized with their existing per-character state.
 - Existing runtime filenames/wiring are deliberately preserved; only addon-owned artwork changed. Mapping: close=`x`, refresh=`refresh-cw`, clear=`trash`, options=`settings`, reset-position=`locate-fixed`, lock=`lock`, verbose=`message-square-text`, sound=`volume-2`, orientation=`move-horizontal`, feedback=`megaphone`, visibility-on=`eye`, visibility-off=`eye-off`.
 - The existing orientation runtime `SetTexCoord` rotation is retained, so the Lucide move-horizontal glyph must still flip with layout state without new behavior code.
@@ -639,4 +643,4 @@ After generated-name/global lookup cleanup:
 - Do not promote the XML-to-Lua branch merely because static parity passes; the complete XML-free commit requires user runtime validation first.
 
 ## Exact Next Step
-Run the focused `1.11.38-dev` Assignment-header/toolbar gate above on exact runtime `45aeddee4026d805c19cd99824b104e346d96cdd`, concentrating on full title rendering plus the eye pink→white hover treatment and guaranteed foreground layering. Keep stable `main` `1.11.30` untouched; Presets remain hidden unless a later fresh chat explicitly opens a new header-based Presets experiment.
+Run the focused `1.11.39-dev` Assignment-title gate above on exact runtime `903bdf0ba7f1fc2cea59724a50678ef17024feda`, concentrating on full title rendering and the tighter fixed title hitbox. Keep stable `main` `1.11.30` untouched; Presets remain hidden unless a later fresh chat explicitly opens a new header-based Presets experiment.
