@@ -58,8 +58,10 @@
 - Branch head before peer-acceptance handoff update: `31990c504f920c5e906dc7813f4ec9e4d708c4f3`
 - Stage 6 acceptance/status commit: `51847fc58ad5cba1fa4734c1a7017fdb62915cc2`
 - Stable baseline: `main` / `1.11.39` at `fb4e960751b87ba2077c4277ec93325f65c39ed7`
-- Goal: stable `1.11.39` promotion is complete. Preserve `main` as the accepted release baseline; no new PallyPower work is active. Presets remain hidden unless a later fresh scope explicitly reopens their presentation.
-- Current scope boundary: exact `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda` is the user-accepted runtime source for stable `1.11.39`. Stable `main` is now `fb4e960751b87ba2077c4277ec93325f65c39ed7`. Presets behavior remains retained but its user-facing UI remains intentionally hidden. No SavedVariables, assignment protocol or core assignment model redesign is in scope.
+- Audit start base / prior dev head: `9da05eece8b6ff4134615f8c39d80aeae655e6bf` (`Record stable 1.11.39 promotion`).
+- Current stable runtime baseline: `main` / `1.11.39` at `fb4e960751b87ba2077c4277ec93325f65c39ed7`; later `main` commits through `a3c6d739992f958a8c45d03dacb3974ff146c99a` are README/image-only release presentation changes.
+- Goal: perform a deep architecture/performance audit of the 1.11.39 codebase, with emphasis on accumulated legacy/patchwork costs, event/update hot paths, redundant scans, allocation/GC pressure, state duplication, compatibility shims and structural coupling. Use the findings to define a clean PallyPowerVanilla 2.0 performance-core rewrite while preserving 1.12.1 compatibility, and a later 3.0 line with ClassicAPI as a hard requirement where it can replace Nampower/SuperWoW/UnitXP-era extension paths.
+- Current scope boundary: this phase is audit/design only; do not change addon runtime behavior yet. Preserve stable `main`. Existing user-facing behavior, SavedVariables and PallyPower communication compatibility are constraints to catalogue rather than silently redesign. ClassicAPI hard dependency belongs to the planned 3.0 line, not the 2.0 native-compatible performance rewrite.
 
 ## Current Design / Development Contract
 
@@ -640,5 +642,13 @@ After generated-name/global lookup cleanup:
 - Known validation debt: the exact stable `1.11.39` tree did not receive a separate in-game run after release-only metadata/development-file changes. Do not rewrite this as a stable-tree runtime test.
 - External/runtime prerequisites: none required. Nampower and UnitXP are optional enhancements, not hard dependencies.
 
+## Active 2.0 / 3.0 Audit
+- Requested 2026-10-02: deep static audit of the current addon before implementation.
+- Completed work: prior stable 1.11.39 release remains the accepted baseline; initial blessing-related spike investigation identified synchronous full UI refreshes on `PLAYER_AURAS_CHANGED`, full refresh at raid-scan completion, per-frame preset-state refresh while the Assignment UI is updating, duplicate fallback `UnitBuff` calls, and avoidable refresh-time table allocation.
+- Implemented but untested work: none in this audit scope; no runtime code has been changed.
+- Audit areas still to cover: full event graph; every `OnUpdate` path; roster/aura/spell/range scanning; casting and timer state; communication/protocol handling; assignment/preset state ownership; SavedVariables/migration; UI invalidation/layout; temporary allocations/string/global lookup costs; duplicate/legacy compatibility paths; extension capability detection; architectural seams for a 2.0 core; and ClassicAPI opportunities/requirements for 3.0.
+- Deferred from this phase: runtime implementation of the rewrite, protocol/SavedVariables changes, and making ClassicAPI mandatory before the 3.0 line is explicitly opened.
+- Validation state: static inspection only. No new in-game performance measurements or Lua compiler checks have been performed for this audit yet.
+
 ## Exact Next Step
-No active PallyPower development task. Stable `main` is `1.11.39` / `fb4e960751b87ba2077c4277ec93325f65c39ed7`. Start any future work from `dev`, re-read this document, and keep Presets hidden unless a new scope explicitly reopens their presentation.
+Map the complete current 1.11.39 execution model on `dev`: enumerate registered events, frame `OnUpdate` handlers, scan/update/cast/communication call chains, and allocation-heavy loops; classify each by trigger frequency and expected raid-combat cost; then turn that map into prioritized 2.0 rewrite boundaries and a separate 3.0 ClassicAPI capability plan.
