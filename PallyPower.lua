@@ -883,10 +883,12 @@ PallyPower_JudgementAssignments = {}
 PallyPower_Tanks = {}
 
 -- ---------------------------------------------------------------------------
--- Assignment UI invalidation ownership (PPV 2.0 Step 4)
+-- Assignment UI invalidation/render ownership (PPV 2.0 Steps 4-5)
 --
--- Step 4 records the state domains that make the existing Assignment renderer
--- stale. The renderer still runs from its inherited OnUpdate loop until Step 5.
+-- Step 4 records the state domains that make the Assignment renderer stale.
+-- Step 5 consumes those domains explicitly: direct mutations render immediately
+-- when the Assignment window is visible, event mutations coalesce until the
+-- current event finishes, and hidden-window dirtiness is retained until OnShow.
 -- Roster and assignment changes also dirty layout because visible rows/linkers
 -- depend on those domains.
 -- ---------------------------------------------------------------------------
@@ -897,6 +899,8 @@ PP_AssignmentUIDirty = {
     assignments = true,
     layout = true
 }
+PP_AssignmentUIRendering = false
+PP_AssignmentUIEventDepth = 0
 
 function PallyPower_InvalidateAssignmentUI(domain)
     if not PP_AssignmentUIDirty then
@@ -924,6 +928,10 @@ function PallyPower_InvalidateAssignmentUI(domain)
     elseif domain == "layout" then
         PP_AssignmentUIDirty.layout = true
     end
+
+    if PallyPower_RenderAssignmentUIIfDirty then
+        PallyPower_RenderAssignmentUIIfDirty()
+    end
 end
 
 function PallyPower_IsAssignmentUIDirty(domain)
@@ -945,6 +953,16 @@ function PallyPower_ClearAssignmentUIDirty()
     PP_AssignmentUIDirty.capabilities = false
     PP_AssignmentUIDirty.assignments = false
     PP_AssignmentUIDirty.layout = false
+end
+
+function PallyPower_RenderAssignmentUIIfDirty()
+    if PP_AssignmentUIRendering then return end
+    if (PP_AssignmentUIEventDepth or 0) > 0 then return end
+    if not PallyPowerFrame or not PallyPowerFrame:IsVisible() then return end
+    if not PallyPower_IsAssignmentUIDirty() then return end
+    if not PallyPowerGrid_Update then return end
+
+    PallyPowerGrid_Update(0)
 end
 
 -- ---------------------------------------------------------------------------
@@ -1259,7 +1277,6 @@ function PallyPower_FramesLockedOption()
         PP_PerUser.frameslocked = false
     end
     PallyPower_InvalidateAssignmentUI("layout")
-    PallyPowerGrid_Update(1)
     PP_NextScan = 0 --PallyPower_UpdateUI()
 end
 
@@ -2218,6 +2235,8 @@ end
 function PallyPower_OnEvent(event,arg1)
     local type, id
 
+    PP_AssignmentUIEventDepth = (PP_AssignmentUIEventDepth or 0) + 1
+
     if event == "PLAYER_ENTERING_WORLD" then
         PallyPower_InvalidateAssignmentUI("all")
     elseif event == "PARTY_MEMBERS_CHANGED" or event == "RAID_ROSTER_UPDATE" then
@@ -2328,6 +2347,9 @@ function PallyPower_OnEvent(event,arg1)
         PallyPower_UpdateUI()
     end
 
+    PP_AssignmentUIEventDepth = (PP_AssignmentUIEventDepth or 1) - 1
+    if PP_AssignmentUIEventDepth < 0 then PP_AssignmentUIEventDepth = 0 end
+    PallyPower_RenderAssignmentUIIfDirty()
 end
 
 function PallyPower_CheckRighteousFury()
@@ -2489,7 +2511,7 @@ function PallyPower_SlashCommandHandler(msg)
         elseif layoutTestArg == "off" or layoutTestArg == "clear" or layoutTestArg == "reset" then
             PP_AssignmentLayoutTest = nil
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_OFF)
-            PallyPowerGrid_Update(1)
+            PallyPower_InvalidateAssignmentUI("all")
             return true
         else
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_HELP)
@@ -2621,6 +2643,21 @@ function PallyPowerGrid_Update(tdiff)
     if PP_AssignmentLayoutTest then
         return
     end
+    if PP_AssignmentUIRendering then
+        return
+    end
+    if (PP_AssignmentUIEventDepth or 0) > 0 then
+        return
+    end
+    if not PallyPowerFrame or not PallyPowerFrame:IsVisible() then
+        return
+    end
+    if not PallyPower_IsAssignmentUIDirty() then
+        return
+    end
+
+    PP_AssignmentUIRendering = true
+    PallyPower_ClearAssignmentUIDirty()
 
     if not initialized then
         PallyPower_ScanSpells()
@@ -2864,7 +2901,11 @@ function PallyPowerGrid_Update(tdiff)
 
         PallyPowerUI.UpdateAssignmentGeometry(numPallys)
         PallyPower_PresetsRefreshState()
-        PallyPower_ClearAssignmentUIDirty()
+    end
+
+    PP_AssignmentUIRendering = false
+    if PallyPower_IsAssignmentUIDirty() then
+        PallyPower_RenderAssignmentUIIfDirty()
     end
 end
 
@@ -3858,7 +3899,6 @@ function PallyPower_ScanSpells()
 end
 
 function PallyPower_Refresh()
-    PallyPower_InvalidateAssignmentUI("all")
     AllPallys = {}       
     AllPallysAuras = {} 
     AllPallysSeals = {} 
@@ -3885,6 +3925,7 @@ function PallyPower_Refresh()
     PallyPower_SendVersion()
     PallyPower_RequestSend()
     PP_NextScan = 0 --PallyPower_UpdateUI()
+    PallyPower_InvalidateAssignmentUI("all")
 end
 
 function PallyPower_ConfirmClear()
