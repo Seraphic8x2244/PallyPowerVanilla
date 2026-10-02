@@ -3250,7 +3250,6 @@ end
 
 local function PallyPower_ApplyCombinedSelfGeometry(frame, horizontal)
     if not frame then return end
-    frame:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
     local slots = { frame.ppSlots.Aura, frame.ppSlots.RF, frame.ppSlots.Seal }
     if horizontal then
         frame:SetWidth(PP_UI.BUFF_SHORT); frame:SetHeight(PP_UI.BUFF_LONG)
@@ -3289,11 +3288,6 @@ end
 function PallyPower_UpdateLayout()
     local namePlayer = UnitName("player")
     local horizontal = (PP_PerUser.horizontal == true)
-    if horizontal then
-        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2); PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_SHORT_TITLE)
-    else
-        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4); PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_TITLE)
-    end
     local hasAura = PallyPower_AuraAssignments[namePlayer] and PallyPower_AuraAssignments[namePlayer] ~= -1
     local hasSeal = PallyPower_SealAssignments[namePlayer] and PallyPower_SealAssignments[namePlayer] ~= -1
     local hasJudgement = PallyPower_JudgementAssignments[namePlayer] ~= nil and PallyPower_JudgementAssignments[namePlayer] ~= -1
@@ -3302,6 +3296,43 @@ function PallyPower_UpdateLayout()
     local showAura = (PP_PerUser.showaurabutton == true and hasAura == true) and (PP_IsPally == true)
     local showSeal = (PP_PerUser.showsealbutton == true and hasSeal == true) and (PP_IsPally == true)
     local showJudgement = (PP_PerUser.showjudgementbutton == true and hasJudgement == true and PallyPowerBuffBarJudgement ~= nil) and (PP_IsPally == true)
+    local combineSelf = (PP_PerUser.combineselfbuffs == true)
+    local selfBuffsAbove = (PP_PerUser.selfbuffsaboveheader == true)
+    local judgementAbove = (PP_PerUser.judgementaboveheader == true)
+
+    -- Step 6: static Buff Bar geometry is keyed only by layout-affecting
+    -- inputs. Ordinary aura/Blessing state refreshes keep using UpdateUI(),
+    -- but skip all width/height/anchor work while these inputs are unchanged.
+    PP_BuffBarLayoutState = PP_BuffBarLayoutState or {}
+    local layoutState = PP_BuffBarLayoutState
+    if layoutState.initialized == true
+        and layoutState.horizontal == horizontal
+        and layoutState.showRF == showRF
+        and layoutState.showAura == showAura
+        and layoutState.showSeal == showSeal
+        and layoutState.showJudgement == showJudgement
+        and layoutState.combineSelf == combineSelf
+        and layoutState.selfBuffsAbove == selfBuffsAbove
+        and layoutState.judgementAbove == judgementAbove then
+        return layoutState.specialButtonCount or 0
+    end
+
+    layoutState.initialized = true
+    layoutState.horizontal = horizontal
+    layoutState.showRF = showRF
+    layoutState.showAura = showAura
+    layoutState.showSeal = showSeal
+    layoutState.showJudgement = showJudgement
+    layoutState.combineSelf = combineSelf
+    layoutState.selfBuffsAbove = selfBuffsAbove
+    layoutState.judgementAbove = judgementAbove
+
+    if horizontal then
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_LONG); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_SHORT - 2); PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_SHORT_TITLE)
+    else
+        PallyPowerBuffBarTitle:SetWidth(PP_UI.BUFF_LONG); PallyPowerBuffBarTitle:SetHeight(PP_UI.BUFF_SHORT); PallyPowerBuffBarTitleText:SetWidth(PP_UI.BUFF_LONG - 4); PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_TITLE)
+    end
+
     local separateSelf = { PallyPowerBuffBarAura, PallyPowerBuffBarRF, PallyPowerBuffBarSeal }
     for _, button in separateSelf do button:Hide(); PallyPower_ApplySpecialButtonGeometry(button, horizontal) end
     PallyPowerBuffBarJudgement:Hide(); PallyPower_ApplySpecialButtonGeometry(PallyPowerBuffBarJudgement, horizontal)
@@ -3310,8 +3341,9 @@ function PallyPower_UpdateLayout()
     if showRF then PallyPowerBuffBarSelfCombinedRF:Show() else PallyPowerBuffBarSelfCombinedRF:Hide() end
     if showSeal then PallyPowerBuffBarSelfCombinedSeal:Show() else PallyPowerBuffBarSelfCombinedSeal:Hide() end
     for i = 1, 10 do PallyPower_ApplyBlessingButtonGeometry(PallyPowerUIRefs.buffButtons[i], horizontal) end
+
     local selfSpecials = {}
-    if PP_PerUser.combineselfbuffs == true then
+    if combineSelf then
         if showAura or showRF or showSeal then table.insert(selfSpecials, PallyPowerBuffBarSelfCombined) end
     else
         if showAura then table.insert(selfSpecials, PallyPowerBuffBarAura) end
@@ -3322,14 +3354,14 @@ function PallyPower_UpdateLayout()
     local above = {}
     local below = {}
     for _, button in selfSpecials do
-        if PP_PerUser.selfbuffsaboveheader == true then
+        if selfBuffsAbove then
             table.insert(above, button)
         else
             table.insert(below, button)
         end
     end
     if showJudgement then
-        if PP_PerUser.judgementaboveheader == true then
+        if judgementAbove then
             table.insert(above, PallyPowerBuffBarJudgement)
         else
             table.insert(below, PallyPowerBuffBarJudgement)
@@ -3374,7 +3406,10 @@ function PallyPower_UpdateLayout()
     end
     PP_AnchorAfter(firstBlessing, previous)
     for i = 2, 10 do local button=PallyPowerUIRefs.buffButtons[i]; local previous=PallyPowerUIRefs.buffButtons[i - 1]; PP_AnchorAfter(button, previous); button:Hide() end
-    return table.getn(above) + table.getn(below)
+
+    local specialButtonCount = table.getn(above) + table.getn(below)
+    layoutState.specialButtonCount = specialButtonCount
+    return specialButtonCount
 end
 
 
@@ -3393,6 +3428,9 @@ function PallyPower_UpdateUI()
     -- Buff Bar
     PallyPowerBuffBar:SetScale((PP_PerUser.uiscale or 1) * PP_PerUser.scalebar)
     PP_SetSelfBuffIcon("RF", PallyPower_RighteousFury)
+    if PallyPowerBuffBarSelfCombined then
+        PallyPowerBuffBarSelfCombined:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
+    end
 
 
     local namePlayer = UnitName("player")
