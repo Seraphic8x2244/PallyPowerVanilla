@@ -2342,9 +2342,10 @@ function PallyPower_OnEvent(event,arg1)
             PallyPower_CancelSalvationBuff()
         end
 
-        -- Refresh local Buff Bar state immediately when the player's auras change.
-        -- This updates Aura/RF red/green state without waiting for the normal scan.
-        PallyPower_UpdateUI()
+        -- Step 7: local aura changes update only the player-owned
+        -- RF/Aura/Seal/local-Blessing snapshot and self-buff presentation.
+        -- Class-Blessing aggregation remains owned by the normal raid scan.
+        PallyPower_UpdateLocalAuraState()
     end
 
     PP_AssignmentUIEventDepth = (PP_AssignmentUIEventDepth or 1) - 1
@@ -3413,6 +3414,143 @@ function PallyPower_UpdateLayout()
 end
 
 
+-- Step 7 local-aura ownership. Keep one small player-only snapshot separate
+-- from the class-Blessing aggregate so PLAYER_AURAS_CHANGED never needs the
+-- monolithic Buff Bar refresh.
+PP_LocalAuraState = PP_LocalAuraState or {
+    names = {},
+    textures = {},
+    blessings = {},
+    rfActive = false,
+}
+
+function PallyPower_SnapshotLocalAuras()
+    local state = PP_LocalAuraState
+    local key
+
+    for key in pairs(state.names) do
+        state.names[key] = nil
+    end
+    for key in pairs(state.textures) do
+        state.textures[key] = nil
+    end
+    for key in pairs(state.blessings) do
+        state.blessings[key] = nil
+    end
+    state.rfActive = false
+
+    if PP_NampowerAPI then
+        local auras = GetUnitField("player", "aura")
+        if auras then
+            for i = 1, table.getn(auras) do
+                local spellId = auras[i]
+                if spellId and spellId > 0 then
+                    local spellName = GetSpellRecField(spellId, "name")
+                    if spellName then
+                        state.names[spellName] = true
+                        if nameRighteousFury and spellName == nameRighteousFury then
+                            state.rfActive = true
+                        end
+
+                        local buffID = PallyPower_GetBuffIDFromSpellName(spellName)
+                        if buffID > 5 then
+                            buffID = buffID - 6
+                        end
+                        if buffID >= 0 and buffID <= 5 then
+                            state.blessings[buffID] = true
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    for i = 1, 40 do
+        local texture = UnitBuff("player", i)
+        if not texture then
+            break
+        end
+        state.textures[texture] = true
+
+        local buffID = PallyPower_GetBuffTextureID(texture)
+        if buffID > 5 then
+            buffID = buffID - 6
+        end
+        if buffID >= 0 and buffID <= 5 then
+            state.blessings[buffID] = true
+        end
+    end
+
+    -- Preserve the exact native RF detection semantics on the non-Nampower
+    -- path; RF uses the legacy GetPlayerBuff() scan rather than UnitBuff().
+    if not PP_NampowerAPI then
+        state.rfActive = PallyPower_CheckRighteousFury() == true
+    end
+
+    return state
+end
+
+function PallyPower_UpdateLocalAuraState()
+    if not initialized then
+        PallyPower_ScanSpells()
+    end
+
+    local state = PallyPower_SnapshotLocalAuras()
+    local namePlayer = UnitName("player")
+    if not namePlayer or PP_IsPally ~= true then
+        return state
+    end
+
+    PP_SetSelfBuffIcon("RF", PallyPower_RighteousFury)
+
+    -- RF tri-state truth:
+    -- RF assignment: green when present, red when missing.
+    -- no-RF assignment: green when absent, red when incorrectly present.
+    local rfState = PallyPower_RFAssignments[namePlayer]
+    if rfState == "off" then
+        PP_SetSelfBuffBackdrop("RF", state.rfActive and 1 or 0, state.rfActive and 0 or 1, 0)
+        PP_SetRFNoOverlay(true)
+    else
+        PP_SetSelfBuffBackdrop("RF", state.rfActive and 0 or 1, state.rfActive and 1 or 0, 0)
+        PP_SetRFNoOverlay(false)
+    end
+
+    PP_SetSelfBuffBackdrop("Aura", 0, 0, 0)
+    local auraAssignment = PallyPower_AuraAssignments[namePlayer]
+    if auraAssignment then
+        local auraIcon = AuraIcons[auraAssignment]
+        PP_SetSelfBuffBackdrop("Aura", 1, 0, 0)
+        PP_SetSelfBuffIcon("Aura", auraIcon)
+
+        if PP_NampowerAPI then
+            local auraName = AuraNames[auraAssignment]
+            if auraName and state.names[auraName] then
+                PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
+            end
+        elseif auraIcon and state.textures[auraIcon] then
+            PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
+        end
+    else
+        PP_SetSelfBuffIcon("Aura", nil)
+    end
+
+    PP_SetSelfBuffBackdrop("Seal", 0, 0, 0)
+    local sealAssignment = PallyPower_SealAssignments[namePlayer]
+    if sealAssignment then
+        local sealIcon = SealIcons[sealAssignment]
+        PP_SetSelfBuffBackdrop("Seal", 1, 0, 0)
+        PP_SetSelfBuffIcon("Seal", sealIcon)
+        if sealIcon and state.textures[sealIcon] then
+            PP_SetSelfBuffBackdrop("Seal", 0, 1, 0)
+        end
+    else
+        PP_SetSelfBuffIcon("Seal", nil)
+    end
+
+    return state
+end
+
+
 function PallyPower_UpdateUI()
     if PP_UI_READY then PP_UI_UpdateState() end
     if not initialized then
@@ -3432,7 +3570,6 @@ function PallyPower_UpdateUI()
         PallyPowerBuffBar:SetScale(buffBarScale)
         PP_BuffBarLayoutState.scale = buffBarScale
     end
-    PP_SetSelfBuffIcon("RF", PallyPower_RighteousFury)
     if PallyPowerBuffBarSelfCombined then
         PallyPowerBuffBarSelfCombined:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
     end
@@ -3455,80 +3592,7 @@ function PallyPower_UpdateUI()
 
         specialButtonCount = PallyPower_UpdateLayout()
 
-        -- RF tri-state truth:
-        -- RF assignment: green when present, red when missing.
-        -- no-RF assignment: green when absent, red when incorrectly present.
-        local i
-        local testUnitBuff
-        local rfActive = PallyPower_CheckRighteousFury()
-        local rfState = PallyPower_RFAssignments[namePlayer]
-        if rfState == "off" then
-            PP_SetSelfBuffBackdrop("RF", rfActive and 1 or 0, rfActive and 0 or 1, 0); PP_SetRFNoOverlay(true)
-        else
-            PP_SetSelfBuffBackdrop("RF", rfActive and 0 or 1, rfActive and 1 or 0, 0); PP_SetRFNoOverlay(false)
-        end
-    
-        PP_SetSelfBuffBackdrop("Aura", 0, 0, 0)
-        if PallyPower_AuraAssignments[namePlayer] then
-            -- Red = assigned aura missing; successful detection below changes it to green.
-            PP_SetSelfBuffBackdrop("Aura", 1, 0, 0)
-            PP_SetSelfBuffIcon("Aura", AuraIcons[PallyPower_AuraAssignments[namePlayer]])
-            
-            -- Use Nampower API if available for better performance
-            if PP_NampowerAPI then
-                local auras = GetUnitField("player", "aura")
-                if auras and AuraNames[PallyPower_AuraAssignments[namePlayer]] then
-                    local targetAuraName = AuraNames[PallyPower_AuraAssignments[namePlayer]]
-                    for i = 1, table.getn(auras) do
-                        local spellId = auras[i]
-                        if spellId and spellId > 0 then
-                            local spellName = GetSpellRecField(spellId, "name")
-                            if spellName and spellName == targetAuraName then
-                                PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
-                                break
-                            end
-                        end
-                    end
-                end
-            else
-                -- Fallback to original method
-                for i=1,40 do 
-                    testUnitBuff = UnitBuff("player",i) 
-                    if (testUnitBuff and PallyPower_AuraAssignments[namePlayer] ~= nil and 
-                        AuraIcons[PallyPower_AuraAssignments[namePlayer]] ~= nil and
-                        testUnitBuff == AuraIcons[PallyPower_AuraAssignments[namePlayer]]) then 
-                        PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
-                        break
-                    end 
-                end
-            end
-        else
-            PP_SetSelfBuffIcon("Aura", nil)
-        end
-
-        PP_SetSelfBuffBackdrop("Seal", 0, 0, 0)
-        if PallyPower_SealAssignments[namePlayer] then
-            local assignedSeal = PallyPower_SealAssignments[namePlayer]
-            local assignedSealIcon = SealIcons[assignedSeal]
-            PP_SetSelfBuffBackdrop("Seal", 1, 0, 0)
-            PP_SetSelfBuffIcon("Seal", assignedSealIcon)
-
-            -- Seal truth deliberately uses the base-client buff texture scan.
-            -- This works with or without Nampower and avoids depending on
-            -- custom-server spell-name records for player buffs.
-            if assignedSealIcon then
-                local wantedTexture = assignedSealIcon
-                for i = 1, 40 do
-                    testUnitBuff = UnitBuff("player", i)
-                    if testUnitBuff and testUnitBuff == wantedTexture then
-                        PP_SetSelfBuffBackdrop("Seal", 0, 1, 0)
-                        break
-                    end
-                end
-            end
-        else
-            PP_SetSelfBuffIcon("Seal", nil)
-        end
+        PallyPower_UpdateLocalAuraState()
 
         PallyPower_UpdateJudgementTracker()
 
