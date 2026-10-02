@@ -1232,7 +1232,19 @@ Assignment = {}
 
 CurrentBuffs = {}
 
-PP_ScanInfo = nil
+-- Step 8 persistent raid-aura ownership. CurrentBuffs remains the compatibility
+-- class-indexed view consumed by existing aggregate/render/cast code, but its
+-- per-unit records now persist across completed sweeps. A sweep records only
+-- explicit unit diffs and applies them atomically when the scan completes.
+PP_RaidAuraState = {
+    records = {},
+    seen = {},
+    diffs = {},
+    scratchBuffs = {},
+    scanning = false,
+    generation = 0,
+    changed = false,
+}
 
 local RestorSelfAutoCastTimeOut = 1
 local RestorSelfAutoCast = false
@@ -5625,26 +5637,213 @@ function PallyPower_GetBuffIDFromSpellName(spellName)
     return -2
 end
 
+function PP_RaidAuraClearTable(tbl)
+    for key in pairs(tbl) do
+        tbl[key] = nil
+    end
+end
+
+function PP_RaidAuraBeginScan()
+    local state = PP_RaidAuraState
+
+    PP_RaidAuraClearTable(state.seen)
+    PP_RaidAuraClearTable(state.diffs)
+    PP_RaidAuraClearTable(state.scratchBuffs)
+    state.changed = false
+    state.scanning = true
+
+    PP_Scanners = {}
+    if GetNumRaidMembers() > 0 then
+        for i = 1, GetNumRaidMembers() do
+            tinsert(PP_Scanners, "raid" .. i)
+        end
+        INRAID = 1
+    else
+        tinsert(PP_Scanners, "player")
+        for i = 1, GetNumPartyMembers() do
+            tinsert(PP_Scanners, "party" .. i)
+        end
+        INRAID = 0
+    end
+end
+
+function PP_RaidAuraCaptureDiff(unitID, classID, unitName, visible, scanTarget)
+    local state = PP_RaidAuraState
+    local buffs = state.scratchBuffs
+
+    PP_RaidAuraClearTable(buffs)
+
+    -- Preserve the existing Nampower/native aura discovery semantics while
+    -- collecting only the normalized Blessing IDs needed by CurrentBuffs.
+    if PP_NampowerAPI then
+        local auras = GetUnitField(scanTarget, "aura")
+        if auras then
+            for i = 1, table.getn(auras) do
+                local spellId = auras[i]
+                if spellId and spellId > 0 then
+                    local spellName = GetSpellRecField(spellId, "name")
+                    if spellName then
+                        local txtID = PallyPower_GetBuffIDFromSpellName(spellName)
+                        if txtID > 5 then
+                            txtID = txtID - 6
+                        end
+                        buffs[txtID] = true
+                    end
+                end
+            end
+        end
+    else
+        local j = 1
+        while UnitBuff(scanTarget, j, true) do
+            local buffIcon, _ = UnitBuff(scanTarget, j, true)
+            local txtID = PallyPower_GetBuffTextureID(buffIcon)
+            if txtID > 5 then
+                txtID = txtID - 6
+            end
+            buffs[txtID] = true
+            j = j + 1
+        end
+    end
+
+    state.seen[unitID] = true
+
+    local record = state.records[unitID]
+    local stats = record and record.stats or nil
+    local diff = nil
+
+    if not record then
+        diff = { added = true }
+    elseif record.classID ~= classID then
+        diff = { classChanged = true }
+    end
+
+    if stats and stats.name ~= unitName then
+        if not diff then diff = {} end
+        diff.nameChanged = true
+    end
+    if stats and stats.visible ~= visible then
+        if not diff then diff = {} end
+        diff.visibilityChanged = true
+    end
+
+    for buffID in pairs(buffs) do
+        if not stats or not stats[buffID] then
+            if not diff then diff = {} end
+            if not diff.addedBuffs then diff.addedBuffs = {} end
+            diff.addedBuffs[buffID] = true
+        end
+    end
+
+    if stats then
+        for key, value in pairs(stats) do
+            if type(key) == "number" and value and not buffs[key] then
+                if not diff then diff = {} end
+                if not diff.removedBuffs then diff.removedBuffs = {} end
+                diff.removedBuffs[key] = true
+            end
+        end
+    end
+
+    if diff then
+        diff.oldClassID = record and record.classID or nil
+        diff.newClassID = classID
+        diff.name = unitName
+        diff.visible = visible
+        state.diffs[unitID] = diff
+        state.changed = true
+    end
+end
+
+function PP_RaidAuraFinishScan()
+    local state = PP_RaidAuraState
+
+    -- Anything in the persistent store that was not seen in this completed
+    -- sweep has left the current player/party/raid unit-token set.
+    for unitID, record in pairs(state.records) do
+        if not state.seen[unitID] then
+            state.diffs[unitID] = {
+                removed = true,
+                oldClassID = record.classID,
+            }
+            state.changed = true
+        end
+    end
+
+    -- Apply the completed sweep atomically. Existing stats tables are mutated
+    -- in place so unchanged unit records keep their identity across sweeps.
+    for unitID, diff in pairs(state.diffs) do
+        local record = state.records[unitID]
+
+        if diff.removed then
+            if record then
+                local oldMembers = CurrentBuffs[record.classID]
+                if oldMembers then
+                    oldMembers[unitID] = nil
+                end
+                state.records[unitID] = nil
+            end
+        else
+            local stats
+
+            if record then
+                stats = record.stats
+                if record.classID ~= diff.newClassID then
+                    local oldMembers = CurrentBuffs[record.classID]
+                    if oldMembers then
+                        oldMembers[unitID] = nil
+                    end
+                end
+            else
+                record = {}
+                stats = {}
+                state.records[unitID] = record
+            end
+
+            if diff.removedBuffs then
+                for buffID in pairs(diff.removedBuffs) do
+                    stats[buffID] = nil
+                end
+            end
+            if diff.addedBuffs then
+                for buffID in pairs(diff.addedBuffs) do
+                    stats[buffID] = true
+                end
+            end
+
+            stats.name = diff.name
+            stats.visible = diff.visible
+            record.classID = diff.newClassID
+            record.stats = stats
+
+            if not CurrentBuffs[diff.newClassID] then
+                CurrentBuffs[diff.newClassID] = {}
+            end
+            CurrentBuffs[diff.newClassID][unitID] = stats
+        end
+    end
+
+    -- Match the old completed-scan shape: classes with no current units are
+    -- absent rather than retained as empty compatibility buckets.
+    for classID, members in pairs(CurrentBuffs) do
+        if not next(members) then
+            CurrentBuffs[classID] = nil
+        end
+    end
+
+    PP_RaidAuraClearTable(state.scratchBuffs)
+    state.scanning = false
+    state.generation = state.generation + 1
+end
+
 function PallyPower_ScanRaid()
     if not PP_IsPally then
         return
     end
-    if not (PP_ScanInfo) then
-        PP_Scanners = {}
-        PP_ScanInfo = {}
-        if GetNumRaidMembers() > 0 then
-            for i = 1, GetNumRaidMembers() do
-                tinsert(PP_Scanners, "raid" .. i)
-            end
-            INRAID = 1
-        else
-            tinsert(PP_Scanners, "player")
-            for i = 1, GetNumPartyMembers() do
-                tinsert(PP_Scanners, "party" .. i)
-            end
-            INRAID = 0
-        end
+
+    if not PP_RaidAuraState.scanning then
+        PP_RaidAuraBeginScan()
     end
+
     local tests = PP_PerUser.scanperframe
     if (not tests) then
         tests = 1
@@ -5662,116 +5861,30 @@ function PallyPower_ScanRaid()
                     local pet_name = UnitName(petId)
 
                     if pet_name then
-                        local classID = 9
-                        if not PP_ScanInfo[classID] then
-                            PP_ScanInfo[classID] = {}
-                        end
-
-                        PP_ScanInfo[classID][petId] = {}
-                        PP_ScanInfo[classID][petId]["name"] = pet_name
-                        PP_ScanInfo[classID][petId]["visible"] = UnitIsVisible(petId)
-
-                        -- Use Nampower API if available for better performance
-                        if PP_NampowerAPI then
-                            local auras = GetUnitField(petId, "aura")
-                            if auras then
-                                for i = 1, table.getn(auras) do
-                                    local spellId = auras[i]
-                                    if spellId and spellId > 0 then
-                                        local spellName = GetSpellRecField(spellId, "name")
-                                        if spellName then
-                                            local txtID = PallyPower_GetBuffIDFromSpellName(spellName)
-                                            if txtID > 5 then
-                                                txtID = txtID - 6
-                                            end
-                                            PP_ScanInfo[classID][petId][txtID] = true
-                                        end
-                                    end
-                                end
-                            end
-                        else
-                            -- Fallback to original method
-                            local j = 1
-                            while UnitBuff(petId, j, true) do
-                                local buffIcon, _ = UnitBuff(petId, j, true)
-                                local txtID = PallyPower_GetBuffTextureID(buffIcon)
-                                if txtID > 5 then
-                                    txtID = txtID - 6
-                                end
-                                PP_ScanInfo[classID][petId][txtID] = true
-                                j = j + 1
-                            end
-                        end
+                        PP_RaidAuraCaptureDiff(petId, 9, pet_name, UnitIsVisible(petId), petId)
                     end
                 else
                     local petId = "partypet" .. string.sub(unit, 6)
                     local pet_name = UnitName(petId)
 
                     if pet_name then
-                        local classID = 9
-                        if not PP_ScanInfo[classID] then
-                            PP_ScanInfo[classID] = {}
-                        end
-
-                        PP_ScanInfo[classID][petId] = {}
-                        PP_ScanInfo[classID][petId]["name"] = pet_name
-                        PP_ScanInfo[classID][petId]["visible"] = UnitIsVisible(petId)
-
-                        -- Enhanced: Try GUID-based scanning (v1.38)
-                        local scanTarget = petId
+                        -- Preserve the existing party-pet SuperWoW GUID path.
+                        local petScanTarget = petId
                         if PP_SuperWoW then
                             local exists, guid = UnitExists(petId)
                             if exists and guid then
                                 if type(guid) == "string" and string.sub(guid, 1, 2) ~= "0x" then
                                     guid = "0x" .. guid
                                 end
-                                scanTarget = guid
+                                petScanTarget = guid
                             end
                         end
-
-                        -- Use Nampower API if available for better performance
-                        if PP_NampowerAPI then
-                            local auras = GetUnitField(scanTarget, "aura")
-                            if auras then
-                                for i = 1, table.getn(auras) do
-                                    local spellId = auras[i]
-                                    if spellId and spellId > 0 then
-                                        local spellName = GetSpellRecField(spellId, "name")
-                                        if spellName then
-                                            local txtID = PallyPower_GetBuffIDFromSpellName(spellName)
-                                            if txtID > 5 then
-                                                txtID = txtID - 6
-                                            end
-                                            PP_ScanInfo[classID][petId][txtID] = true
-                                        end
-                                    end
-                                end
-                            end
-                        else
-                            -- Fallback to original method
-                            local j = 1
-                            while UnitBuff(scanTarget, j, true) do
-                                local buffIcon, _ = UnitBuff(scanTarget, j, true)
-                                local txtID = PallyPower_GetBuffTextureID(buffIcon)
-                                if txtID > 5 then
-                                    txtID = txtID - 6
-                                end
-                                PP_ScanInfo[classID][petId][txtID] = true
-                                j = j + 1
-                            end
-                        end
+                        PP_RaidAuraCaptureDiff(petId, 9, pet_name, UnitIsVisible(petId), petScanTarget)
                     end
                 end
             end
 
-            if not PP_ScanInfo[cid] then
-                PP_ScanInfo[cid] = {}
-            end
-            PP_ScanInfo[cid][unit] = {}
-            PP_ScanInfo[cid][unit]["name"] = name
-            PP_ScanInfo[cid][unit]["visible"] = UnitIsVisible(unit)
-
-            -- Enhanced: Try GUID-based scanning for better reliability (v1.38)
+            -- Preserve the existing SuperWoW GUID path for player units.
             local scanTarget = unit
             if PP_SuperWoW then
                 local exists, guid = UnitExists(unit)
@@ -5783,38 +5896,9 @@ function PallyPower_ScanRaid()
                 end
             end
 
-            -- Use Nampower API if available for better performance
-            if PP_NampowerAPI then
-                local auras = GetUnitField(scanTarget, "aura")
-                if auras then
-                    for i = 1, table.getn(auras) do
-                        local spellId = auras[i]
-                        if spellId and spellId > 0 then
-                            local spellName = GetSpellRecField(spellId, "name")
-                            if spellName then
-                                local txtID = PallyPower_GetBuffIDFromSpellName(spellName)
-                                if txtID > 5 then
-                                    txtID = txtID - 6
-                                end
-                                PP_ScanInfo[cid][unit][txtID] = true
-                            end
-                        end
-                    end
-                end
-            else
-                -- Fallback to original method
-                local j = 1
-                while UnitBuff(scanTarget, j, true) do
-                    local buffIcon, _ = UnitBuff(scanTarget, j, true)
-                    local txtID = PallyPower_GetBuffTextureID(buffIcon)
-                    if txtID > 5 then
-                        txtID = txtID - 6
-                    end
-                    PP_ScanInfo[cid][unit][txtID] = true
-                    j = j + 1
-                end
-            end
+            PP_RaidAuraCaptureDiff(unit, cid, name, UnitIsVisible(unit), scanTarget)
         end
+
         tremove(PP_Scanners, 1)
         tests = tests - 1
         PP_Debug("Scanning " .. unit .. " and " .. tests .. " remain")
@@ -5822,9 +5906,9 @@ function PallyPower_ScanRaid()
             return
         end
     end
-    CurrentBuffs = PP_ScanInfo
+
+    PP_RaidAuraFinishScan()
     PallyPower_InvalidateAssignmentUI("roster")
-    PP_ScanInfo = nil
     PP_NextScan = PP_PerUser.scanfreq
     PallyPower_ScanInventory()
     PallyPower_UpdateUI()
@@ -6959,27 +7043,29 @@ SlashCmdList["PPDBG"] = function()
     log("PallyPower_GetBuffIDFromSpellName: nil")
   end
   
-  -- Scan Info
+  -- Persistent raid aura state
   log("")
-  log("--- Scan Info (Player) ---")
-  if PP_ScanInfo then
-    local _, classToken = UnitClass("player")
-    local cid = PP_CLASS_TOKEN_ID[classToken] or -1
-    if cid and PP_ScanInfo[cid] and PP_ScanInfo[cid]["player"] then
-      log("Found scan data for player:")
-      for k, v in pairs(PP_ScanInfo[cid]["player"]) do
-        if type(k) == "number" then
-          log("  Buff index " .. k .. ": " .. tostring(v))
-        end
+  log("--- Raid Aura State (Player) ---")
+  if PP_RaidAuraState then
+    log("Generation: " .. tostring(PP_RaidAuraState.generation or 0))
+    log("Scanning: " .. tostring(PP_RaidAuraState.scanning == true))
+    log("Changed: " .. tostring(PP_RaidAuraState.changed == true))
+  end
+
+  local _, classToken = UnitClass("player")
+  local cid = PP_CLASS_TOKEN_ID[classToken] or -1
+  if cid and CurrentBuffs[cid] and CurrentBuffs[cid]["player"] then
+    log("Found persistent aura data for player:")
+    for k, v in pairs(CurrentBuffs[cid]["player"]) do
+      if type(k) == "number" then
+        log("  Buff index " .. k .. ": " .. tostring(v))
       end
-    else
-      log("No scan data for player")
-      if cid then log("  ClassID: " .. cid) end
     end
   else
-    log("PP_ScanInfo: nil")
+    log("No completed persistent aura data for player")
+    if cid then log("  ClassID: " .. cid) end
   end
-  
+
   -- Nampower Tests
   if PP_NampowerAPI then
     log("")
