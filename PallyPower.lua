@@ -211,7 +211,7 @@ local function PallyPower_GetImprovedCrusaderTalentRank()
     return 0
 end
 
-local function PallyPower_BuildJudgementCapability(SealRankInfo)
+function PallyPower_BuildJudgementCapability(SealRankInfo)
     local info = {}
     for judgementID = 0, 2 do
         local sealID = PallyPower_JudgementSealID[judgementID]
@@ -2049,6 +2049,8 @@ function PallyPower_GetBlessingNameFromTexture(texturePath)
 end
 
 function PallyPower_AdjustIcons()
+    local previousRegularBlessings = RegularBlessings
+
     AuraIcons[0] = "Interface\\Icons\\Spell_Holy_DevotionAura"
     AuraIcons[1] = "Interface\\Icons\\Spell_Holy_AuraOfLight"
     AuraIcons[2] = "Interface\\Icons\\Spell_Holy_MindSooth"
@@ -2103,6 +2105,11 @@ function PallyPower_AdjustIcons()
         BlessingIcon[5] = "Interface\\Icons\\Spell_Holy_GreaterBlessingofSanctuary"
     end
 
+    -- Greater/regular mode changes alter which spellbook entries the catalog exposes.
+    if previousRegularBlessings ~= RegularBlessings and PallyPower_InvalidateSpellCatalog then
+        PallyPower_InvalidateSpellCatalog("regular-blessings")
+    end
+
     BuffIcon[0] = BlessingIcon[0]
     BuffIcon[1] = BlessingIcon[1]
     BuffIcon[2] = BlessingIcon[2]
@@ -2147,6 +2154,7 @@ function PallyPower_OnEvent(event,arg1)
 
     if (event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD") then
         PallyPower_AdjustIcons()
+        PallyPower_InvalidateSpellCatalog(event)
         PallyPower_ScanSpells()
         if PP_PerUser.hideblizzaura == true then
             if ShapeshiftBarFrame:IsVisible() then ShapeshiftBarFrame:Hide() end
@@ -2191,6 +2199,7 @@ function PallyPower_OnEvent(event,arg1)
         end
         local _, class = UnitClass("player")
         if class == "PALADIN" or PP_TestMode then
+            PallyPower_InvalidateSpellCatalog(event)
             PallyPower_ScanSpells()
             PallyPower_SendSelf()
         end        
@@ -2406,6 +2415,7 @@ function PallyPower_SlashCommandHandler(msg)
         testArg = string.lower(testArg)
         if testArg == "prot" or testArg == "holy" or testArg == "ret" then
             PP_TestMode = testArg
+            PallyPower_InvalidateSpellCatalog("test-mode-on")
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_ENABLED .. testArg)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_FAKE)
             PallyPower_ScanSpells()
@@ -2415,6 +2425,7 @@ function PallyPower_SlashCommandHandler(msg)
         elseif testArg == "off" or testArg == "clear" or testArg == "reset" or testArg == "" then
             if PP_TestMode then
                 PP_TestMode = nil
+                PallyPower_InvalidateSpellCatalog("test-mode-off")
                 DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_DISABLED)
                 -- Re-scan real spells
                 PallyPower_ScanSpells()
@@ -3666,7 +3677,7 @@ local function PallyPower_FindTalentRankByName(wantedName)
     return 0
 end
 
-local function PallyPower_UpdateImprovedAuraTalents(AuraRankInfo)
+function PallyPower_UpdateImprovedAuraTalents(AuraRankInfo)
     if not AuraRankInfo then return end
 
     local talentMap = {
@@ -3684,7 +3695,7 @@ local function PallyPower_UpdateImprovedAuraTalents(AuraRankInfo)
 end
 
 function PallyPower_ScanSpells()
-    -- If test mode is active, inject fake data and skip real spell scanning
+    -- Test profiles remain a deliberate synthetic capability path.
     if PP_TestMode then
         local RankInfo, AuraRankInfo, SealRankInfo = PallyPower_BuildTestProfile(PP_TestMode)
         AllPallys[UnitName("player")] = RankInfo
@@ -3705,137 +3716,30 @@ function PallyPower_ScanSpells()
         return RankInfo
     end
 
-    local RankInfo = {}
-    local AuraRankInfo = {}
-    local SealRankInfo = {}
-    hasRighteousFury = false
-    nameRighteousFury = nil
-    local i = 1
+    local catalog = PallyPowerSpellCatalog:Get()
+    local RankInfo = PallyPowerSpellCatalog:RefreshCooldowns(catalog)
+    local AuraRankInfo = catalog.auraRankInfo
+    local SealRankInfo = catalog.sealRankInfo
+    local playerName = UnitName("player")
 
-    while true do
-        local spellName, spellRank = GetSpellName(i, BOOKTYPE_SPELL)
-        local spellTexture = GetSpellTexture(i, BOOKTYPE_SPELL)
+    hasRighteousFury = catalog.hasRighteousFury == true
+    nameRighteousFury = catalog.righteousFurySpellName
 
-        if not spellName then
-            break
-        end
-
-        -- Language-neutral utility detection; preserve localized name for casting.
-        if spellTexture and string.find(spellTexture, "Spell_Holy_SealOfFury") then
-            hasRighteousFury = true
-            nameRighteousFury = spellName
-        end
-
-        if spellTexture == PallyPower_DivineItervention then
-            RankInfo["DivineIntervention"] = (GetSpellCooldown(i, BOOKTYPE_SPELL) == 0)
-        end
-        if spellTexture == PallyPower_LayOnHandsIcon then
-            RankInfo["LayOnHands"] = (GetSpellCooldown(i, BOOKTYPE_SPELL) == 0)
-        end
-        if spellTexture == PallyPower_HammerOfJusticeIcon then
-            RankInfo["HammerOfJustice"] = (GetSpellCooldown(i, BOOKTYPE_SPELL) == 0)
-        end
-
-        if not spellRank or spellRank == "" then
-            spellRank = PallyPower_Rank1
-        end
-
-        local _, _, aura = string.find(spellName, PallyPower_AuraSpellSearch)
-        if aura then
-            for id, name in PallyPower_AuraID do
-                if (name == aura) then
-                    local _, _, rank = string.find(spellRank, PallyPower_RankSearch)
-                    if (AuraRankInfo[id] and spellRank < AuraRankInfo[id]["rank"]) then
-                    else
-                        AuraRankInfo[id] = {}
-                        AuraRankInfo[id]["rank"] = rank
-                        AuraRankInfo[id]["id"] = i
-                        AuraRankInfo[id]["name"] = name
-                        AuraRankInfo[id]["talent"] = 0
-                    end
-                end
-            end
-        end
-
-        local _, _, seal = string.find(spellName, PallyPower_SealSpellSearch)
-        if seal then
-            for id, name in PallyPower_SealID do
-                if (name == seal) then
-                    local _, _, rank = string.find(spellRank, PallyPower_RankSearch)
-                    if (SealRankInfo[id] and spellRank < SealRankInfo[id]["rank"]) then
-                    else
-                        SealRankInfo[id] = {}
-                        SealRankInfo[id]["rank"] = rank
-                        SealRankInfo[id]["id"] = i
-                        SealRankInfo[id]["name"] = name
-                        SealRankInfo[id]["talent"] = 0
-                        if spellTexture then
-                            SealIcons[id] = spellTexture
-                        end
-                    end
-                end
-            end
-        end
-
-        local _, _, bless = string.find(spellName, PallyPower_BlessingSpellSearch)
-        if bless then
-            local greaterBless, _ = string.find(spellName, PallyPower_Greater)
-            for id, name in PallyPower_BlessingID do
-                if ((name == bless) and (not greaterBless)) then
-                    local _, _, rank = string.find(spellRank, PallyPower_RankSearch)
-                    if (RankInfo[id] and spellRank < RankInfo[id]["rank"]) then
-                    else
-                        RankInfo[id] = {}
-                        RankInfo[id]["rank"] = rank
-                        RankInfo[id]["id"] = i
-                        RankInfo[id]["idsmall"] = i
-                        RankInfo[id]["name"] = name
-                        RankInfo[id]["spellname"] = spellName
-                        RankInfo[id]["talent"] = 0
-                        PP_LocalizedBuffNameToID[spellName] = id
-                    end
-                end
-            end
-        end
-
-        if (RegularBlessings == false) then
-            local _, _, bless = string.find(spellName, PallyPower_BlessingSpellSearch)
-            if bless then
-                local greaterBless, _ = string.find(spellName, PallyPower_Greater)
-                for id, name in PallyPower_BlessingID do
-                    if ((name == bless) and (greaterBless)) then
-                        local _, _, rank = string.find(spellRank, PallyPower_RankSearch)
-                        if (RankInfo[id] and spellRank < RankInfo[id]["rank"]) then
-                        else
-                            RankInfo[id]["id"] = i
-                            RankInfo[id]["name"] = name
-                            PP_LocalizedBuffNameToID[spellName] = id
-                        end
-                    end
-                end
-            end
-        end
-        i = i + 1
+    -- Project cached discovery back into the inherited compatibility globals.
+    for spellName, blessingID in catalog.localizedBuffNameToID do
+        PP_LocalizedBuffNameToID[spellName] = blessingID
     end
-
-    -- Read mana costs and blessing durations from the highest learned spell ranks.
-    if PallyPower_UpdateBlessingSpellData then
-        PallyPower_UpdateBlessingSpellData(RankInfo)
+    for sealID, texture in catalog.sealIcons do
+        SealIcons[sealID] = texture
     end
-
-    -- Improved Might/Wisdom are detected independently from talent tooltips.
-    PallyPower_UpdateImprovedBlessingTalents(RankInfo)
-    -- Aura talents are resolved by talent name rather than fixed tree/index.
-    -- This is robust across Vanilla-compatible servers with reordered talent entries.
-    PallyPower_UpdateImprovedAuraTalents(AuraRankInfo)
 
     local _, class = UnitClass("player")
     if class == "PALADIN" then
-        AllPallys[UnitName("player")] = RankInfo
-        AllPallysAuras[UnitName("player")] = AuraRankInfo
-        AllPallysSeals[UnitName("player")] = SealRankInfo
-        AllPallysJudgements[UnitName("player")] = PallyPower_BuildJudgementCapability(SealRankInfo)
-        PallyPower_RFCapabilities[UnitName("player")] = hasRighteousFury == true
+        AllPallys[playerName] = RankInfo
+        AllPallysAuras[playerName] = AuraRankInfo
+        AllPallysSeals[playerName] = SealRankInfo
+        AllPallysJudgements[playerName] = catalog.judgementInfo
+        PallyPower_RFCapabilities[playerName] = hasRighteousFury == true
         PP_IsPally = true
         IsPally = 1
         if initialized then
@@ -3852,6 +3756,8 @@ function PallyPower_ScanSpells()
         initialized = true
     end
 
+    -- Step 2 deliberately preserves these legacy side effects. Step 3 removes
+    -- the AutoBless -> PallyPower_ScanSpells() dependency.
     PallyPower_ScanInventory()
     PallyPower_UpdateJudgementDurationInfo()
     return RankInfo
@@ -3877,6 +3783,7 @@ function PallyPower_Refresh()
 
     local _, class = UnitClass("player")
     if class == "PALADIN" or PP_TestMode then
+        PallyPower_InvalidateSpellCatalog("refresh")
         PallyPower_ScanSpells()
         PallyPower_SendSelf()
     end
