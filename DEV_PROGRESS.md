@@ -60,8 +60,8 @@
 - Stable baseline: `main` / `1.11.39` at `fb4e960751b87ba2077c4277ec93325f65c39ed7`
 - Audit start base / prior dev head: `9da05eece8b6ff4134615f8c39d80aeae655e6bf` (`Record stable 1.11.39 promotion`).
 - Current stable runtime baseline: `main` / `1.11.39` at `fb4e960751b87ba2077c4277ec93325f65c39ed7`; later `main` commits through `a3c6d739992f958a8c45d03dacb3974ff146c99a` are README/image-only release presentation changes.
-- Goal: perform a deep architecture/performance audit of the 1.11.39 codebase, with emphasis on accumulated legacy/patchwork costs, event/update hot paths, redundant scans, allocation/GC pressure, state duplication, compatibility shims and structural coupling. Use the findings to define a clean PallyPowerVanilla 2.0 performance-core rewrite while preserving 1.12.1 compatibility, and a later 3.0 line with ClassicAPI as a hard requirement where it can replace Nampower/SuperWoW/UnitXP-era extension paths.
-- Current scope boundary: this phase is audit/design only; do not change addon runtime behavior yet. Preserve stable `main`. Existing user-facing behavior, SavedVariables and PallyPower communication compatibility are constraints to catalogue rather than silently redesign. ClassicAPI hard dependency belongs to the planned 3.0 line, not the 2.0 native-compatible performance rewrite.
+- Goal: execute the PallyPowerVanilla 2.0 performance-core rewrite from the completed audit while preserving native WoW 1.12.1 / Lua 5.0 compatibility, existing user-facing behavior, SavedVariables and PLPWR communication compatibility. A later 3.0 line will reuse the 2.0 core with ClassicAPI as a hard requirement where it can replace the current Nampower/SuperWoW/UnitXP-era extension paths.
+- Current scope boundary: 2.0 implementation may now proceed, but only in the chat-sized slices recorded below. Each slice must end at a coherent committed/testable checkpoint with `DEV_PROGRESS.md` updated before moving on. Preserve stable `main`. ClassicAPI hard dependency remains deferred to 3.0; do not allow 2.0 implementation to become DLL-dependent.
 
 ## Current Design / Development Contract
 
@@ -653,5 +653,53 @@ After generated-name/global lookup cleanup:
 - Validation state: static inspection only. No new in-game profiling, Lua 5.0 compiler pass or runtime benchmark has been performed for this audit.
 - Deferred from the audit phase: runtime rewrite implementation; protocol/SavedVariable format changes; making ClassicAPI mandatory before the 3.0 line is explicitly opened.
 - Handoff audit head: `d2e63e5970f770fa141059e890a454ad901c3462` on `dev`; this status update follows it and is documentation-only.
+## 2.0 Chat-Sized Implementation Plan
+Treat each numbered item as the default maximum scope for one development chat. Do not silently combine later slices. If a slice proves very small, only continue into the next slice after the current slice is committed, documented and still leaves ample context.
+
+1. **Baseline + instrumentation only**
+   - Add lightweight development profiling/debug counters sufficient to measure the current expensive paths.
+   - Define repeatable baseline scenarios: idle raid, Assignment window open, receiving Blessings, repeated AutoBless, periodic raid scan, roster update and communication burst.
+   - Do not change gameplay/UI behavior or optimize runtime paths yet.
+2. **SpellCatalog extraction**
+   - Introduce cached ownership for local spell/capability discovery while retaining existing behavior and invalidation semantics.
+3. **Remove spell scanning from AutoBless**
+   - Make AutoBless consume the cached SpellCatalog; no spellbook/talent/bag/comms refresh as a hidden cast-path side effect.
+4. **Assignment UI invalidation framework**
+   - Add explicit dirty/invalidation ownership for roster, capabilities, assignments and layout while initially retaining the existing renderer.
+5. **Remove Assignment `OnUpdate` rendering**
+   - Render the Assignment UI only when dirty; preserve interaction behavior and appearance.
+6. **Split Buff Bar layout from dynamic state**
+   - Prevent ordinary blessing/aura updates from recalculating static geometry/layout.
+7. **Split self-buff state from class-Blessing state**
+   - Make local aura changes update only RF/Aura/Seal/local-Blessing state instead of invoking the monolithic full UI refresh.
+8. **Persistent raid aura state**
+   - Replace whole-tree `PP_ScanInfo -> CurrentBuffs` reconstruction with persistent per-unit records and explicit diffs.
+9. **Incremental class aggregates**
+   - Recalculate/render only class aggregates affected by changed unit records.
+10. **Timer rewrite**
+    - Replace per-frame countdown mutation with absolute expiration timestamps and event/change-driven timer aggregates.
+11. **Inventory decoupling**
+    - Make Symbol of Kings inventory state respond to appropriate bag/inventory invalidation rather than spell/aura scans.
+12. **CastPlanner extraction**
+    - Centralize target/blessing eligibility and selection as a pure decision layer without yet changing execution semantics.
+13. **Unify click casting and AutoBless execution**
+    - Route both input paths through the shared planner/executor and remove duplicated cast logic.
+14. **Protocol isolation/cleanup**
+    - Put existing PLPWR encode/decode behind a compatibility adapter; remove duplicate/implicit broadcasts without changing the wire format.
+15. **AssignmentStore cleanup**
+    - Establish one canonical internal assignment owner; keep historical SavedVariable/proxy names only at migration/compatibility boundaries.
+16. **2.0 performance soak + stabilization**
+    - Re-run the baseline scenarios in realistic raid conditions, review GC/allocation/global/string churn, fix remaining measured hotspots, and stabilize the 2.0 line before opening 3.0.
+
+### 2.0 Slice Rules
+- One slice should normally fit one chat and end in a committed resumable state.
+- Prefer 1-3 coherent code commits plus the final `DEV_PROGRESS.md` checkpoint per slice.
+- Do not mix unrelated cleanup into a slice.
+- Preserve behavior first; optimization deltas must be separately testable.
+- Every runtime/code revision follows the rulebook version-bump requirement.
+- Static/compiler checks and in-game validation must be recorded separately and tied to exact versions/commits.
+- Step 3 and later performance claims should be compared against the Step 1 baseline rather than judged subjectively.
+- 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
+
 ## Exact Next Step
-Await explicit implementation scope for the 2.0 line. The first code slice should establish a measurable baseline and then remove the worst hidden side effect without changing user-facing behavior: introduce the 2.0 dirty/scheduler + cached `SpellCatalog` ownership seam, stop `PallyPower_AutoBless()` from calling `PallyPower_ScanSpells()`, and route capability refreshes only from their real invalidation events. After that, replace Assignment-frame `OnUpdate` rendering with dirty/event-driven rendering. Do not start the 3.0 ClassicAPI hard-dependency line until the 2.0 core boundaries are stable.
+**Step 1 — Baseline + instrumentation only.** Verify the current `dev` head and stable 1.11.39 baseline, then add the minimum development-only profiling/debug instrumentation needed to measure the current expensive paths and document repeatable baseline scenarios. Do not optimize or change gameplay/UI behavior in this slice. Follow the rulebook versioning/checkpoint rules for any runtime/loader change. End the slice with exact static-check status, the baseline test procedure/results available so far, and an updated/committed `DEV_PROGRESS.md` handoff for Step 2.
