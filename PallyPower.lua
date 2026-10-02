@@ -1777,6 +1777,8 @@ end
 
 function PallyPower_OnLoad()
     this:RegisterEvent("SPELLS_CHANGED")
+    this:RegisterEvent("CHARACTER_POINTS_CHANGED")
+    this:RegisterEvent("UNIT_INVENTORY_CHANGED")
     this:RegisterEvent("PLAYER_ENTERING_WORLD")
     this:RegisterEvent("CHAT_MSG_ADDON")
     this:RegisterEvent("CHAT_MSG_COMBAT_FRIENDLY_DEATH")
@@ -2150,6 +2152,14 @@ function PallyPower_OnEvent(event,arg1)
         PP_BlessingTimerSpellStopped()
     elseif event == "SPELLCAST_FAILED" or event == "SPELLCAST_INTERRUPTED" then
         PP_CancelPendingBlessingTimer()
+    end
+
+    -- Keep cached talent/tooltip capability fresh without introducing a new
+    -- immediate scan/send path. Existing callers rebuild on their next scan.
+    if event == "CHARACTER_POINTS_CHANGED" then
+        PallyPower_InvalidateSpellCatalog(event)
+    elseif event == "UNIT_INVENTORY_CHANGED" and arg1 == "player" then
+        PallyPower_InvalidateSpellCatalog(event)
     end
 
     if (event == "SPELLS_CHANGED" or event == "PLAYER_ENTERING_WORLD") then
