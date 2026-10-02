@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.39-dev`
+- Version: `1.11.40-dev`
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
 - Stage 7 first-slice user-tested build: `03f988f66b912381585a5b487ed16ad7a68b14da` (`1.11.2-dev`)
@@ -426,8 +426,8 @@
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-- No further pre-promotion runtime test is required: exact `1.11.39-dev` / `903bdf0ba7f1fc2cea59724a50678ef17024feda` is user-accepted and promotion is authorized.
-- The exact stable promotion tree will not be claimed as separately runtime-tested unless it is exercised after release; release-only differences must remain limited to stable metadata/presentation and development-file omission.
+- Step 1 baseline capture is pending on exact `1.11.40-dev` / `bad4867fdb5b38540af1529eb854160eefde144e`. Run the B1-B7 procedures in `docs/PERFORMANCE_BASELINE_2_0.md` in the target WoW 1.12.1 environment and retain the full `/ppvperf report` output for each run. These captures establish the pre-optimization comparison point and must stay tied to this exact build.
+- No Step 1 in-game timing result has been claimed yet. Step 2 may be implemented independently as a behavior-preserving ownership extraction, but performance comparisons for Step 3 and later must use actual Step 1 captures rather than static estimates.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
@@ -648,11 +648,12 @@ After generated-name/global lookup cleanup:
 - Highest-priority findings: `PallyPower_AutoBless()` calls the full `PallyPower_ScanSpells()` on every invocation; the Assignment UI calls `PallyPowerGrid_Update()` every frame; `PLAYER_AURAS_CHANGED` calls full `PallyPower_UpdateUI()`; scan completion calls inventory scan plus full UI refresh; `PP_NextScan` is overloaded as timer/dirty flag/debounce/reconciliation; roster events can cause duplicate self-state broadcasts; cast click/AutoBless logic is substantially duplicated.
 - 2.0 architecture decision: remain native WoW 1.12.1 / Lua 5.0 compatible with no DLL hard requirement. Build one clean event/state core with explicit dirty domains, cached spell/roster/aura/assignment/timer stores, unified cast planning/execution, diff-based renderers and a platform capability facade. Preserve current PLPWR/SavedVariable compatibility at adapters/boundaries rather than allowing legacy formats to own internal state.
 - 3.0 architecture direction: reuse the 2.0 core and make ClassicAPI mandatory. Current ClassicAPI capabilities appear able to replace PPV's present Nampower aura/spell-record use, UnitXP distance/LoS use and SuperWoW GUID use. This is specifically about PPV's consumed functionality, not a claim that ClassicAPI replaces every feature of those projects. Raid-unit aura-event completeness still requires target-environment validation before periodic reconciliation can be removed.
-- Completed work: static event/update/scan/cast/timer/comms/storage/UI/extension architecture audit; audit documentation committed. Runtime code remains unchanged.
-- Implemented but untested work: none. No addon runtime behavior has changed.
-- Validation state: static inspection only. No new in-game profiling, Lua 5.0 compiler pass or runtime benchmark has been performed for this audit.
-- Deferred from the audit phase: runtime rewrite implementation; protocol/SavedVariable format changes; making ClassicAPI mandatory before the 3.0 line is explicitly opened.
-- Handoff audit head: `d2e63e5970f770fa141059e890a454ad901c3462` on `dev`; this status update follows it and is documentation-only.
+- Step 1 baseline/instrumentation runtime implementation: `bad4867fdb5b38540af1529eb854160eefde144e` (`1.11.40-dev`).
+- Completed work: the static 2.0 audit plus Step 1 development-only profiling instrumentation and the repeatable B1-B7 baseline procedure in `docs/PERFORMANCE_BASELINE_2_0.md`. `Debug.lua` is loaded only by the dev TOC; profiling is inactive by default, and `/ppvperf start` / `stop` temporarily wrap and restore the existing hot-path globals. No optimization and no intended gameplay/UI behavior change were made in Step 1.
+- Implemented but runtime-untested work: the Step 1 instrumentation at `bad4867fdb5b38540af1529eb854160eefde144e`. No target-client baseline capture has been performed yet.
+- Validation state for Step 1: the new `Debug.lua` passed a modern-Lua syntax smoke check and a mocked runtime harness covering profiler start/stop, original-function restoration, nested hot-path counting, selected event counting and PLPWR send/receive counters. Git blob hashes were matched against the checked scratch files; the committed diff was inspected and is limited to `Debug.lua`, `docs/PERFORMANCE_BASELINE_2_0.md` and the dev TOC version/loader entry. The canonical vendored Lua 5.0.3 compiler check was not run: VanillaTemplate's checker is connector-accessible but is not mounted in this executable environment, and direct container GitHub access failed DNS resolution. No in-game profiling/runtime benchmark has been performed yet.
+- Deferred from Step 1: every optimization/runtime ownership change; protocol/SavedVariable format changes; making ClassicAPI mandatory before the 3.0 line is explicitly opened. Actual B1-B7 measurements remain runtime validation work for the exact Step 1 build.
+- Step 1 implementation head: `bad4867fdb5b38540af1529eb854160eefde144e` on `dev`; the final Step 1 status/checkpoint commit follows it and is documentation-only.
 ## 2.0 Chat-Sized Implementation Plan
 Treat each numbered item as the default maximum scope for one development chat. Do not silently combine later slices. If a slice proves very small, only continue into the next slice after the current slice is committed, documented and still leaves ample context.
 
@@ -702,4 +703,4 @@ Treat each numbered item as the default maximum scope for one development chat. 
 - 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
 
 ## Exact Next Step
-**Step 1 — Baseline + instrumentation only.** Verify the current `dev` head and stable 1.11.39 baseline, then add the minimum development-only profiling/debug instrumentation needed to measure the current expensive paths and document repeatable baseline scenarios. Do not optimize or change gameplay/UI behavior in this slice. Follow the rulebook versioning/checkpoint rules for any runtime/loader change. End the slice with exact static-check status, the baseline test procedure/results available so far, and an updated/committed `DEV_PROGRESS.md` handoff for Step 2.
+**Step 2 — SpellCatalog extraction only.** Starting from the Step 1 handoff, introduce cached ownership for local spell/capability discovery while preserving current invalidation semantics and user-visible behavior. Keep the Step 1 profiler and baseline procedure intact. Do **not** remove the existing `PallyPower_AutoBless() -> PallyPower_ScanSpells()` call in Step 2; that removal is Step 3. Do not optimize Assignment rendering or any later slice. Follow the rulebook version-bump/checkpoint rules for the runtime change and finish Step 2 with checks plus a committed handoff for Step 3.
