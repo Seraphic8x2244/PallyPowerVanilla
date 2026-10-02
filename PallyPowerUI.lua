@@ -2548,6 +2548,7 @@ PallyPowerUI.CreateBuffBarUI()
 			AssignmentLinkWidthSliderText:SetText(tostring(width))
 		end
 		PallyPowerUI.SetAssignmentLinkWidth(width)
+		PallyPower_InvalidateAssignmentUI("layout")
 	end)
 
 	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentVerticalSpacingSlider", frame, "OptionsSliderTemplate")
@@ -2581,6 +2582,7 @@ PallyPowerUI.CreateBuffBarUI()
 		if PallyPowerUIRefs.visiblePaladinCount and PallyPowerUIRefs.visiblePaladinCount > 0 then
 			PallyPowerUI.UpdateAssignmentGeometry(PallyPowerUIRefs.visiblePaladinCount)
 		end
+		PallyPower_InvalidateAssignmentUI("layout")
 	end)
 
 	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentHorizontalSpacingSlider", frame, "OptionsSliderTemplate")
@@ -2614,6 +2616,7 @@ PallyPowerUI.CreateBuffBarUI()
 		if PallyPowerUIRefs.visiblePaladinCount and PallyPowerUIRefs.visiblePaladinCount > 0 then
 			PallyPowerUI.UpdateAssignmentLinkers(PallyPowerUIRefs.visiblePaladinCount)
 		end
+		PallyPower_InvalidateAssignmentUI("layout")
 	end)
 
 	slider = PallyPowerUI.CreateFrame("Slider", "AssignmentPersonalDividerSlider", frame, "OptionsSliderTemplate")
@@ -2647,6 +2650,7 @@ PallyPowerUI.CreateBuffBarUI()
 		if PallyPowerUIRefs.visiblePaladinCount and PallyPowerUIRefs.visiblePaladinCount > 0 then
 			PallyPowerUI.UpdateAssignmentLinkers(PallyPowerUIRefs.visiblePaladinCount)
 		end
+		PallyPower_InvalidateAssignmentUI("layout")
 	end)
 
 	frame:SetScript("OnLoad", function()

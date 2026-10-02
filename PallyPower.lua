@@ -818,6 +818,7 @@ function PallyPower_ApplyOverallScale()
 
     if PallyPowerFrame then
         PallyPowerFrame:SetScale(PP_PerUser.uiscale * (PP_PerUser.scalemain or 1))
+        PallyPower_InvalidateAssignmentUI("layout")
     end
     if PallyPowerBuffBar then
         PallyPowerBuffBar:SetScale(PP_PerUser.uiscale * (PP_PerUser.scalebar or 1))
@@ -882,6 +883,71 @@ PallyPower_JudgementAssignments = {}
 PallyPower_Tanks = {}
 
 -- ---------------------------------------------------------------------------
+-- Assignment UI invalidation ownership (PPV 2.0 Step 4)
+--
+-- Step 4 records the state domains that make the existing Assignment renderer
+-- stale. The renderer still runs from its inherited OnUpdate loop until Step 5.
+-- Roster and assignment changes also dirty layout because visible rows/linkers
+-- depend on those domains.
+-- ---------------------------------------------------------------------------
+
+PP_AssignmentUIDirty = {
+    roster = true,
+    capabilities = true,
+    assignments = true,
+    layout = true
+}
+
+function PallyPower_InvalidateAssignmentUI(domain)
+    if not PP_AssignmentUIDirty then
+        PP_AssignmentUIDirty = {
+            roster = false,
+            capabilities = false,
+            assignments = false,
+            layout = false
+        }
+    end
+
+    if domain == nil or domain == "all" then
+        PP_AssignmentUIDirty.roster = true
+        PP_AssignmentUIDirty.capabilities = true
+        PP_AssignmentUIDirty.assignments = true
+        PP_AssignmentUIDirty.layout = true
+    elseif domain == "roster" then
+        PP_AssignmentUIDirty.roster = true
+        PP_AssignmentUIDirty.layout = true
+    elseif domain == "capabilities" then
+        PP_AssignmentUIDirty.capabilities = true
+    elseif domain == "assignments" then
+        PP_AssignmentUIDirty.assignments = true
+        PP_AssignmentUIDirty.layout = true
+    elseif domain == "layout" then
+        PP_AssignmentUIDirty.layout = true
+    end
+end
+
+function PallyPower_IsAssignmentUIDirty(domain)
+    if not PP_AssignmentUIDirty then
+        return true
+    end
+    if domain ~= nil then
+        return PP_AssignmentUIDirty[domain] == true
+    end
+    return PP_AssignmentUIDirty.roster == true
+        or PP_AssignmentUIDirty.capabilities == true
+        or PP_AssignmentUIDirty.assignments == true
+        or PP_AssignmentUIDirty.layout == true
+end
+
+function PallyPower_ClearAssignmentUIDirty()
+    if not PP_AssignmentUIDirty then return end
+    PP_AssignmentUIDirty.roster = false
+    PP_AssignmentUIDirty.capabilities = false
+    PP_AssignmentUIDirty.assignments = false
+    PP_AssignmentUIDirty.layout = false
+end
+
+-- ---------------------------------------------------------------------------
 -- Assignment storage compatibility layer (1.52)
 --
 -- Historical PallyPower versions store different assignment types in separate
@@ -930,6 +996,7 @@ local function PP_CreateAssignmentProxy(field)
                 local record = PallyPower_Assignments[name]
                 if record then
                     record[field] = nil
+                    PallyPower_InvalidateAssignmentUI("assignments")
                 end
                 return
             end
@@ -937,6 +1004,7 @@ local function PP_CreateAssignmentProxy(field)
             local record = PP_EnsureAssignmentRecord(name)
             if record then
                 record[field] = value
+                PallyPower_InvalidateAssignmentUI("assignments")
             end
         end
     })
@@ -1190,6 +1258,7 @@ function PallyPower_FramesLockedOption()
     else
         PP_PerUser.frameslocked = false
     end
+    PallyPower_InvalidateAssignmentUI("layout")
     PallyPowerGrid_Update(1)
     PP_NextScan = 0 --PallyPower_UpdateUI()
 end
@@ -1266,6 +1335,7 @@ function PallyPower_FreeAssignOption()
         PP_PerUser.freeassign = false
 	PallyPower_SendMessage("FREEASSIGN NO")
     end
+    PallyPower_InvalidateAssignmentUI("capabilities")
 end
 
 function PallyPower_UseUnitXPSP3Option()
@@ -2148,6 +2218,12 @@ end
 function PallyPower_OnEvent(event,arg1)
     local type, id
 
+    if event == "PLAYER_ENTERING_WORLD" then
+        PallyPower_InvalidateAssignmentUI("all")
+    elseif event == "PARTY_MEMBERS_CHANGED" or event == "RAID_ROSTER_UPDATE" then
+        PallyPower_InvalidateAssignmentUI("roster")
+    end
+
     if event == "SPELLCAST_STOP" then
         PP_BlessingTimerSpellStopped()
     elseif event == "SPELLCAST_FAILED" or event == "SPELLCAST_INTERRUPTED" then
@@ -2206,6 +2282,8 @@ function PallyPower_OnEvent(event,arg1)
                     PallyPower_Assignments[name] = nil
                 end
             end
+            PallyPower_InvalidateAssignmentUI("capabilities")
+            PallyPower_InvalidateAssignmentUI("assignments")
         end
         local _, class = UnitClass("player")
         if class == "PALADIN" or PP_TestMode then
@@ -2786,6 +2864,7 @@ function PallyPowerGrid_Update(tdiff)
 
         PallyPowerUI.UpdateAssignmentGeometry(numPallys)
         PallyPower_PresetsRefreshState()
+        PallyPower_ClearAssignmentUIDirty()
     end
 end
 
@@ -2810,6 +2889,7 @@ function SetNormalBlessings(pname, class, tname, value)
 		PallyPower_NormalAssignments[pname][class] = {}
 	end
 	PallyPower_NormalAssignments[pname][class][tname] = value
+    PallyPower_InvalidateAssignmentUI("assignments")
 end
 
 function PallyPower_mod(a, b)
@@ -2903,6 +2983,7 @@ function PallyPowerPlayerButton_OnClick(plbtn, mouseBtn)
                PallyPower_NormalAssignments[UnitName("player")][class] and 
                PallyPower_NormalAssignments[UnitName("player")][class][pname] then
                 PallyPower_NormalAssignments[UnitName("player")][class][pname] = -1
+                PallyPower_InvalidateAssignmentUI("assignments")
             end
             PP_NextScan = 0.1 --PallyPower_UpdateUI()
             GameTooltip:Hide()
@@ -3722,6 +3803,7 @@ function PallyPower_ScanSpells()
         if not PallyPower_SealAssignments[UnitName("player")] then
             PallyPower_SealAssignments[UnitName("player")] = -1
         end
+        PallyPower_InvalidateAssignmentUI("capabilities")
         PallyPower_SendSelf()
         return RankInfo
     end
@@ -3766,6 +3848,8 @@ function PallyPower_ScanSpells()
         initialized = true
     end
 
+    PallyPower_InvalidateAssignmentUI("capabilities")
+
     -- Step 2 deliberately preserves these legacy side effects. Step 3 removes
     -- the AutoBless -> PallyPower_ScanSpells() dependency.
     PallyPower_ScanInventory()
@@ -3774,6 +3858,7 @@ function PallyPower_ScanSpells()
 end
 
 function PallyPower_Refresh()
+    PallyPower_InvalidateAssignmentUI("all")
     AllPallys = {}       
     AllPallysAuras = {} 
     AllPallysSeals = {} 
@@ -3826,6 +3911,7 @@ function PallyPower_Clear(fromupdate, who)
             PallyPower_Tanks = {}
         end
     end
+    PallyPower_InvalidateAssignmentUI("assignments")
     PP_NextScan = 0 --PallyPower_UpdateUI()
     if not fromupdate then
         PallyPower_SendMessage("CLEAR")
@@ -3981,6 +4067,47 @@ function PallyPower_SendMessage(msg)
         SendAddonMessage(PP_PREFIX, msg, "PARTY", UnitName("player"))
     else
         SendAddonMessage(PP_PREFIX, msg, "RAID", UnitName("player"))
+    end
+end
+
+function PallyPower_InvalidateAssignmentUIFromMessage(msg)
+    if not msg then return end
+
+    if string.find(msg, "^SELF") then
+        PallyPower_InvalidateAssignmentUI("roster")
+        PallyPower_InvalidateAssignmentUI("capabilities")
+        PallyPower_InvalidateAssignmentUI("assignments")
+        return
+    end
+
+    if string.find(msg, "^ASELF")
+        or string.find(msg, "^SSELF")
+        or string.find(msg, "^JSELF")
+        or string.find(msg, "^RFCAP")
+    then
+        PallyPower_InvalidateAssignmentUI("capabilities")
+        PallyPower_InvalidateAssignmentUI("assignments")
+        return
+    end
+
+    if string.find(msg, "^SYMCOUNT")
+        or string.find(msg, "^COOLDOWNS")
+        or string.find(msg, "^FREEASSIGN")
+    then
+        PallyPower_InvalidateAssignmentUI("capabilities")
+        return
+    end
+
+    if string.find(msg, "^RFSELF")
+        or string.find(msg, "^ASSIGN")
+        or string.find(msg, "^AASSIGN")
+        or string.find(msg, "^SASSIGN")
+        or string.find(msg, "^JASSIGN")
+        or string.find(msg, "^RFASSIGN")
+        or string.find(msg, "^MASSIGN")
+        or string.find(msg, "^CLEAR")
+    then
+        PallyPower_InvalidateAssignmentUI("assignments")
     end
 end
 
@@ -4318,6 +4445,7 @@ function PallyPower_ParseMessage(sender, msg)
                 PallyPower_ChatMessage(PALLYPOWER_MESSAGE_NEWVERSION.." ("..msgVer..")")
             end
         end
+        PallyPower_InvalidateAssignmentUIFromMessage(msg)
     end
 end
 
@@ -4652,6 +4780,7 @@ function PallyPowerGridButton_OnClick(btn, mouseBtn)
             PP_NextScan = 0
             PallyPower_SendRFAssignment(pname)
         end
+        PallyPower_InvalidateAssignmentUI("assignments")
     else
         PallyPower_PerformCycle(pname, class, false)
     end
@@ -5006,6 +5135,7 @@ function PallyPower_PerformCycleBackwards(name, class, skipempty)
         end
         PallyPower_SendMessage("ASSIGN " .. name .. " " .. class .. " " .. cur)
     end    
+    PallyPower_InvalidateAssignmentUI("assignments")
     PP_NextScan = 0 --PallyPower_UpdateUI()
 end
 
@@ -5098,6 +5228,7 @@ function PallyPower_PerformCycle(name, class, skipempty)
         PallyPower_SendMessage("ASSIGN " .. name .. " " .. class .. " " .. cur)
     end
 
+    PallyPower_InvalidateAssignmentUI("assignments")
     PP_NextScan = 0 --PallyPower_UpdateUI()
 end
 
@@ -5249,8 +5380,17 @@ function PallyPower_ScanInventory()
     if PP_Symbols ~= oldcount then
         PallyPower_SendMessage("SYMCOUNT " .. PP_Symbols)
     end
-    AllPallys[UnitName("player")]["symbols"] = PP_Symbols
-    AllPallys[UnitName("player")]["freeassign"] = PP_PerUser.freeassign
+    local playerInfo = AllPallys[UnitName("player")]
+    local assignmentCapabilitiesChanged =
+        playerInfo["symbols"] ~= PP_Symbols
+        or playerInfo["freeassign"] ~= PP_PerUser.freeassign
+
+    playerInfo["symbols"] = PP_Symbols
+    playerInfo["freeassign"] = PP_PerUser.freeassign
+
+    if assignmentCapabilitiesChanged then
+        PallyPower_InvalidateAssignmentUI("capabilities")
+    end
 end
 
 function PallyPower_PaladinLeftGroup()
@@ -5526,6 +5666,7 @@ function PallyPower_ScanRaid()
         end
     end
     CurrentBuffs = PP_ScanInfo
+    PallyPower_InvalidateAssignmentUI("roster")
     PP_ScanInfo = nil
     PP_NextScan = PP_PerUser.scanfreq
     PallyPower_ScanInventory()
@@ -6241,6 +6382,7 @@ function PallyPower_ScaleFrame(scale)
     if frame:GetName() == "PallyPowerFrame" then
         really_setpoint(PallyPowerFrame, "TOPLEFT", "UIParent", "BOTTOMLEFT", framex / scale, framey / scale)
         PP_PerUser.scalemain = scale / (PP_PerUser.uiscale or 1)
+        PallyPower_InvalidateAssignmentUI("layout")
     end
     if frame:GetName() == "PallyPowerBuffBar" then
         really_setpoint(PallyPowerBuffBar, "TOPLEFT", "UIParent", "BOTTOMLEFT", framex / scale, framey / scale)
@@ -7081,6 +7223,7 @@ function PallyPower_SwapSet(set)
 			PP_Presets[player]["CurrentSet"] = set;
 			PP_SelectedPreset = set
 			PallyPower_PresetsSetDropDownText(set)
+            PallyPower_InvalidateAssignmentUI("assignments")
 		    PP_NextScan = 0 --PallyPower_UpdateUI()
             PP_JudgementNextScan = 0
 	        PallyPower_SendSelf()
