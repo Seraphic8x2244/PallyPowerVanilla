@@ -3426,7 +3426,12 @@ function PallyPower_UpdateUI()
     end 
 	
     -- Buff Bar
-    PallyPowerBuffBar:SetScale((PP_PerUser.uiscale or 1) * PP_PerUser.scalebar)
+    PP_BuffBarLayoutState = PP_BuffBarLayoutState or {}
+    local buffBarScale = (PP_PerUser.uiscale or 1) * PP_PerUser.scalebar
+    if PP_BuffBarLayoutState.scale ~= buffBarScale then
+        PallyPowerBuffBar:SetScale(buffBarScale)
+        PP_BuffBarLayoutState.scale = buffBarScale
+    end
     PP_SetSelfBuffIcon("RF", PallyPower_RighteousFury)
     if PallyPowerBuffBarSelfCombined then
         PallyPowerBuffBarSelfCombined:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
@@ -3654,12 +3659,21 @@ function PallyPower_UpdateUI()
             btn:Hide()
         end
         local totalVisibleButtons = specialButtonCount + (BuffNum - 1)
+        local buffBarWidth
+        local buffBarHeight
         if PP_PerUser.horizontal == false then
-            PallyPowerBuffBar:SetWidth(PP_UI.BUFF_LONG)
-            PallyPowerBuffBar:SetHeight(PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons))
+            buffBarWidth = PP_UI.BUFF_LONG
+            buffBarHeight = PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons)
         else
-            PallyPowerBuffBar:SetWidth(PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons))
-            PallyPowerBuffBar:SetHeight(PP_UI.BUFF_LONG)
+            buffBarWidth = PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons)
+            buffBarHeight = PP_UI.BUFF_LONG
+        end
+        if PP_BuffBarLayoutState.width ~= buffBarWidth
+            or PP_BuffBarLayoutState.height ~= buffBarHeight then
+            PallyPowerBuffBar:SetWidth(buffBarWidth)
+            PallyPowerBuffBar:SetHeight(buffBarHeight)
+            PP_BuffBarLayoutState.width = buffBarWidth
+            PP_BuffBarLayoutState.height = buffBarHeight
         end
     else
         PallyPowerBuffBar:Hide()
