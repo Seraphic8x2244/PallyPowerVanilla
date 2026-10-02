@@ -170,6 +170,15 @@ function PallyPowerSpellCatalog:Get()
     return self.cache
 end
 
+-- Return the last built local Blessing capability without rebuilding a dirty
+-- catalog. Cast paths must not turn invalidation into synchronous discovery.
+function PallyPowerSpellCatalog:GetCachedRankInfo()
+    if self.cache then
+        return self.cache.rankInfo
+    end
+    return nil
+end
+
 function PallyPowerSpellCatalog:RefreshCooldowns(catalog)
     catalog = catalog or self:Get()
     local RankInfo = catalog.rankInfo
