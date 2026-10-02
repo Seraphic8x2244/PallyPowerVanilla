@@ -2,7 +2,8 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.42-dev`
+- Version: `1.11.43-dev`
+- PPV 2.0 Step 3 runtime implementation: `9ec34dbc0d260892dd25d074d2760d64f56ed409` (`1.11.43-dev`)
 - PPV 2.0 Step 2 runtime implementation: `6bf97301a1a7e5ab01870ce7ab8c27e087cf3fa7` (`1.11.42-dev`)
 - Stage 6 accepted runtime implementation: `69ebb9d0a7a1aba95f4fe0dd448c3a21dde97047`
 - Stage 7 first-slice Lua implementation: `ceec82cbbee32d430101b2f76dd4b1d4232c1a20`
@@ -428,8 +429,9 @@
 
 ### Next Runtime Test
 - Step 1 baseline capture is still pending on exact `1.11.40-dev` / `bad4867fdb5b38540af1529eb854160eefde144e`. Run the B1-B7 procedures in `docs/PERFORMANCE_BASELINE_2_0.md` in the target WoW 1.12.1 environment and retain the full `/ppvperf report` output for each run. These captures establish the pre-optimization comparison point and must stay tied to this exact build.
-- Step 2 `1.11.42-dev` / `6bf97301a1a7e5ab01870ce7ab8c27e087cf3fa7` is implemented but not yet exercised in the target client. Before calling Step 2 user-tested, verify normal startup/world entry, roster changes, `/pp test` enable/disable, regular/Greater Blessing mode changes, a talent change, a player equipment change, and ordinary casting/AutoBless behavior. AutoBless is expected to still call `PallyPower_ScanSpells()` in this build.
-- No Step 1 or Step 2 in-game performance result has been claimed. Step 3 performance comparisons must use actual Step 1 captures rather than static estimates.
+- Step 3 `1.11.43-dev` / `9ec34dbc0d260892dd25d074d2760d64f56ed409` is implemented but not yet exercised in the target client. Focus the next runtime check on repeated AutoBless Hotkey1/Hotkey2 casting, individual-Blessing overrides, class cycling/failure paths, `/pp test` profiles, and ordinary Buff Button casting. Confirm AutoBless still casts identically while no longer causing the scanner's hidden inventory/self-state refresh path.
+- Step 2's broader invalidation/startup coverage remains runtime-untested and is inherited by Step 3; verify normal startup/world entry, roster changes, regular/Greater Blessing mode changes, talent changes, and player equipment changes when practical.
+- No Step 1-3 in-game performance result has been claimed. Performance comparisons for Step 3 and later must use actual Step 1 captures rather than static estimates.
 
 ### Assignment Window Redesign Validation State
 - Original implementation: `c2d0778d4e34e89efb398c2a78d916fac76235a8` / `1.11.15-dev`.
@@ -662,6 +664,11 @@ After generated-name/global lookup cleanup:
 - Step 2 scope/checks: Step 1 `Debug.lua` blob remains exactly `c58f9005d45a86b4109d46061eb6d3a495cd951c`, and `docs/PERFORMANCE_BASELINE_2_0.md` remains exactly `14c97a1c18fd7be46552a4893e81f6b718988eac`. Structural checks confirmed one public `PallyPower_ScanSpells()`, retained AutoBless call, no spellbook walk inside that compatibility function, retained inventory/Judgement-duration side effects, cached volatile-cooldown refresh, expected invalidation event registration/handling, and the unchanged Step 1 profiler wrapper. The handoff-to-Step-2 diff is limited to `PallyPower.lua`, `PallyPowerVanilla.toc` and new `SpellCatalog.lua`.
 - Step 2 validation limits: no in-game test has been performed. The repository has no workflow runs/status checks for the implementation head. The canonical vendored Lua 5.0.3 compiler check was not run: no Lua interpreter/compiler or Lua parser is installed in the executable environment, and the VanillaTemplate checker is not mounted there. Do not claim a compiler/runtime pass.
 - Step 2 commit sequence: `805b383a16fc3c5b96952b5e283dea1584bc3af4` added the cache owner; `35d4146e924b1ce91907c4fe3019b8909fb8c221` loaded it and opened the Step 2 dev revision; `ee627bcb87d23fe131e3348ed05d774a4f558bb0` routed discovery through it; `6bf97301a1a7e5ab01870ce7ab8c27e087cf3fa7` completed invalidation coverage and is the Step 2 runtime implementation head. The final Step 2 status/checkpoint commit follows it and is documentation-only.
+- Step 3 AutoBless decoupling runtime implementation: `9ec34dbc0d260892dd25d074d2760d64f56ed409` (`1.11.43-dev`). `PallyPower_AutoBless()` no longer calls `PallyPower_ScanSpells()`. Normal play reads the last built Blessing capability through `PallyPowerSpellCatalog:GetCachedRankInfo()`; `/pp test` continues to consume the already-projected synthetic local profile. The accessor deliberately does not call `Get()`, so a dirty catalog is not synchronously rebuilt from the cast path.
+- Step 3 preserves the Step 2 invalidation lifecycle and all non-AutoBless scanner callers. The normal Buff Button still calls `PallyPower_ScanSpells()`; the public scanner still performs cached volatile cooldown refresh plus its inherited `PallyPower_SendSelf()`, inventory scan and Judgement-duration side effects. No protocol, SavedVariable, Assignment renderer or later-slice ownership changes were made.
+- Step 3 focused checks passed: the handoff-to-runtime diff is limited to `PallyPower.lua`, `SpellCatalog.lua` and the TOC; AutoBless contains zero `PallyPower_ScanSpells()` calls and zero direct `AllPallys[UnitName("player")]` capability reads; the normal Buff Button retains one scan call; there is one public scanner definition; Step 1 `Debug.lua` remains blob `c58f9005d45a86b4109d46061eb6d3a495cd951c` and `docs/PERFORMANCE_BASELINE_2_0.md` remains blob `14c97a1c18fd7be46552a4893e81f6b718988eac`. No GitHub status checks or workflow runs exist for the runtime commit.
+- Step 3 validation limits: no in-game test has been performed. The canonical vendored Lua 5.0.3 compiler check was not run; this executable environment has `gcc` but no `lua`/`luac` or Lua parser, and the VanillaTemplate checker is not mounted here. Static/structural review is not a compiler or runtime pass.
+- Step 3 runtime implementation head: `9ec34dbc0d260892dd25d074d2760d64f56ed409`; the final Step 3 status/checkpoint commit follows it and is documentation-only.
 ## 2.0 Chat-Sized Implementation Plan
 Treat each numbered item as the default maximum scope for one development chat. Do not silently combine later slices. If a slice proves very small, only continue into the next slice after the current slice is committed, documented and still leaves ample context.
 
@@ -711,4 +718,4 @@ Treat each numbered item as the default maximum scope for one development chat. 
 - 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
 
 ## Exact Next Step
-**Step 3 — Remove spell scanning from AutoBless only.** Start from the committed Step 2 SpellCatalog handoff. Change `PallyPower_AutoBless()` to consume the cached local capability state without calling `PallyPower_ScanSpells()`, so the AutoBless cast path no longer inherits spell-scan side effects such as inventory scanning or self-state communication. Preserve the Step 2 invalidation lifecycle, public scanner behavior for its other callers, Step 1 profiler/baseline, casting behavior and wire/SavedVariable compatibility. Do not remove the separate normal Buff Button scan path or begin Assignment UI invalidation/rendering work in this slice. Finish with focused checks and a committed handoff for Step 4.
+**Step 4 — Assignment UI invalidation framework only.** Starting from the committed Step 3 handoff, add explicit dirty/invalidation ownership for Assignment roster, capabilities, assignments and layout while initially retaining the existing renderer and current visible behavior. Do **not** remove the Assignment `OnUpdate` rendering loop yet; that is Step 5. Preserve the Step 1 profiler/baseline, Step 2 SpellCatalog lifecycle, Step 3 AutoBless decoupling, protocol/SavedVariable compatibility and stable `main`. Finish with focused checks and a committed handoff for Step 5.
