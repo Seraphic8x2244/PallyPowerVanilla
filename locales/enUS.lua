@@ -210,9 +210,9 @@ PALLYPOWER_MSG_TEST_PROT = "|cffffff00  /pp test prot |r- + Sanctuary 4, Sanctit
 PALLYPOWER_MSG_TEST_HOLY = "|cffffff00  /pp test holy |r- + Wisdom +5, Might +5 talents, Kings, Sanctity Aura"
 PALLYPOWER_MSG_TEST_RET = "|cffffff00  /pp test ret  |r- + Kings, Devo Aura +5 talent, Sanctity Aura"
 PALLYPOWER_MSG_TEST_OFF = "|cffffff00  /pp test off  |r- Disable test mode"
+PALLYPOWER_MSG_TEST_LAYOUT = "|cffffff00  /pp test layout bridge|tail|off |r- Assignment layout QA"
+PALLYPOWER_MSG_TEST_UNITXP = "|cffffff00  /pp test unitxp on|off|toggle |r- UnitXP QA control"
 
-PALLYPOWER_MSG_DEBUG_LOGGER = "|cff00ff00PallyPower debug output sent to _OGAALogger|r"
-PALLYPOWER_MSG_DEBUG_CHAT = "|cffff9900PallyPower debug output (install _OGAALogger for copy/paste)|r"
 
 PALLYPOWER_UI_SHORT_TITLE = "PP"
 PALLYPOWER_UI_ADDON_NAME = "PallyPowerVanilla"
