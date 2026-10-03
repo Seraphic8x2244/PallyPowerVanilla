@@ -507,10 +507,8 @@ local function PPV_DebugBuildReport()
 
     if PPV_DebugLastGeneration ~= nil then
         generationDelta = tostring(generation - PPV_DebugLastGeneration)
-    end
-    if PPV_DebugLastPlayerStats ~= nil or playerStats ~= nil then
         if PPV_DebugLastPlayerStats == nil or playerStats == nil then
-            identity = "changed"
+            identity = (PPV_DebugLastPlayerStats == playerStats) and "same" or "changed"
         elseif PPV_DebugLastPlayerStats == playerStats then
             identity = "same"
         else
@@ -529,7 +527,15 @@ local function PPV_DebugBuildReport()
     table.insert(lines, "Records: " .. tostring(state and PPV_DebugCount(state.records) or 0) .. "    CurrentBuffs: classes=" .. tostring(classes) .. " units=" .. tostring(units) .. " visible=" .. tostring(visible))
     table.insert(lines, "Last sweep diffs: " .. tostring(state and PPV_DebugCount(state.diffs) or 0) .. "    affected classes=" .. PPV_DebugDiffClasses())
     table.insert(lines, "Player record: " .. tostring(playerUnitID or "none") .. " class=" .. tostring(playerRecord and playerRecord.classID or "n/a") .. "    identity=" .. identity)
-    local playerBlessings = {}\n    if playerStats then\n        for buffID, active in pairs(playerStats) do\n            if type(buffID) == "number" and buffID >= 0 and buffID <= 5 and active then\n                playerBlessings[buffID] = true\n            end\n        end\n    end\n    table.insert(lines, "Player persistent Blessing IDs: " .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(playerBlessings)))
+    local playerBlessings = {}
+    if playerStats then
+        for buffID, active in pairs(playerStats) do
+            if type(buffID) == "number" and buffID >= 0 and buffID <= 5 and active then
+                playerBlessings[buffID] = true
+            end
+        end
+    end
+    table.insert(lines, "Player persistent Blessing IDs: " .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(playerBlessings)))
     table.insert(lines, "")
     table.insert(lines, "Local player aura state")
     table.insert(lines, "Blessing IDs: " .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(PP_LocalAuraState and PP_LocalAuraState.blessings)) .. "    RF=" .. PPV_DebugYesNo(PP_LocalAuraState and PP_LocalAuraState.rfActive))
@@ -540,9 +546,9 @@ local function PPV_DebugBuildReport()
     table.insert(lines, "Assignment dirty: roster=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.roster) .. " capabilities=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.capabilities) .. " assignments=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.assignments) .. " layout=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.layout))
     table.insert(lines, "Profiler: " .. (PPVPerf.active and ("running [" .. tostring(PPVPerf.label or "baseline") .. "]") or "idle") .. "    Memory=" .. tostring(PallyPower_ShowMemoryUsage and PallyPower_ShowMemoryUsage() or "?") .. " MB")
     table.insert(lines, "")
-    table.insert(lines, "Test commands: /pp test prot|holy|ret|off")
-    table.insert(lines, "               /pp test layout bridge|tail|off")
-    table.insert(lines, "               /pp test unitxp on|off|toggle")
+    table.insert(lines, "Test commands: /pp test prot, holy, ret, off")
+    table.insert(lines, "               /pp test layout bridge, tail, off")
+    table.insert(lines, "               /pp test unitxp on, off, toggle")
 
     PPV_DebugLastGeneration = generation
     PPV_DebugLastPlayerStats = playerStats
