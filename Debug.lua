@@ -400,3 +400,263 @@ SlashCmdList["PPVPERF"] = function(message)
         PPVPerf_Help()
     end
 end
+
+
+-- ============================================================================
+-- DEVELOPMENT DIAGNOSTICS PANEL
+-- /pp debug opens one compact, copyable snapshot instead of dumping to chat.
+-- This file is dev-only and is excluded from stable releases.
+-- ============================================================================
+
+local PPV_DebugFrame = nil
+local PPV_DebugEditBox = nil
+local PPV_DebugLastGeneration = nil
+local PPV_DebugLastPlayerStats = nil
+
+local function PPV_DebugYesNo(value)
+    if value then return "yes" end
+    return "no"
+end
+
+local function PPV_DebugCount(map)
+    local count = 0
+    if not map then return 0 end
+    for _ in pairs(map) do
+        count = count + 1
+    end
+    return count
+end
+
+local function PPV_DebugSortedNumericKeys(map)
+    local keys = {}
+    if map then
+        for key, value in pairs(map) do
+            if type(key) == "number" and value then
+                table.insert(keys, key)
+            end
+        end
+    end
+    table.sort(keys)
+    return keys
+end
+
+local function PPV_DebugJoinNumbers(keys)
+    if table.getn(keys) == 0 then return "none" end
+    local parts = {}
+    for _, value in ipairs(keys) do
+        table.insert(parts, tostring(value))
+    end
+    return table.concat(parts, ",")
+end
+
+local function PPV_DebugFindPlayerRecord()
+    local state = PP_RaidAuraState
+    local playerName = UnitName("player")
+    if not state or not state.records or not playerName then return nil, nil end
+
+    for unitID, record in pairs(state.records) do
+        if record and record.stats and record.stats.name == playerName then
+            return unitID, record
+        end
+    end
+    return nil, nil
+end
+
+local function PPV_DebugCurrentBuffSummary()
+    local classes = 0
+    local units = 0
+    local visible = 0
+
+    if CurrentBuffs then
+        for _, members in pairs(CurrentBuffs) do
+            classes = classes + 1
+            for _, stats in pairs(members) do
+                units = units + 1
+                if stats and stats.visible then visible = visible + 1 end
+            end
+        end
+    end
+
+    return classes, units, visible
+end
+
+local function PPV_DebugDiffClasses()
+    local affected = {}
+    local state = PP_RaidAuraState
+    if state and state.diffs then
+        for _, diff in pairs(state.diffs) do
+            if diff.oldClassID ~= nil then affected[diff.oldClassID] = true end
+            if diff.newClassID ~= nil then affected[diff.newClassID] = true end
+        end
+    end
+    return PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(affected))
+end
+
+local function PPV_DebugBuildReport()
+    local lines = {}
+    local version = GetAddOnMetadata("PallyPowerVanilla", "Version") or "?"
+    local playerName = UnitName("player") or "?"
+    local _, classToken = UnitClass("player")
+    local state = PP_RaidAuraState
+    local generation = state and state.generation or 0
+    local classes, units, visible = PPV_DebugCurrentBuffSummary()
+    local playerUnitID, playerRecord = PPV_DebugFindPlayerRecord()
+    local playerStats = playerRecord and playerRecord.stats or nil
+    local identity = "first refresh"
+    local generationDelta = "n/a"
+
+    if PPV_DebugLastGeneration ~= nil then
+        generationDelta = tostring(generation - PPV_DebugLastGeneration)
+    end
+    if PPV_DebugLastPlayerStats ~= nil or playerStats ~= nil then
+        if PPV_DebugLastPlayerStats == nil or playerStats == nil then
+            identity = "changed"
+        elseif PPV_DebugLastPlayerStats == playerStats then
+            identity = "same"
+        else
+            identity = "changed"
+        end
+    end
+
+    table.insert(lines, "PallyPowerVanilla Development Diagnostics")
+    table.insert(lines, "Version: " .. version .. "    Time: " .. date("%H:%M:%S"))
+    table.insert(lines, "Character: " .. playerName .. " / " .. tostring(classToken or "?") .. "    Test profile: " .. tostring(PP_TestMode or "off"))
+    table.insert(lines, "Group: raid=" .. tostring(GetNumRaidMembers()) .. " party=" .. tostring(GetNumPartyMembers()) .. "    Assignment=" .. (PallyPowerFrame and PallyPowerFrame:IsVisible() and "open" or "closed"))
+    table.insert(lines, "Buff Bar: " .. (PallyPowerBuffBar and PallyPowerBuffBar:IsVisible() and "visible" or "hidden") .. "    Layout test: " .. tostring(PP_AssignmentLayoutTest or "off"))
+    table.insert(lines, "")
+    table.insert(lines, "Persistent raid aura state")
+    table.insert(lines, "Generation: " .. tostring(generation) .. " (delta since Refresh: " .. generationDelta .. ")    scanning=" .. PPV_DebugYesNo(state and state.scanning) .. " changed=" .. PPV_DebugYesNo(state and state.changed))
+    table.insert(lines, "Records: " .. tostring(state and PPV_DebugCount(state.records) or 0) .. "    CurrentBuffs: classes=" .. tostring(classes) .. " units=" .. tostring(units) .. " visible=" .. tostring(visible))
+    table.insert(lines, "Last sweep diffs: " .. tostring(state and PPV_DebugCount(state.diffs) or 0) .. "    affected classes=" .. PPV_DebugDiffClasses())
+    table.insert(lines, "Player record: " .. tostring(playerUnitID or "none") .. " class=" .. tostring(playerRecord and playerRecord.classID or "n/a") .. "    identity=" .. identity)
+    table.insert(lines, "Player persistent Blessing IDs: " .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(playerStats)))
+    table.insert(lines, "")
+    table.insert(lines, "Local player aura state")
+    table.insert(lines, "Blessing IDs: " .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(PP_LocalAuraState and PP_LocalAuraState.blessings)) .. "    RF=" .. PPV_DebugYesNo(PP_LocalAuraState and PP_LocalAuraState.rfActive))
+    table.insert(lines, "")
+    table.insert(lines, "Runtime")
+    table.insert(lines, "Scan: next=" .. tostring(PP_NextScan or "?") .. "s interval=" .. tostring(PP_PerUser and PP_PerUser.scanfreq or "?") .. "s per-frame=" .. tostring(PP_PerUser and PP_PerUser.scanperframe or "?"))
+    table.insert(lines, "Extensions: Nampower=" .. PPV_DebugYesNo(PP_NampowerAPI) .. " SuperWoW=" .. PPV_DebugYesNo(PP_SuperWoW) .. " UnitXP detected=" .. PPV_DebugYesNo(PP_UnitXPDllLoaded) .. " enabled=" .. PPV_DebugYesNo(PP_PerUser and PP_PerUser.useunitxp_sp3))
+    table.insert(lines, "Assignment dirty: roster=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.roster) .. " capabilities=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.capabilities) .. " assignments=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.assignments) .. " layout=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.layout))
+    table.insert(lines, "Profiler: " .. (PPVPerf.active and ("running [" .. tostring(PPVPerf.label or "baseline") .. "]") or "idle") .. "    Memory=" .. tostring(PallyPower_ShowMemoryUsage and PallyPower_ShowMemoryUsage() or "?") .. " MB")
+    table.insert(lines, "")
+    table.insert(lines, "Test commands: /pp test prot|holy|ret|off")
+    table.insert(lines, "               /pp test layout bridge|tail|off")
+    table.insert(lines, "               /pp test unitxp on|off|toggle")
+
+    PPV_DebugLastGeneration = generation
+    PPV_DebugLastPlayerStats = playerStats
+
+    return table.concat(lines, "\n")
+end
+
+local function PPV_DebugRefresh()
+    if PPV_DebugEditBox then
+        PPV_DebugEditBox:SetText(PPV_DebugBuildReport())
+        PPV_DebugEditBox:SetCursorPosition(0)
+        PPV_DebugEditBox:ClearFocus()
+    end
+end
+
+local function PPV_DebugCreateButton(parent, textValue, width, x, onClick)
+    local button = CreateFrame("Button", nil, parent, "GameMenuButtonTemplate")
+    button:SetWidth(width)
+    button:SetHeight(24)
+    button:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", x, 14)
+    button:SetText(textValue)
+    button:SetScript("OnClick", onClick)
+    return button
+end
+
+local function PPV_DebugCreateFrame()
+    if PPV_DebugFrame then return end
+
+    local frame = CreateFrame("Frame", "PallyPowerDevelopmentDebugFrame", UIParent)
+    frame:SetWidth(680)
+    frame:SetHeight(470)
+    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    frame:SetFrameStrata("DIALOG")
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", function() this:StartMoving() end)
+    frame:SetScript("OnDragStop", function() this:StopMovingOrSizing() end)
+    frame:SetBackdrop({
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+        tile = true,
+        tileSize = 32,
+        edgeSize = 32,
+        insets = { left = 11, right = 12, top = 12, bottom = 11 },
+    })
+    frame:SetBackdropColor(0, 0, 0, 1)
+
+    local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOP", frame, "TOP", 0, -18)
+    title:SetText("PallyPowerVanilla - Development Debug")
+
+    local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    hint:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, -45)
+    hint:SetText("Refresh captures a new snapshot. Select All, then Ctrl+C to copy.")
+
+    local textFrame = CreateFrame("Frame", nil, frame)
+    textFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -66)
+    textFrame:SetWidth(632)
+    textFrame:SetHeight(350)
+    textFrame:SetBackdrop({
+        bgFile = "Interface\\Buttons\\WHITE8X8",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 12,
+        insets = { left = 4, right = 4, top = 4, bottom = 4 },
+    })
+    textFrame:SetBackdropColor(0.02, 0.02, 0.02, 1)
+    textFrame:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
+
+    local editBox = CreateFrame("EditBox", "PallyPowerDevelopmentDebugText", textFrame)
+    editBox:SetPoint("TOPLEFT", textFrame, "TOPLEFT", 10, -10)
+    editBox:SetWidth(612)
+    editBox:SetHeight(330)
+    editBox:SetMultiLine(true)
+    editBox:SetAutoFocus(false)
+    editBox:SetMaxLetters(20000)
+    editBox:SetFontObject(ChatFontNormal)
+    editBox:SetTextColor(1, 1, 1)
+    editBox:SetJustifyH("LEFT")
+    editBox:SetJustifyV("TOP")
+    editBox:EnableMouse(true)
+    editBox:SetScript("OnEscapePressed", function()
+        this:ClearFocus()
+        if PPV_DebugFrame then PPV_DebugFrame:Hide() end
+    end)
+    PPV_DebugEditBox = editBox
+
+    PPV_DebugCreateButton(frame, "Refresh", 90, 28, function()
+        PPV_DebugRefresh()
+    end)
+    PPV_DebugCreateButton(frame, "Select All", 100, 128, function()
+        if PPV_DebugEditBox then
+            PPV_DebugEditBox:SetFocus()
+            PPV_DebugEditBox:HighlightText()
+        end
+    end)
+    PPV_DebugCreateButton(frame, "Close", 90, 238, function()
+        if PPV_DebugEditBox then PPV_DebugEditBox:ClearFocus() end
+        if PPV_DebugFrame then PPV_DebugFrame:Hide() end
+    end)
+
+    PPV_DebugFrame = frame
+    frame:Hide()
+end
+
+function PPV_Debug_Show()
+    PPV_DebugCreateFrame()
+    PPV_DebugRefresh()
+    PPV_DebugFrame:Show()
+end
+
+function PPV_Debug_Hide()
+    if PPV_DebugEditBox then PPV_DebugEditBox:ClearFocus() end
+    if PPV_DebugFrame then PPV_DebugFrame:Hide() end
+end

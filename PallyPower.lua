@@ -2482,13 +2482,21 @@ function PallyPower_AdjustTransparency()
 end
 
 function PallyPower_SlashCommandHandler(msg)
-    if (msg == "debug") then
-        if PP_DebugEnabled then
-            PP_DebugEnabled = nil
+    msg = msg or ""
+    local normalizedMsg = string.lower(msg)
+
+    -- Development diagnostics are presented in a copyable visual panel.
+    -- Debug.lua is dev-only; stable builds simply have no panel implementation.
+    if normalizedMsg == "debug" or normalizedMsg == "debug refresh" then
+        if PPV_Debug_Show then
+            PPV_Debug_Show()
         else
-            PP_DebugEnabled = true
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_PREFIX .. "Development debug panel is unavailable.")
         end
-	return true
+        return true
+    elseif normalizedMsg == "debug off" or normalizedMsg == "debug close" then
+        if PPV_Debug_Hide then PPV_Debug_Hide() end
+        return true
     end
     if (msg == "report") then
         PallyPower_Report()
@@ -2499,60 +2507,85 @@ function PallyPower_SlashCommandHandler(msg)
         return true
     end
 
-    -- /pp layouttest [bridge|tail|off] - visual-only synthetic Assignment rows.
-    -- This mode never touches SavedVariables, addon comms, AllPallys or real
-    -- assignment tables; it only paints the existing row widgets for layout QA.
-    local _, _, layoutTestArg = string.find(msg, "^layouttest%s*(.*)$")
-    if layoutTestArg ~= nil then
-        layoutTestArg = string.lower(layoutTestArg)
-        if layoutTestArg == "" or layoutTestArg == "on" or layoutTestArg == "bridge" then
-            PP_AssignmentLayoutTest = "bridge"
-            if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
-                PallyPowerUI.RenderAssignmentLayoutTest("bridge")
-            end
-            PallyPowerFrame:Show()
-            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_BRIDGE)
-            return true
-        elseif layoutTestArg == "tail" then
-            PP_AssignmentLayoutTest = "tail"
-            if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
-                PallyPowerUI.RenderAssignmentLayoutTest("tail")
-            end
-            PallyPowerFrame:Show()
-            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_TAIL)
-            return true
-        elseif layoutTestArg == "off" or layoutTestArg == "clear" or layoutTestArg == "reset" then
-            PP_AssignmentLayoutTest = nil
-            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_OFF)
-            PallyPower_InvalidateAssignmentUI("all")
-            return true
-        else
-            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_HELP)
-            return true
-        end
-    end
-
-    -- /pp test <profile> - Debug command to fake talent/spell data
+    -- All development test-mode controls live under /pp test.
+    -- Profiles: /pp test prot|holy|ret|off
+    -- Layout QA: /pp test layout bridge|tail|off
+    -- UnitXP QA: /pp test unitxp on|off|toggle
     local _, _, testArg = string.find(msg, "^test%s*(.*)$")
     if testArg ~= nil then
         testArg = string.lower(testArg)
-        if testArg == "prot" or testArg == "holy" or testArg == "ret" then
-            PP_TestMode = testArg
+        local _, _, testCommand, testRest = string.find(testArg, "^(%S*)%s*(.-)%s*$")
+        testCommand = testCommand or ""
+        testRest = testRest or ""
+
+        if testCommand == "layout" then
+            local layoutTestArg = testRest
+            if layoutTestArg == "" or layoutTestArg == "on" or layoutTestArg == "bridge" then
+                PP_AssignmentLayoutTest = "bridge"
+                if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
+                    PallyPowerUI.RenderAssignmentLayoutTest("bridge")
+                end
+                PallyPowerFrame:Show()
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_BRIDGE)
+                return true
+            elseif layoutTestArg == "tail" then
+                PP_AssignmentLayoutTest = "tail"
+                if PallyPowerUI and PallyPowerUI.RenderAssignmentLayoutTest then
+                    PallyPowerUI.RenderAssignmentLayoutTest("tail")
+                end
+                PallyPowerFrame:Show()
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_TAIL)
+                return true
+            elseif layoutTestArg == "off" or layoutTestArg == "clear" or layoutTestArg == "reset" then
+                PP_AssignmentLayoutTest = nil
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_OFF)
+                PallyPower_InvalidateAssignmentUI("all")
+                return true
+            else
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_LAYOUT_TEST_HELP)
+                return true
+            end
+        elseif testCommand == "unitxp" then
+            if not PP_UnitXPDllLoaded then
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_NOT_DETECTED)
+                return true
+            end
+
+            if testRest == "on" or testRest == "enable" or testRest == "1" or testRest == "true" then
+                PP_PerUser.useunitxp_sp3 = true
+                UseUnitXPSP3OptionChk:SetChecked(true)
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_ENABLED)
+            elseif testRest == "off" or testRest == "disable" or testRest == "0" or testRest == "false" then
+                PP_PerUser.useunitxp_sp3 = false
+                UseUnitXPSP3OptionChk:SetChecked(false)
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_DISABLED)
+            elseif testRest == "" or testRest == "toggle" then
+                PP_PerUser.useunitxp_sp3 = not PP_PerUser.useunitxp_sp3
+                UseUnitXPSP3OptionChk:SetChecked(PP_PerUser.useunitxp_sp3)
+                if PP_PerUser.useunitxp_sp3 then
+                    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_ENABLED)
+                else
+                    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_DISABLED)
+                end
+            else
+                DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_UNITXP)
+            end
+            return true
+        elseif testCommand == "prot" or testCommand == "holy" or testCommand == "ret" then
+            PP_TestMode = testCommand
             PallyPower_InvalidateSpellCatalog("test-mode-on")
-            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_ENABLED .. testArg)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_ENABLED .. testCommand)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_FAKE)
             PallyPower_ScanSpells()
             PallyPowerUIRefs.buffBar:Show()
             PP_NextScan = 0.1
             return true
-        elseif testArg == "off" or testArg == "clear" or testArg == "reset" or testArg == "" then
+        elseif testCommand == "off" or testCommand == "clear" or testCommand == "reset" then
             if PP_TestMode then
                 PP_TestMode = nil
                 PallyPower_InvalidateSpellCatalog("test-mode-off")
                 DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_DISABLED)
-                -- Re-scan real spells
                 PallyPower_ScanSpells()
-                -- If not actually a paladin, hide buff bar again
                 local _, class = UnitClass("player")
                 if class ~= "PALADIN" then
                     PallyPowerUIRefs.buffBar:Hide()
@@ -2569,6 +2602,8 @@ function PallyPower_SlashCommandHandler(msg)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_HOLY)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_RET)
             DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_OFF)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_LAYOUT)
+            DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_TEST_UNITXP)
             return true
         end
     end
@@ -6859,262 +6894,7 @@ if PP_SuperWoW then
   end)
 end
 
--- UnitXP Toggle Command
-SLASH_PPUNITXP1 = "/ppunitxp"
-SlashCmdList["PPUNITXP"] = function(msg)
-  msg = string.lower(msg or "")
-  
-  if not PP_UnitXPDllLoaded then
-    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_NOT_DETECTED)
-    return
-  end
-  
-  if msg == "on" or msg == "enable" or msg == "1" or msg == "true" then
-    PP_PerUser.useunitxp_sp3 = true
-    UseUnitXPSP3OptionChk:SetChecked(true)
-    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_ENABLED)
-  elseif msg == "off" or msg == "disable" or msg == "0" or msg == "false" then
-    PP_PerUser.useunitxp_sp3 = false
-    UseUnitXPSP3OptionChk:SetChecked(false)
-    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_DISABLED)
-  else
-    -- Toggle
-    PP_PerUser.useunitxp_sp3 = not PP_PerUser.useunitxp_sp3
-    UseUnitXPSP3OptionChk:SetChecked(PP_PerUser.useunitxp_sp3)
-    if PP_PerUser.useunitxp_sp3 then
-      DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_ENABLED)
-    else
-      DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_UNITXP_DISABLED)
-    end
-  end
-end
-
--- Debug Command
-SLASH_PPDBG1 = "/ppdbg"
-SlashCmdList["PPDBG"] = function()
-  local function log(msg)
-    if OGAALogger and OGAALogger.AddMessage and type(OGAALogger.AddMessage) == "function" then
-      OGAALogger.AddMessage("PallyPower", msg)
-    else
-      DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_PREFIX .. msg)
-    end
-  end
-  
-  log("=== PALLYPOWER DEBUG ===")
-  log("Time: " .. date("%H:%M:%S"))
-  
-  -- Core Status
-  log("")
-  log("--- Core Status ---")
-  log("PP_IsPally: " .. tostring(PP_IsPally))
-  log("PP_NampowerAPI: " .. tostring(PP_NampowerAPI))
-  log("RegularBlessings: " .. tostring(RegularBlessings))
-  if PP_PerUser then
-    log("PP_PerUser.regularblessings: " .. tostring(PP_PerUser.regularblessings))
-    log("PP_PerUser.useunitxp_sp3: " .. tostring(PP_PerUser.useunitxp_sp3))
-  else
-    log("PP_PerUser: nil")
-  end
-  log("PP_UnitXPDllLoaded: " .. tostring(PP_UnitXPDllLoaded))
-  
-  -- UnitXP SP3 Status
-  log("")
-  log("--- UnitXP SP3 Status ---")
-  if UnitXP then
-    log("UnitXP function exists: true")
-    
-    -- Test basic functions
-    local success, result = pcall(UnitXP, "inSight", "player", "player")
-    log("UnitXP('inSight','player','player'): success=" .. tostring(success) .. ", result=" .. tostring(result))
-    
-    if success then
-      -- Test distance
-      local distSuccess, dist = pcall(UnitXP, "distanceBetween", "player", "player")
-      log("UnitXP('distanceBetween','player','player'): success=" .. tostring(distSuccess) .. ", result=" .. tostring(dist))
-      
-      -- Test with target if exists
-      if UnitExists("target") then
-        local losSuccess, los = pcall(UnitXP, "inSight", "player", "target")
-        log("UnitXP('inSight','player','target'): success=" .. tostring(losSuccess) .. ", result=" .. tostring(los))
-        
-        local tdSuccess, tdist = pcall(UnitXP, "distanceBetween", "player", "target")
-        log("UnitXP('distanceBetween','player','target'): success=" .. tostring(tdSuccess) .. ", result=" .. tostring(tdist))
-        
-        log("UnitIsConnected('target'): " .. tostring(UnitIsConnected("target")))
-        log("UnitIsVisible('target'): " .. tostring(UnitIsVisible("target")))
-      else
-        log("No target selected for UnitXP target tests")
-      end
-    end
-  else
-    log("UnitXP function exists: false")
-  end
-  
-  -- BuffIcon Array
-  log("")
-  log("--- BuffIcon Array ---")
-  if BuffIcon then
-    for i = 0, 9 do
-      if BuffIcon[i] then
-        local short = BuffIcon[i]
-        log("BuffIcon[" .. i .. "]: " .. short)
-      end
-    end
-  else
-    log("BuffIcon: nil")
-  end
-  
-  -- BlessingIcon Array
-  log("")
-  log("--- BlessingIcon Array ---")
-  if BlessingIcon then
-    for i = 0, 9 do
-      if BlessingIcon[i] then
-        local short = BlessingIcon[i]
-        log("BlessingIcon[" .. i .. "]: " .. short)
-      end
-    end
-  else
-    log("BlessingIcon: nil")
-  end
-  
-  -- BuffIconSmall Array
-  log("")
-  log("--- BuffIconSmall Array ---")
-  if BuffIconSmall then
-    for i = 0, 9 do
-      if BuffIconSmall[i] then
-        local short = BuffIconSmall[i]
-        log("BuffIconSmall[" .. i .. "]: " .. short)
-      end
-    end
-  else
-    log("BuffIconSmall: nil")
-  end
-  
-  -- Current Buffs
-  log("")
-  log("--- Current Buffs (UnitBuff) ---")
-  local i = 1
-  while UnitBuff("player", i) do
-    local icon = UnitBuff("player", i)
-    if icon then
-      local short = string.gsub(icon, "Interface\\Icons\\", "")
-      log("Buff " .. i .. ": " .. short)
-      
-      -- Check if it matches any BuffIcon
-      for idx = 0, 9 do
-        if BuffIcon and BuffIcon[idx] then
-          local checkIcon = BuffIcon[idx]
-          if checkIcon == icon then
-            log("  -> Matches BuffIcon[" .. idx .. "]")
-          end
-        end
-      end
-    end
-    i = i + 1
-    if i > 40 then break end
-  end
-  
-  -- Spell Name Tests
-  log("")
-  log("--- PallyPower_GetBuffIDFromSpellName Tests ---")
-  if PallyPower_GetBuffIDFromSpellName then
-    local tests = {
-      "Blessing of Wisdom",
-      "Greater Blessing of Wisdom",
-      "Blessing of Kings",
-      "Greater Blessing of Kings",
-      "Blessing of Might",
-      "Greater Blessing of Might",
-      "Blessing of Salvation",
-      "Greater Blessing of Salvation",
-      "Blessing of Light",
-      "Greater Blessing of Light",
-      "Blessing of Sanctuary",
-      "Greater Blessing of Sanctuary",
-    }
-    
-    for _, spell in ipairs(tests) do
-      local result = PallyPower_GetBuffIDFromSpellName(spell)
-      log(spell .. " -> " .. tostring(result))
-    end
-  else
-    log("PallyPower_GetBuffIDFromSpellName: nil")
-  end
-  
-  -- Persistent raid aura state
-  log("")
-  log("--- Raid Aura State (Player) ---")
-  if PP_RaidAuraState then
-    log("Generation: " .. tostring(PP_RaidAuraState.generation or 0))
-    log("Scanning: " .. tostring(PP_RaidAuraState.scanning == true))
-    log("Changed: " .. tostring(PP_RaidAuraState.changed == true))
-  end
-
-  local _, classToken = UnitClass("player")
-  local cid = PP_CLASS_TOKEN_ID[classToken] or -1
-  if cid and CurrentBuffs[cid] and CurrentBuffs[cid]["player"] then
-    log("Found persistent aura data for player:")
-    for k, v in pairs(CurrentBuffs[cid]["player"]) do
-      if type(k) == "number" then
-        log("  Buff index " .. k .. ": " .. tostring(v))
-      end
-    end
-  else
-    log("No completed persistent aura data for player")
-    if cid then log("  ClassID: " .. cid) end
-  end
-
-  -- Nampower Tests
-  if PP_NampowerAPI then
-    log("")
-    log("--- Nampower Tests ---")
-    
-    if GetUnitField then
-      local auras = GetUnitField("player", "aura")
-      if auras then
-        log("GetUnitField('player', 'aura') returned " .. table.getn(auras) .. " entries")
-        for i = 1, math.min(10, table.getn(auras)) do
-          if auras[i] and auras[i] > 0 then
-            log("  Aura[" .. i .. "]: SpellID " .. auras[i])
-            if GetSpellRecField then
-              local name = GetSpellRecField(auras[i], "name")
-              if name then
-                log("    Name: " .. name)
-              end
-            end
-          end
-        end
-      else
-        log("GetUnitField('player', 'aura') returned nil")
-      end
-    else
-      log("GetUnitField: nil")
-    end
-    
-    if GetSpellRecField then
-      log("")
-      log("GetSpellRecField test on known spell IDs:")
-      local testIds = {20911, 25899, 1038, 25782, 20217, 20911}
-      for _, id in ipairs(testIds) do
-        local name = GetSpellRecField(id, "name")
-        log("  SpellID " .. id .. ": " .. tostring(name))
-      end
-    else
-      log("GetSpellRecField: nil")
-    end
-  end
-  
-  log("")
-  log("=== END DEBUG ===")
-  
-  if OGAALogger and OGAALogger.AddMessage then
-    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_DEBUG_LOGGER)
-  else
-    DEFAULT_CHAT_FRAME:AddMessage(PALLYPOWER_MSG_DEBUG_CHAT)
-  end
-end
+-- Development test/debug entry points are routed through /pp test and /pp debug.
 
 -- ============================================================================
 -- MINIMAP / PRESETS
