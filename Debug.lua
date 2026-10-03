@@ -316,7 +316,7 @@ local function PPVPerf_Report()
         PallyPowerFrame and PallyPowerFrame:IsVisible() and "open" or "closed",
         tostring(PP_PerUser and PP_PerUser.scanfreq or "?"),
         tostring(PP_PerUser and PP_PerUser.scanperframe or "?"),
-        PP_NampowerAPI and "on" or "off",
+        (PP_ExtensionCapabilities and PP_ExtensionCapabilities.nampowerAuraAPIUsable) and "on" or "off",
         (PP_UnitXPDllLoaded and PP_PerUser and PP_PerUser.useunitxp_sp3) and "on" or "off"
     ))
 
@@ -542,7 +542,13 @@ local function PPV_DebugBuildReport()
     table.insert(lines, "")
     table.insert(lines, "Runtime")
     table.insert(lines, "Scan: next=" .. tostring(PP_NextScan or "?") .. "s interval=" .. tostring(PP_PerUser and PP_PerUser.scanfreq or "?") .. "s per-frame=" .. tostring(PP_PerUser and PP_PerUser.scanperframe or "?"))
-    table.insert(lines, "Extensions: Nampower=" .. PPV_DebugYesNo(PP_NampowerAPI) .. " SuperWoW=" .. PPV_DebugYesNo(PP_SuperWoW) .. " UnitXP detected=" .. PPV_DebugYesNo(PP_UnitXPDllLoaded) .. " enabled=" .. PPV_DebugYesNo(PP_PerUser and PP_PerUser.useunitxp_sp3))
+    local ext = PP_ExtensionCapabilities or {}
+    table.insert(lines, "Extensions")
+    table.insert(lines, "Nampower: detected=" .. PPV_DebugYesNo(ext.nampowerDetected) .. " versionFn=" .. PPV_DebugYesNo(ext.nampowerVersionFunctionPresent) .. " version=" .. tostring(ext.nampowerVersion or "n/a"))
+    table.insert(lines, "  GetUnitField=" .. PPV_DebugYesNo(ext.getUnitFieldPresent) .. " GetSpellRecField=" .. PPV_DebugYesNo(ext.getSpellRecFieldPresent) .. " aura API usable=" .. PPV_DebugYesNo(ext.nampowerAuraAPIUsable))
+    table.insert(lines, "SuperWoW: detected=" .. PPV_DebugYesNo(ext.superWoWDetected) .. " version=" .. tostring(ext.superWoWVersion or "n/a"))
+    table.insert(lines, "  SpellInfo=" .. PPV_DebugYesNo(ext.spellInfoPresent) .. " SetAutoloot=" .. PPV_DebugYesNo(ext.setAutolootPresent) .. " player GUID returned=" .. PPV_DebugYesNo(ext.playerGUIDReturned) .. " GUID-unit usable=" .. PPV_DebugYesNo(ext.guidUnitUsable))
+    table.insert(lines, "UnitXP: detected=" .. PPV_DebugYesNo(PP_UnitXPDllLoaded) .. " enabled=" .. PPV_DebugYesNo(PP_PerUser and PP_PerUser.useunitxp_sp3))
     table.insert(lines, "Assignment dirty: roster=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.roster) .. " capabilities=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.capabilities) .. " assignments=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.assignments) .. " layout=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.layout))
     table.insert(lines, "Profiler: " .. (PPVPerf.active and ("running [" .. tostring(PPVPerf.label or "baseline") .. "]") or "idle") .. "    Memory=" .. tostring(PallyPower_ShowMemoryUsage and PallyPower_ShowMemoryUsage() or "?") .. " MB")
     table.insert(lines, "")

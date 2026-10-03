@@ -834,24 +834,100 @@ end
 
 local initialized = false
 
--- SuperWoW detection
-local PP_SuperWoW = SetAutoloot and true or false
 local PP_TrackedGUIDs = {}
 
--- Nampower API detection
-local PP_NampowerAPI = false
-local PP_NampowerVersion = nil
-local PP_NAMPOWER_MIN_VERSION = {2, 27, 2}
+-- Optional client extensions are capability-gated rather than brand-gated.
+-- Raw detection evidence stays separate from the capabilities used by runtime
+-- paths so companion DLLs remain optional.
+PP_ExtensionCapabilities = PP_ExtensionCapabilities or {
+    nampowerDetected = false,
+    nampowerVersionFunctionPresent = false,
+    nampowerVersion = nil,
+    getUnitFieldPresent = false,
+    getSpellRecFieldPresent = false,
+    nampowerAuraAPIUsable = false,
+    superWoWDetected = false,
+    superWoWVersion = nil,
+    spellInfoPresent = false,
+    setAutolootPresent = false,
+    playerGUIDReturned = false,
+    playerGUID = nil,
+    guidUnitUsable = false,
+}
 
-if GetNampowerVersion then
-    local major, minor, patch = GetNampowerVersion()
-    patch = patch or 0
-    PP_NampowerVersion = string.format("%d.%d.%d", major, minor, patch)
-    if major > PP_NAMPOWER_MIN_VERSION[1]
-        or (major == PP_NAMPOWER_MIN_VERSION[1] and minor > PP_NAMPOWER_MIN_VERSION[2])
-        or (major == PP_NAMPOWER_MIN_VERSION[1] and minor == PP_NAMPOWER_MIN_VERSION[2] and patch >= PP_NAMPOWER_MIN_VERSION[3]) then
-        PP_NampowerAPI = true
+local function PP_NormalizeGUID(guid)
+    if type(guid) == "string" and string.sub(guid, 1, 2) ~= "0x" then
+        return "0x" .. guid
     end
+    return guid
+end
+
+function PallyPower_RefreshExtensionCapabilities()
+    local state = PP_ExtensionCapabilities
+
+    state.nampowerVersionFunctionPresent = type(GetNampowerVersion) == "function"
+    state.getUnitFieldPresent = type(GetUnitField) == "function"
+    state.getSpellRecFieldPresent = type(GetSpellRecField) == "function"
+    state.nampowerVersion = nil
+    state.nampowerAuraAPIUsable = false
+
+    if state.nampowerVersionFunctionPresent then
+        local ok, major, minor, patch = pcall(GetNampowerVersion)
+        if ok and major ~= nil then
+            state.nampowerVersion = tostring(major) .. "." .. tostring(minor or 0) .. "." .. tostring(patch or 0)
+        end
+    end
+
+    if state.getUnitFieldPresent and state.getSpellRecFieldPresent then
+        local ok, auras = pcall(GetUnitField, "player", "aura")
+        if ok and (auras == nil or type(auras) == "table") then
+            local spellProbeOK = true
+            if type(auras) == "table" then
+                for i = 1, table.getn(auras) do
+                    local spellId = auras[i]
+                    if spellId and spellId > 0 then
+                        spellProbeOK = pcall(GetSpellRecField, spellId, "name")
+                        break
+                    end
+                end
+            end
+            state.nampowerAuraAPIUsable = spellProbeOK and true or false
+        end
+    end
+
+    state.nampowerDetected = state.nampowerVersionFunctionPresent
+        or state.getUnitFieldPresent
+        or state.getSpellRecFieldPresent
+
+    state.superWoWVersion = SUPERWOW_VERSION and tostring(SUPERWOW_VERSION) or nil
+    state.spellInfoPresent = type(SpellInfo) == "function"
+    state.setAutolootPresent = type(SetAutoloot) == "function"
+    state.playerGUIDReturned = false
+    state.playerGUID = nil
+    state.guidUnitUsable = false
+
+    if type(UnitExists) == "function" then
+        local ok, exists, guid = pcall(UnitExists, "player")
+        if ok and exists and guid then
+            guid = PP_NormalizeGUID(guid)
+            state.playerGUIDReturned = true
+            state.playerGUID = guid
+
+            local addressOK, guidExists = pcall(UnitExists, guid)
+            local nameOK, guidName = pcall(UnitName, guid)
+            local playerName = UnitName("player")
+            if addressOK and guidExists and nameOK and guidName and playerName and guidName == playerName then
+                state.guidUnitUsable = true
+            end
+        end
+    end
+
+    state.superWoWDetected = state.superWoWVersion ~= nil
+        or state.spellInfoPresent
+        or state.setAutolootPresent
+        or state.playerGUIDReturned
+
+    return state
 end
 
 PALLYPOWER_GREATERBLESSINGDURATION = 15 * 60
@@ -1608,7 +1684,7 @@ local function PP_UI_UpdateState()
     end
 
     if PP_UI_NampowerState then
-        if PP_NampowerAPI then
+        if PP_ExtensionCapabilities.nampowerAuraAPIUsable then
             PP_UI_NampowerState:SetText(PALLYPOWER_UI_STATUS_ENABLED)
         else
             PP_UI_NampowerState:SetText(PALLYPOWER_UI_STATUS_NOT_DETECTED)
@@ -2249,6 +2325,10 @@ function PallyPower_OnEvent(event,arg1)
 
     PP_AssignmentUIEventDepth = (PP_AssignmentUIEventDepth or 0) + 1
 
+    if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+        PallyPower_RefreshExtensionCapabilities()
+    end
+
     if event == "PLAYER_ENTERING_WORLD" then
         PallyPower_InvalidateAssignmentUI("all")
     elseif event == "PARTY_MEMBERS_CHANGED" or event == "RAID_ROSTER_UPDATE" then
@@ -2369,7 +2449,7 @@ function PallyPower_CheckRighteousFury()
     local buff = "Spell_Holy_SealOfFury"
     
     -- Use Nampower API if available for better performance
-    if PP_NampowerAPI then
+    if PP_ExtensionCapabilities.nampowerAuraAPIUsable then
         local auras = GetUnitField("player", "aura")
         if auras then
             for i = 1, table.getn(auras) do
@@ -2423,7 +2503,7 @@ function PallyPower_CancelSalvationBuff()
     local buff = {"Spell_Holy_SealOfSalvation", "Spell_Holy_GreaterBlessingofSalvation"}
     
     -- Use Nampower API if available for better performance
-    if PP_NampowerAPI then
+    if PP_ExtensionCapabilities.nampowerAuraAPIUsable then
         local auras = GetUnitField("player", "aura")
         if auras then
             for auraIdx = 1, table.getn(auras) do
@@ -3486,7 +3566,7 @@ function PallyPower_SnapshotLocalAuras()
     end
     state.rfActive = false
 
-    if PP_NampowerAPI then
+    if PP_ExtensionCapabilities.nampowerAuraAPIUsable then
         local auras = GetUnitField("player", "aura")
         if auras then
             for i = 1, table.getn(auras) do
@@ -3530,7 +3610,7 @@ function PallyPower_SnapshotLocalAuras()
 
     -- Preserve the exact native RF detection semantics on the non-Nampower
     -- path; RF uses the legacy GetPlayerBuff() scan rather than UnitBuff().
-    if not PP_NampowerAPI then
+    if not PP_ExtensionCapabilities.nampowerAuraAPIUsable then
         state.rfActive = PallyPower_CheckRighteousFury() == true
     end
 
@@ -3569,7 +3649,7 @@ function PallyPower_UpdateLocalAuraState()
         PP_SetSelfBuffBackdrop("Aura", 1, 0, 0)
         PP_SetSelfBuffIcon("Aura", auraIcon)
 
-        if PP_NampowerAPI then
+        if PP_ExtensionCapabilities.nampowerAuraAPIUsable then
             local auraName = AuraNames[auraAssignment]
             if auraName and state.names[auraName] then
                 PP_SetSelfBuffBackdrop("Aura", 0, 1, 0)
@@ -5710,7 +5790,7 @@ function PP_RaidAuraCaptureDiff(unitID, classID, unitName, visible, scanTarget)
 
     -- Preserve the existing Nampower/native aura discovery semantics while
     -- collecting only the normalized Blessing IDs needed by CurrentBuffs.
-    if PP_NampowerAPI then
+    if PP_ExtensionCapabilities.nampowerAuraAPIUsable then
         local auras = GetUnitField(scanTarget, "aura")
         if auras then
             for i = 1, table.getn(auras) do
@@ -5905,12 +5985,10 @@ function PallyPower_ScanRaid()
                     if pet_name then
                         -- Preserve the existing party-pet SuperWoW GUID path.
                         local petScanTarget = petId
-                        if PP_SuperWoW then
+                        if PP_ExtensionCapabilities.guidUnitUsable then
                             local exists, guid = UnitExists(petId)
                             if exists and guid then
-                                if type(guid) == "string" and string.sub(guid, 1, 2) ~= "0x" then
-                                    guid = "0x" .. guid
-                                end
+                                guid = PP_NormalizeGUID(guid)
                                 petScanTarget = guid
                             end
                         end
@@ -5921,12 +5999,10 @@ function PallyPower_ScanRaid()
 
             -- Preserve the existing SuperWoW GUID path for player units.
             local scanTarget = unit
-            if PP_SuperWoW then
+            if PP_ExtensionCapabilities.guidUnitUsable then
                 local exists, guid = UnitExists(unit)
                 if exists and guid then
-                    if type(guid) == "string" and string.sub(guid, 1, 2) ~= "0x" then
-                        guid = "0x" .. guid
-                    end
+                    guid = PP_NormalizeGUID(guid)
                     scanTarget = guid
                 end
             end
@@ -6813,7 +6889,7 @@ function PallyPower_CastSeal()
         local alreadyActive = false
         if SealIcons[sealId] then
             -- Use Nampower API if available for better performance
-            if PP_NampowerAPI then
+            if PP_ExtensionCapabilities.nampowerAuraAPIUsable then
                 local auras = GetUnitField("player", "aura")
                 if auras and SealNames[sealId] then
                     local targetSealName = SealNames[sealId]
@@ -6857,27 +6933,26 @@ end
 ---------------------------------------------------
 -- GUID Tracking System (v1.38 - like Cursive)
 ---------------------------------------------------
-if PP_SuperWoW then
-  local PP_GUIDTracker = CreateFrame("Frame")
-  PP_GUIDTracker:RegisterEvent("PLAYER_TARGET_CHANGED")
-  PP_GUIDTracker:RegisterEvent("UNIT_COMBAT")
-  PP_GUIDTracker:RegisterEvent("UNIT_MODEL_CHANGED")
-  
-  PP_GUIDTracker:SetScript("OnEvent", function()
+local PP_GUIDTracker = CreateFrame("Frame")
+PP_GUIDTracker:RegisterEvent("PLAYER_TARGET_CHANGED")
+PP_GUIDTracker:RegisterEvent("UNIT_COMBAT")
+PP_GUIDTracker:RegisterEvent("UNIT_MODEL_CHANGED")
+
+PP_GUIDTracker:SetScript("OnEvent", function()
+    if not PP_ExtensionCapabilities.guidUnitUsable then
+      return
+    end
+
     if event == "PLAYER_TARGET_CHANGED" then
       local exists, guid = UnitExists("target")
       if exists and guid and not UnitIsDead("target") then
-        if type(guid) == "string" and string.sub(guid, 1, 2) ~= "0x" then
-          guid = "0x" .. guid
-        end
+        guid = PP_NormalizeGUID(guid)
         PP_TrackedGUIDs[guid] = GetTime()
       end
     elseif event == "UNIT_COMBAT" or event == "UNIT_MODEL_CHANGED" then
       local guid = arg1
       if guid then
-        if type(guid) == "string" and string.sub(guid, 1, 2) ~= "0x" then
-          guid = "0x" .. guid
-        end
+        guid = PP_NormalizeGUID(guid)
         if UnitExists(guid) and not UnitIsDead(guid) then
           PP_TrackedGUIDs[guid] = GetTime()
         end
@@ -6891,8 +6966,7 @@ if PP_SuperWoW then
         PP_TrackedGUIDs[guid] = nil
       end
     end
-  end)
-end
+end)
 
 -- Development test/debug entry points are routed through /pp test and /pp debug.
 
