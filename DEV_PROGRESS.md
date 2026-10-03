@@ -71,6 +71,62 @@
 - Goal: execute the PallyPowerVanilla 2.0 performance-core rewrite from the completed audit while preserving native WoW 1.12.1 / Lua 5.0 compatibility, existing user-facing behavior, SavedVariables and PLPWR communication compatibility. A later 3.0 line will reuse the 2.0 core with ClassicAPI as a hard requirement where it can replace the current Nampower/SuperWoW/UnitXP-era extension paths.
 - Current scope boundary: 2.0 implementation may now proceed, but only in the chat-sized slices recorded below. Each slice must end at a coherent committed/testable checkpoint with `DEV_PROGRESS.md` updated before moving on. Preserve stable `main`. ClassicAPI hard dependency remains deferred to 3.0; do not allow 2.0 implementation to become DLL-dependent.
 
+## Pre-Step-9 Extension Capability Detection Correction
+
+This correction is required **before Step 9**. It is a focused compatibility correction to the current Step 8 runtime environment detection; it is not Step 9 work.
+
+### Findings
+- Current SuperWoW detection is a one-time top-level check: `local PP_SuperWoW = SetAutoloot and true or false`. Step 8 then uses this brand flag to decide whether player/pet scans should switch from unit tokens to GUID scan targets.
+- Current Nampower detection is also one-time at top-level. `PP_NampowerAPI` becomes true only when `GetNampowerVersion()` exists and reports at least `2.27.2`. Step 7/8 then uses that single flag to decide whether aura discovery uses `GetUnitField(..., "aura")` + `GetSpellRecField(..., "name")` instead of the native `UnitBuff` fallback.
+- The maintained Nampower API documents `GetNampowerVersion`, `GetUnitField`, and `GetSpellRecField` independently. PallyPower's aura path needs the latter two capabilities; the version number is useful diagnostic metadata but should not be the sole master switch for those calls.
+- Modern SuperWoW exposes explicit runtime/version information, and the capability PallyPower actually needs is GUID-aware unit handling: `UnitExists(unit)` returning a GUID and that GUID being usable as a unit target. SuperWoW functions/globals can be unavailable during early addon loading and become available later, so a permanent top-level snapshot is not a reliable capability boundary.
+- Runtime evidence on `1.11.52-dev` showed `Nampower=no SuperWoW=no UnitXP detected=yes enabled=yes`. Step 8 tests performed so far therefore validated the native `UnitBuff` path. Do not assume from this debug line alone that the companion DLLs were or were not installed; first correct the detection and expose the raw capability evidence.
+- The current native fallback has behaved correctly in the Step 8 runtime tests already recorded below: unchanged solo persistence, self-Blessing add/removal, and four-member party add all passed.
+
+### Exact implementation required
+1. Replace the two immutable top-level brand checks with one small extension-capability refresh function, called after the client/addons have finished loading (at minimum `PLAYER_LOGIN` and/or `PLAYER_ENTERING_WORLD`; an early initial probe is acceptable, but it must be refreshed later before scan paths depend on it).
+2. Keep product/detection metadata separate from usable capabilities. Suggested state names may vary, but ownership must distinguish at least:
+   - Nampower detected/version metadata.
+   - Nampower aura API usable.
+   - SuperWoW detected/version metadata.
+   - GUID-unit capability usable.
+   - existing UnitXP detection/enabled state.
+3. Nampower aura capability must be based on the functions the runtime path actually calls:
+   - `type(GetUnitField) == "function"`
+   - `type(GetSpellRecField) == "function"`
+   - perform only harmless guarded/`pcall` probes when needed after login/world entry; absence or probe failure must leave the native path selected.
+   - `GetNampowerVersion` should populate version/detection metadata when available, but the old `>= 2.27.2` version comparison must no longer be the sole gate for the Step 7/8 aura API path unless a concrete API requirement is documented for a specific call.
+4. SuperWoW/GUID capability must be based on the behavior PallyPower actually consumes:
+   - record `SUPERWOW_VERSION` when present.
+   - retain legacy evidence such as `SpellInfo` / `SetAutoloot` only as detection metadata/fallback evidence, not as the sole gameplay capability gate.
+   - probe `UnitExists("player")` for a second GUID return after login/world entry.
+   - normalize the GUID exactly as the existing scan code does and verify, with a guarded call, that it can be used as a unit token before enabling the GUID scan path.
+   - scan code should branch on the verified GUID-unit capability, not on a generic `PP_SuperWoW` brand boolean.
+5. Preserve graceful absence. On a stock client, or with any subset of companion DLLs missing, every probe must safely resolve false and existing native behavior must continue without Lua errors. Do not make Nampower, SuperWoW, UnitXP, SuperAPI, or any companion addon a hard dependency.
+6. Update every existing runtime branch that currently reads `PP_NampowerAPI` or `PP_SuperWoW` so it reads the relevant capability instead:
+   - local aura snapshot / RF / Salvation / Seal paths that actually use Nampower aura/spell-record APIs -> Nampower aura capability.
+   - persistent raid player/pet scan GUID target selection -> GUID-unit capability.
+   - do not broaden this correction into unrelated extension cleanup.
+7. Expand the dev-only `/pp debug` Extensions section so one pasted snapshot shows both raw evidence and final capability decisions, for example:
+   - Nampower version function present yes/no; version value when available.
+   - `GetUnitField` present yes/no.
+   - `GetSpellRecField` present yes/no.
+   - Nampower aura API usable yes/no.
+   - `SUPERWOW_VERSION` value/presence.
+   - `SpellInfo` present yes/no.
+   - `SetAutoloot` present yes/no.
+   - player GUID returned yes/no.
+   - GUID-unit addressing usable yes/no.
+   - UnitXP detected/enabled as already reported.
+8. This is runtime code, so follow the rulebook version rule. Starting from current `1.11.52-dev`, the next valid corrected runtime build should be `1.11.53-dev` unless another committed runtime revision legitimately consumes that version first.
+9. Static review must confirm all extension calls remain guarded and the stock/native fallback is intact. Run the canonical Lua 5.0.3 checker if the executable environment exposes it; otherwise record the concrete limitation and do not claim a compiler pass.
+10. Runtime gate before Step 9:
+    - use `/pp debug` on the user's normal client and confirm the raw evidence/capability result for Nampower, SuperWoW GUID units and UnitXP.
+    - if Nampower aura capability is usable, repeat a short Step 8 Blessing add/remove scan and confirm persistent/local IDs agree after a completed scan.
+    - if GUID-unit capability is usable, repeat party scanning and include a Hunter pet where practical to exercise the player/pet GUID target path.
+    - then finish the still-pending Step 8 removal, visibility/range, Buff Bar, normal Buff Button and AutoBless checks.
+    - **Do not begin Step 9 until this correction and the remaining Step 8 runtime gate pass.**
+
 ## Current Design / Development Contract
 
 ### Architecture / Ownership
@@ -761,4 +817,4 @@ Treat each numbered item as the default maximum scope for one development chat. 
 - 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
 
 ## Exact Next Step
-**Validate Step 8 on current dev `1.11.52-dev` / `09ff34b030dbd34c01dff9184df52618464978de` using the visual `/pp debug` gate above.** Do not begin Step 9 until that runtime validation is good. Once accepted, begin **Step 9 — Incremental class aggregates only** from the unchanged Step 8 persistent raid-aura state. Do not begin Step 10 timer rewrite or any later 2.0 slice. Preserve Step 8 completed-sweep atomicity and persistent `CurrentBuffs` record identity, the Step 7 player-only local aura path, the Step 6 Buff Bar layout cache/geometry ownership, the Step 1 profiler/baseline, Step 2 SpellCatalog lifecycle, Step 3 AutoBless decoupling, Step 4/5 Assignment invalidation/render ownership, inventory behavior, protocol/SavedVariable compatibility and stable `main`.
+**Pre-Step-9 extension capability detection correction only.** Implement the exact correction specified in `Pre-Step-9 Extension Capability Detection Correction` above, starting from current `dev`. Do not begin Step 9 in the same implementation pass. Preserve the already-passing Step 8 persistent state behavior and all Step 6/7 ownership boundaries. After the corrected runtime build is statically checked, use `/pp debug` to establish which Nampower/SuperWoW/UnitXP capabilities are actually available in the target client, exercise the applicable enhanced Step 8 paths, and finish the remaining Step 8 runtime gate. Only after that gate passes may **Step 9 — Incremental class aggregates only** begin. Do not begin Step 10 or later work.
