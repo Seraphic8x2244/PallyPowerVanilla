@@ -913,10 +913,12 @@ function PallyPower_RefreshExtensionCapabilities()
             state.playerGUIDReturned = true
             state.playerGUID = guid
 
+            -- UnitExists(guid) is the capability we actually consume: passing
+            -- the normalized GUID back as a unit token must resolve safely.
+            -- Do not require unrelated unit APIs such as UnitName(guid), which
+            -- can reject GUID tokens even when GUID addressing itself works.
             local addressOK, guidExists = pcall(UnitExists, guid)
-            local nameOK, guidName = pcall(UnitName, guid)
-            local playerName = UnitName("player")
-            if addressOK and guidExists and nameOK and guidName and playerName and guidName == playerName then
+            if addressOK and guidExists then
                 state.guidUnitUsable = true
             end
         end
