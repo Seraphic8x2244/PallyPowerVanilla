@@ -412,6 +412,8 @@ local PPV_DebugFrame = nil
 local PPV_DebugEditBox = nil
 local PPV_DebugLastGeneration = nil
 local PPV_DebugLastPlayerStats = nil
+local PPV_DebugDisplayedText = ""
+local PPV_DebugWritingText = false
 
 local function PPV_DebugYesNo(value)
     if value then return "yes" end
@@ -564,9 +566,21 @@ end
 
 local function PPV_DebugRefresh()
     if PPV_DebugEditBox then
-        PPV_DebugEditBox:SetText(PPV_DebugBuildReport())
+        PPV_DebugDisplayedText = PPV_DebugBuildReport()
+        PPV_DebugWritingText = true
+        PPV_DebugEditBox:SetText(PPV_DebugDisplayedText)
+        PPV_DebugWritingText = false
         PPV_DebugEditBox:SetCursorPosition(0)
         PPV_DebugEditBox:ClearFocus()
+    end
+end
+
+-- Called by the Step 8 scan owner after all completed-scan side effects have
+-- finished. Keep this dev-only display synchronized to completed generations
+-- without adding a second timer or polling path.
+function PPV_Debug_OnRaidAuraScanFinished()
+    if PPV_DebugFrame and PPV_DebugFrame:IsVisible() then
+        PPV_DebugRefresh()
     end
 end
 
@@ -609,7 +623,7 @@ local function PPV_DebugCreateFrame()
 
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     hint:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, -45)
-    hint:SetText("Refresh captures a new snapshot. Select All, then Ctrl+C to copy.")
+    hint:SetText("Updates after each completed scan. Select All, then Ctrl+C to copy.")
 
     local textFrame = CreateFrame("Frame", nil, frame)
     textFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -66)
@@ -649,6 +663,19 @@ local function PPV_DebugCreateFrame()
     editBox:SetScript("OnEscapePressed", function()
         this:ClearFocus()
         if PPV_DebugFrame then PPV_DebugFrame:Hide() end
+    end)
+    editBox:SetScript("OnTextChanged", function()
+        if PPV_DebugWritingText then
+            return
+        end
+
+        -- The EditBox is used only because Vanilla has no selectable FontString.
+        -- Reject user edits while preserving focus/selection for Ctrl+C.
+        if this:GetText() ~= PPV_DebugDisplayedText then
+            PPV_DebugWritingText = true
+            this:SetText(PPV_DebugDisplayedText)
+            PPV_DebugWritingText = false
+        end
     end)
     scrollFrame:SetScrollChild(editBox)
     PPV_DebugEditBox = editBox

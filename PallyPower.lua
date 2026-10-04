@@ -6025,6 +6025,10 @@ function PallyPower_ScanRaid()
     PP_NextScan = PP_PerUser.scanfreq
     PallyPower_ScanInventory()
     PallyPower_UpdateUI()
+
+    if type(PPV_Debug_OnRaidAuraScanFinished) == "function" then
+        PPV_Debug_OnRaidAuraScanFinished()
+    end
 end
 
 function PallyPower_GetClassID(class)
