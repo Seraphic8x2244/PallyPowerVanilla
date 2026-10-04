@@ -626,10 +626,18 @@ local function PPV_DebugCreateFrame()
     textFrame:SetBackdropColor(0.02, 0.02, 0.02, 1)
     textFrame:SetBackdropBorderColor(0.45, 0.45, 0.45, 1)
 
-    local editBox = CreateFrame("EditBox", "PallyPowerDevelopmentDebugText", textFrame)
-    editBox:SetPoint("TOPLEFT", textFrame, "TOPLEFT", 10, -10)
-    editBox:SetWidth(612)
-    editBox:SetHeight(330)
+    -- Keep the copyable report clipped inside its panel. The report can grow
+    -- beyond the visible area as diagnostics are added, so host the multiline
+    -- EditBox in Vanilla's standard scroll-frame template rather than allowing
+    -- the EditBox text to draw over the controls below it.
+    local scrollFrame = CreateFrame("ScrollFrame", "PallyPowerDevelopmentDebugScrollFrame", textFrame, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", textFrame, "TOPLEFT", 10, -10)
+    scrollFrame:SetWidth(586)
+    scrollFrame:SetHeight(330)
+
+    local editBox = CreateFrame("EditBox", "PallyPowerDevelopmentDebugText", scrollFrame)
+    editBox:SetWidth(566)
+    editBox:SetHeight(620)
     editBox:SetMultiLine(true)
     editBox:SetAutoFocus(false)
     editBox:SetMaxLetters(20000)
@@ -642,6 +650,7 @@ local function PPV_DebugCreateFrame()
         this:ClearFocus()
         if PPV_DebugFrame then PPV_DebugFrame:Hide() end
     end)
+    scrollFrame:SetScrollChild(editBox)
     PPV_DebugEditBox = editBox
 
     PPV_DebugCreateButton(frame, "Refresh", 90, 28, function()
