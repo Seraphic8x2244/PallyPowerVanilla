@@ -1476,8 +1476,13 @@ function PallyPower_ShowMemoryUsage()
 end
 
 function PallyPower_CheckTargetLoS(target, maxRange)
-    if not PP_PerUser or PP_PerUser.useunitxp_sp3 == false then return true end -- If we are not using UnitXP.dll, we assume we are in LoS
     if not target then target = "target" end
+    -- Self is always connected, visible, in line of sight and at zero range.
+    -- Do not ask UnitXP to resolve player-to-player geometry; some extension
+    -- builds do not return a useful truthy inSight result for that degenerate
+    -- case, which can make AutoBless reject a valid solo self-cast.
+    if target == "player" then return true end
+    if not PP_PerUser or PP_PerUser.useunitxp_sp3 == false then return true end -- If we are not using UnitXP.dll, we assume we are in LoS
     if not maxRange then maxRange = PALLYPOWER_DEFAULTBLESSINGRANGE end -- Fallback only; cast paths pass the resolved spell range
     
     local function debugLog(msg)
@@ -1528,6 +1533,8 @@ end
 
 -- Helper function to get distance to a unit (returns nil if UnitXP not available or unit invalid)
 function PallyPower_GetUnitDistance(unit)
+    if unit == "player" then return 0 end
+
     local function debugLog(msg)
         if OGAALogger and OGAALogger.AddMessage and type(OGAALogger.AddMessage) == "function" then
             OGAALogger.AddMessage("PallyPower_Dist", msg)
