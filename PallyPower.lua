@@ -6578,9 +6578,11 @@ function PallyPower_AutoBless(mousebutton)
         end
 
         PP_Debug("Casting " .. btn.buffID .. " on " .. btn.classID)
+        local autoSpellBookID = nil
         if (mousebutton == "Hotkey1") then
-            if GetSpellCooldown(rankInfo[btn.buffID]["idsmall"], BOOKTYPE_SPELL) < 1 then
-                CastSpell(rankInfo[btn.buffID]["idsmall"], BOOKTYPE_SPELL)
+            autoSpellBookID = rankInfo[btn.buffID]["idsmall"]
+            if GetSpellCooldown(autoSpellBookID, BOOKTYPE_SPELL) < 1 then
+                CastSpell(autoSpellBookID, BOOKTYPE_SPELL)
                 castspellid = btn.buffID
                 PallyPower_AutoBlessTraceUpdate(
                     "spell-started",
@@ -6594,8 +6596,9 @@ function PallyPower_AutoBless(mousebutton)
                 return
             end
         elseif (mousebutton == "Hotkey2") then
-            if GetSpellCooldown(rankInfo[btn.buffID]["id"], BOOKTYPE_SPELL) < 1 then
-                CastSpell(rankInfo[btn.buffID]["id"], BOOKTYPE_SPELL)
+            autoSpellBookID = rankInfo[btn.buffID]["id"]
+            if GetSpellCooldown(autoSpellBookID, BOOKTYPE_SPELL) < 1 then
+                CastSpell(autoSpellBookID, BOOKTYPE_SPELL)
                 castspellid = btn.buffID
                 PallyPower_AutoBlessTraceUpdate(
                     "spell-started",
@@ -6735,11 +6738,42 @@ function PallyPower_AutoBless(mousebutton)
                             end
                         end    
 
-                        SpellTargetUnit(unit)
-                        PallyPower_AutoBlessTraceUpdate(
-                            "targeted",
-                            "unit=" .. tostring(unit) .. " name=" .. tostring(stats.name)
-                        )
+                        if unit == "player" then
+                            -- Use Vanilla's explicit self-cast form. The Step 8
+                            -- runtime trace showed SpellTargetUnit("player")
+                            -- can be called without completing the Blessing.
+                            if SpellIsTargeting and SpellIsTargeting() then
+                                SpellStopTargeting()
+                            end
+
+                            local selfSpellName, selfSpellRank = GetSpellName(autoSpellBookID, BOOKTYPE_SPELL)
+                            if not selfSpellName then
+                                PallyPower_AutoBlessTraceUpdate(
+                                    "self-spell-name-missing",
+                                    "slot=" .. tostring(autoSpellBookID)
+                                )
+                                PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
+                                return
+                            end
+
+                            local selfCastName = selfSpellName
+                            if selfSpellRank and selfSpellRank ~= "" then
+                                selfCastName = selfSpellName .. "(" .. selfSpellRank .. ")"
+                            end
+
+                            CastSpellByName(selfCastName, 1)
+                            PallyPower_AutoBlessTraceUpdate(
+                                "self-cast",
+                                "spell=" .. tostring(selfCastName)
+                                    .. " unit=player name=" .. tostring(stats.name)
+                            )
+                        else
+                            SpellTargetUnit(unit)
+                            PallyPower_AutoBlessTraceUpdate(
+                                "targeted",
+                                "unit=" .. tostring(unit) .. " name=" .. tostring(stats.name)
+                            )
+                        end
 
                         PP_BeginBlessingTimerTxn()
                         PP_NextScan = 1
