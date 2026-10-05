@@ -4996,9 +4996,28 @@ function PallyPowerBuffBar_MouseDown(arg1)
     end
 end
 
+PP_AutoBlessTrace = PP_AutoBlessTrace or {
+    sequence = 0,
+    stage = "none",
+    detail = "",
+}
+
+local function PallyPower_AutoBlessTraceUpdate(stage, detail)
+    local trace = PP_AutoBlessTrace
+    trace.sequence = (trace.sequence or 0) + 1
+    trace.stage = stage or "?"
+    trace.detail = detail or ""
+    trace.time = GetTime()
+
+    if type(PPV_Debug_OnAutoBlessTraceChanged) == "function" then
+        PPV_Debug_OnAutoBlessTraceChanged()
+    end
+end
+
 local function PallyPowerBuffBar_TitleClick(mouseBtn)
     if mouseBtn == "LeftButton" then
         -- Reuse the existing Auto Greater Blessing key path.
+        PallyPower_AutoBlessTraceUpdate("title-left", "calling Hotkey2")
         PallyPower_AutoBless("Hotkey2")
     elseif mouseBtn == "RightButton" then
         PallyPowerFrame:Show()
@@ -6477,6 +6496,12 @@ end
 
 function PallyPower_AutoBless(mousebutton)
     local playerName = UnitName("player")
+    PallyPower_AutoBlessTraceUpdate(
+        "entered",
+        "mode=" .. tostring(mousebutton)
+            .. " player=" .. tostring(playerName)
+            .. " lastSlot=" .. tostring(lastClassBtn)
+    )
     local rankInfo
     if PP_TestMode then
         rankInfo = AllPallys[playerName]
@@ -6503,12 +6528,24 @@ function PallyPower_AutoBless(mousebutton)
     local assignments = PallyPower_Assignments[playerName]
     local attempts = 0
     local btn = nil
+    local searchSummary = ""
     while attempts < 10 do
         classbtn = lastClassBtn
         btn = PallyPowerUIRefs.buffButtons[classbtn]
-        if btn and type(btn.classID) == "number" and assignments
-            and assignments[btn.classID] and assignments[btn.classID] ~= -1
-            and PallyPower_AutoBlessButtonNeedsAction(btn, mousebutton) then
+        local classID = btn and btn.classID or nil
+        local buffID = btn and btn.buffID or nil
+        local assigned = type(classID) == "number" and assignments and assignments[classID] or nil
+        local needsAction = false
+        if btn and type(classID) == "number" and assigned and assigned ~= -1 then
+            needsAction = PallyPower_AutoBlessButtonNeedsAction(btn, mousebutton)
+        end
+        searchSummary = searchSummary
+            .. (attempts > 0 and ";" or "")
+            .. tostring(classbtn) .. "/c=" .. tostring(classID)
+            .. "/b=" .. tostring(buffID)
+            .. "/a=" .. tostring(assigned)
+            .. "/need=" .. tostring(needsAction)
+        if needsAction then
             break
         end
 
@@ -6521,12 +6558,23 @@ function PallyPower_AutoBless(mousebutton)
     lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
 
     if btn then
+        PallyPower_AutoBlessTraceUpdate(
+            "selected",
+            "slot=" .. tostring(classbtn)
+                .. " class=" .. tostring(btn.classID)
+                .. " buff=" .. tostring(btn.buffID)
+                .. " search=" .. searchSummary
+        )
     
         local ppFriendlyTargetCleared = PallyPower_SaveFriendlyTarget()
         local castspellid = -1
         local castspelloverride = -1
         
-        if not rankInfo or rankInfo[btn.buffID] == nil then 
+        if not rankInfo or rankInfo[btn.buffID] == nil then
+            PallyPower_AutoBlessTraceUpdate(
+                "rank-missing",
+                "class=" .. tostring(btn.classID) .. " buff=" .. tostring(btn.buffID)
+            )
             lastClassBtn = lastClassBtn + 1
             -- classID == 9 is for pets
             if (lastClassBtn > 10 or btn.classID == 9) then lastClassBtn = 1 end 
@@ -6538,7 +6586,14 @@ function PallyPower_AutoBless(mousebutton)
             if GetSpellCooldown(rankInfo[btn.buffID]["idsmall"], BOOKTYPE_SPELL) < 1 then
                 CastSpell(rankInfo[btn.buffID]["idsmall"], BOOKTYPE_SPELL)
                 castspellid = btn.buffID
+                PallyPower_AutoBlessTraceUpdate(
+                    "spell-started",
+                    "mode=Hotkey1 spell=" .. tostring(rankInfo[btn.buffID]["idsmall"])
+                        .. " class=" .. tostring(btn.classID)
+                        .. " buff=" .. tostring(btn.buffID)
+                )
             else
+                PallyPower_AutoBlessTraceUpdate("cooldown", "mode=Hotkey1")
                 PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                 return
             end
@@ -6546,7 +6601,14 @@ function PallyPower_AutoBless(mousebutton)
             if GetSpellCooldown(rankInfo[btn.buffID]["id"], BOOKTYPE_SPELL) < 1 then
                 CastSpell(rankInfo[btn.buffID]["id"], BOOKTYPE_SPELL)
                 castspellid = btn.buffID
+                PallyPower_AutoBlessTraceUpdate(
+                    "spell-started",
+                    "mode=Hotkey2 spell=" .. tostring(rankInfo[btn.buffID]["id"])
+                        .. " class=" .. tostring(btn.classID)
+                        .. " buff=" .. tostring(btn.buffID)
+                )
             else
+                PallyPower_AutoBlessTraceUpdate("cooldown", "mode=Hotkey2")
                 PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
                 return
             end
@@ -6635,11 +6697,27 @@ function PallyPower_AutoBless(mousebutton)
                     local rangeType = (castspelloverride ~= -1) and PALLYPOWER_SMALLBLESSING or blessingType
                     local blessingRange = PallyPower_GetBlessingRange(rangeBlessing, rangeType)
 
-                    if
-                            SpellCanTargetUnit(unit) and (not UnitIsDeadOrGhost(unit)) and PallyPower_CheckTargetLoS(unit, blessingRange) and
-                                not (RecentCast and string.find(table.concat(LastCastOn[btn.classID], " "), unit)) and 
-                                (not PallyPower_CastingSalvationOnTank(unit, castspellid, castspelloverride))
-                    then
+                    local canTarget = SpellCanTargetUnit(unit)
+                    local notDead = not UnitIsDeadOrGhost(unit)
+                    local hasLoS = PallyPower_CheckTargetLoS(unit, blessingRange)
+                    local lastCastString = LastCastOn[btn.classID] and table.concat(LastCastOn[btn.classID], " ") or ""
+                    local notRecent = not (RecentCast and string.find(lastCastString, unit))
+                    local notSalvTank = not PallyPower_CastingSalvationOnTank(unit, castspellid, castspelloverride)
+
+                    PallyPower_AutoBlessTraceUpdate(
+                        "candidate",
+                        "unit=" .. tostring(unit)
+                            .. " name=" .. tostring(stats.name)
+                            .. " visible=" .. tostring(stats.visible)
+                            .. " canTarget=" .. tostring(canTarget)
+                            .. " alive=" .. tostring(notDead)
+                            .. " los=" .. tostring(hasLoS)
+                            .. " recentOK=" .. tostring(notRecent)
+                            .. " salvOK=" .. tostring(notSalvTank)
+                            .. " override=" .. tostring(GetNormalBlessings(UnitName("player"), btn.classID, stats.name))
+                    )
+
+                    if canTarget and notDead and hasLoS and notRecent and notSalvTank then
                         PP_Debug("Trying to cast on " .. unit)
                         local blessing = GetNormalBlessings(UnitName("player"),btn.classID, stats.name)
                         if blessing ~= -1 and mousebutton == "Hotkey1" then
@@ -6651,6 +6729,10 @@ function PallyPower_AutoBless(mousebutton)
                         end    
 
                         SpellTargetUnit(unit)
+                        PallyPower_AutoBlessTraceUpdate(
+                            "targeted",
+                            "unit=" .. tostring(unit) .. " name=" .. tostring(stats.name)
+                        )
 
                         PP_BeginBlessingTimerTxn()
                         PP_NextScan = 1
@@ -6729,6 +6811,10 @@ function PallyPower_AutoBless(mousebutton)
                 end
             end
         end
+        PallyPower_AutoBlessTraceUpdate(
+            "no-target",
+            "class=" .. tostring(btn.classID) .. " buff=" .. tostring(btn.buffID)
+        )
         SpellStopTargeting()
         PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
         PallyPower_ShowBuffFeedback(
@@ -6739,6 +6825,10 @@ function PallyPower_AutoBless(mousebutton)
         -- classID == 9 is for pets
         if (lastClassBtn > 10 or btn.classID == 9) then lastClassBtn = 1 end 
     else
+        PallyPower_AutoBlessTraceUpdate(
+            "no-actionable-class",
+            "search=" .. searchSummary
+        )
         -- No valid visible assignment exists. Keep the cursor at the next
         -- candidate selected by the bounded search above rather than trapping
         -- AutoBless on slot 1.

@@ -551,6 +551,9 @@ local function PPV_DebugBuildReport()
     table.insert(lines, "SuperWoW: detected=" .. PPV_DebugYesNo(ext.superWoWDetected) .. " version=" .. tostring(ext.superWoWVersion or "n/a"))
     table.insert(lines, "  SpellInfo=" .. PPV_DebugYesNo(ext.spellInfoPresent) .. " SetAutoloot=" .. PPV_DebugYesNo(ext.setAutolootPresent) .. " player GUID returned=" .. PPV_DebugYesNo(ext.playerGUIDReturned) .. " GUID-unit usable=" .. PPV_DebugYesNo(ext.guidUnitUsable))
     table.insert(lines, "UnitXP: detected=" .. PPV_DebugYesNo(PP_UnitXPDllLoaded) .. " enabled=" .. PPV_DebugYesNo(PP_PerUser and PP_PerUser.useunitxp_sp3))
+    local autoTrace = PP_AutoBlessTrace or {}
+    table.insert(lines, "AutoBless trace: #" .. tostring(autoTrace.sequence or 0) .. " stage=" .. tostring(autoTrace.stage or "none"))
+    table.insert(lines, "  " .. tostring(autoTrace.detail or ""))
     table.insert(lines, "Assignment dirty: roster=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.roster) .. " capabilities=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.capabilities) .. " assignments=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.assignments) .. " layout=" .. PPV_DebugYesNo(PP_AssignmentUIDirty and PP_AssignmentUIDirty.layout))
     table.insert(lines, "Profiler: " .. (PPVPerf.active and ("running [" .. tostring(PPVPerf.label or "baseline") .. "]") or "idle") .. "    Memory=" .. tostring(PallyPower_ShowMemoryUsage and PallyPower_ShowMemoryUsage() or "?") .. " MB")
     table.insert(lines, "")
@@ -579,6 +582,12 @@ end
 -- finished. Keep this dev-only display synchronized to completed generations
 -- without adding a second timer or polling path.
 function PPV_Debug_OnRaidAuraScanFinished()
+    if PPV_DebugFrame and PPV_DebugFrame:IsVisible() then
+        PPV_DebugRefresh()
+    end
+end
+
+function PPV_Debug_OnAutoBlessTraceChanged()
     if PPV_DebugFrame and PPV_DebugFrame:IsVisible() then
         PPV_DebugRefresh()
     end
