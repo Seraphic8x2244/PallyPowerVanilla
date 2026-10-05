@@ -6698,7 +6698,11 @@ function PallyPower_AutoBless(mousebutton)
                     local rangeType = (castspelloverride ~= -1) and PALLYPOWER_SMALLBLESSING or blessingType
                     local blessingRange = PallyPower_GetBlessingRange(rangeBlessing, rangeType)
 
-                    local canTarget = SpellCanTargetUnit(unit)
+                    -- Vanilla can return nil from SpellCanTargetUnit("player")
+                    -- even for a valid helpful self-cast. Once the Blessing has
+                    -- been started, self is an inherently valid target; retain
+                    -- the API gate for every non-player unit.
+                    local canTarget = (unit == "player") or SpellCanTargetUnit(unit)
                     local notDead = not UnitIsDeadOrGhost(unit)
                     local hasLoS = PallyPower_CheckTargetLoS(unit, blessingRange)
                     local lastCastString = LastCastOn[btn.classID] and table.concat(LastCastOn[btn.classID], " ") or ""
