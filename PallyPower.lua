@@ -6453,13 +6453,31 @@ function PallyPower_AutoBless(mousebutton)
 
     DoEmote("STAND") -- Force player stand
 
-    classbtn = lastClassBtn
-    lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
-    local btn = PallyPowerUIRefs.buffButtons[classbtn]
+    -- lastClassBtn persists between AutoBless presses so repeated use can
+    -- move through the visible class buttons. Buff Bar rebuilds deliberately
+    -- reset unused slots to table sentinels, though, and the legacy fallback
+    -- below used to snap an invalid slot back to 1 and return without doing
+    -- anything. Skip those invalid/hidden slots in this same invocation.
+    local assignments = PallyPower_Assignments[playerName]
+    local attempts = 0
+    local btn = nil
+    while attempts < 10 do
+        classbtn = lastClassBtn
+        btn = PallyPowerUIRefs.buffButtons[classbtn]
+        if btn and type(btn.classID) == "number" and assignments
+            and assignments[btn.classID] and assignments[btn.classID] ~= -1 then
+            break
+        end
 
-    if (btn ~= nil and btn.classID and 
-        PallyPower_Assignments[UnitName("player")][btn.classID] and 
-        PallyPower_Assignments[UnitName("player")][btn.classID] ~= -1) then
+        lastClassBtn = lastClassBtn + 1
+        if lastClassBtn > 10 then lastClassBtn = 1 end
+        attempts = attempts + 1
+        btn = nil
+    end
+
+    lastClassBtnTime = PALLYPOWER_RESTARTAUTOBLESS
+
+    if btn then
     
         local ppFriendlyTargetCleared = PallyPower_SaveFriendlyTarget()
         local castspellid = -1
@@ -6678,7 +6696,9 @@ function PallyPower_AutoBless(mousebutton)
         -- classID == 9 is for pets
         if (lastClassBtn > 10 or btn.classID == 9) then lastClassBtn = 1 end 
     else
-        lastClassBtn = 1
+        -- No valid visible assignment exists. Keep the cursor at the next
+        -- candidate selected by the bounded search above rather than trapping
+        -- AutoBless on slot 1.
     end
 end
 
