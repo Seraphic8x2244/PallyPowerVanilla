@@ -6155,8 +6155,6 @@ function PallyPowerBuffButton_OnClick(btn, mousebtn)
         SetCVar("autoSelfCast", "0")
     end
 
-    DoEmote("STAND") -- Force player stand
-
     local ppFriendlyTargetCleared = PallyPower_SaveFriendlyTarget()
     local castspellid = -1
     local castspelloverride = -1    
@@ -6517,8 +6515,6 @@ function PallyPower_AutoBless(mousebutton)
         RestorSelfAutoCast = true
         SetCVar("autoSelfCast", "0")
     end
-
-    DoEmote("STAND") -- Force player stand
 
     -- One AutoBless invocation should find an actionable class, not merely
     -- the next assigned Buff Bar slot. Skip hidden/recycled slots and classes
