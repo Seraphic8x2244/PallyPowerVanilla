@@ -4989,7 +4989,17 @@ function PallyPowerBuffBar_MouseDown(arg1)
     end
 end
 
-function PallyPowerBuffBar_MouseUp()
+local function PallyPowerBuffBar_TitleClick(mouseBtn)
+    if mouseBtn == "LeftButton" then
+        -- Reuse the existing Auto Greater Blessing key path.
+        PallyPower_AutoBless("Hotkey2")
+    elseif mouseBtn == "RightButton" then
+        PallyPowerFrame:Show()
+        PP_NextScan = 0 --PallyPower_UpdateUI()
+    end
+end
+
+function PallyPowerBuffBar_MouseUp(mouseBtn)
     if (PallyPowerBuffBar.isMoving) then
         PallyPowerBuffBar:StopMovingOrSizing()
         PallyPowerBuffBar.isMoving = false
@@ -4999,12 +5009,10 @@ function PallyPowerBuffBar_MouseUp()
             abs(PallyPowerBuffBar.startPosX - PallyPowerBuffBar:GetLeft()) < 2 and
                 abs(PallyPowerBuffBar.startPosY - PallyPowerBuffBar:GetTop()) < 2
         then
-            PallyPowerFrame:Show()
-            PP_NextScan = 0 --PallyPower_UpdateUI()
+            PallyPowerBuffBar_TitleClick(mouseBtn)
         end
     else
-        PallyPowerFrame:Show()
-        PP_NextScan = 0 --PallyPower_UpdateUI()
+        PallyPowerBuffBar_TitleClick(mouseBtn)
     end
 end
 

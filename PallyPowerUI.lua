@@ -2709,7 +2709,7 @@ function PallyPowerUI.CreateBuffBarUI()
 		PallyPowerBuffBar_MouseDown(arg1)
 	end)
 	title:SetScript("OnMouseUp", function()
-		PallyPowerBuffBar_MouseUp()
+		PallyPowerBuffBar_MouseUp(arg1)
 	end)
 
 	button = PallyPowerUI.CreatePPBuffBarSpecialTemplate("$parentAura", frame)
