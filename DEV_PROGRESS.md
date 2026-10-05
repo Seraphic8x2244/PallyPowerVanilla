@@ -2,13 +2,14 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.56-dev`
+- Version: `1.11.57-dev`
 - PPV 2.0 Step 8 runtime implementation: `98c97747ea5a319cd3e880cca7da4d60b19a71d9` (`1.11.48-dev`)
 - Development diagnostics / command consolidation runtime: `09ff34b030dbd34c01dff9184df52618464978de` (`1.11.52-dev`), built on unchanged Step 8 core.
 - Pre-Step-9 extension capability correction runtime: `25ccbccba69f0c8fe464d4b4ebc769b49f3c0c0e` (`1.11.53-dev`), built on unchanged Step 8 persistent-state ownership; Step 9 has not started.
 - GUID capability probe corrective runtime: `bd462aff3ae0930145046e176b74d071d5c0cc9b` (`1.11.54-dev`), superseded before user test by the diagnostics containment fix below.
 - `1.11.55-dev` runtime: `8221e89ac4509c29a9178834925c8e0ab143d94d` — corrected GUID probe plus `/pp debug` scroll containment; user-tested as recorded below.
-- Current runtime: `616047987a5fe4f141129b913534e1ad0120696a` (`1.11.56-dev`) — `/pp debug` auto-refreshes after completed Step 8 scans and rejects user text edits while preserving selection/copy; Step 9 remains unstarted.
+- `1.11.56-dev` runtime: `616047987a5fe4f141129b913534e1ad0120696a` — `/pp debug` auto-refresh/read-only-copy UX; user-tested as recorded below.
+- Current runtime: `9ab31d49c4036928258219a389a06a17dde02d32` (`1.11.57-dev`) — user-requested Buff Bar title remap: left-click invokes the existing Auto Greater Blessing path (`PallyPower_AutoBless("Hotkey2")`), right-click opens Assignments; title dragging remains unchanged when frames are unlocked. Step 9 remains unstarted.
 - PPV 2.0 Step 7 runtime implementation: `162fa874787e35d92fdddce6062609be5ca5090d` (`1.11.47-dev`)
 - PPV 2.0 Step 6 runtime implementation: `72d86169d21553e7c163d2e0035604fb3a0a0238` (`1.11.46-dev`)
 - PPV 2.0 Step 5 runtime implementation: `932b70b6dbaf11c2de2c4508c6336282b8dde306` (`1.11.45-dev`)
@@ -790,6 +791,7 @@ After generated-name/global lookup cleanup:
 - Additional `1.11.55-dev` Step 8 runtime evidence: self Blessing add passed on the Nampower-backed path (generation 16, one class-4 diff, persistent Blessing ID 1 = local Blessing ID 1); Blessing removal passed (generation 20, one class-4 diff, persistent/local both none). Party/Hunter-pet state also behaved correctly in the captured diagnostics: party=1 produced three persistent records (player + Hunter + pet), then returning to solo reduced records to one with exactly two removal diffs affecting classes 5 and 9. This validates persistent add/remove ownership under the corrected extension-capable runtime; exact per-unit GUID token choice is still inferred from the enabled runtime branch rather than independently printed by diagnostics.
 - `1.11.56-dev` / `616047987a5fe4f141129b913534e1ad0120696a` is a diagnostics-UX revision only around that baseline. The scan owner calls one optional dev hook after `PP_RaidAuraFinishScan`, inventory scan and UI refresh; when the debug frame is visible it refreshes exactly once for that completed generation. The copyable EditBox now restores the generated report on `OnTextChanged`, preventing user edits while retaining focus/selection for Ctrl+C. No second timer/polling path was added.
 - User runtime on exact `1.11.56-dev` / `616047987a5fe4f141129b913534e1ad0120696a` passed every remaining Step 8 gate item except AutoBless: `/pp debug` auto-refresh/read-only-copy UX works; visibility/range behavior works; Buff Bar counts/colours work; normal Buff Button targeting works. Combined with the previously recorded Nampower Blessing add/remove and party/Hunter-pet add/remove checks, **AutoBless targeting is now the sole untested Step 8 runtime item**.
+- `1.11.57-dev` / `9ab31d49c4036928258219a389a06a17dde02d32` is a focused user-requested Buff Bar title control change made before the final AutoBless gate: `OnMouseUp` now passes the released mouse button into the existing drag/click resolver; after a non-drag click, left-click calls `PallyPower_AutoBless("Hotkey2")` and right-click opens `PallyPowerFrame`. No AutoBless decision logic, assignment logic, scan state, communication protocol or Step 9 aggregate code changed. Focused static review confirmed the runtime diff is limited to `PallyPower.lua`, `PallyPowerUI.lua` and the TOC, with version `1.11.57-dev`; GitHub reports no status checks/workflow runs. The canonical Lua 5.0.3 checker was not run in this connector-only environment, so no compiler pass is claimed.
 ## 2.0 Chat-Sized Implementation Plan
 Treat each numbered item as the default maximum scope for one development chat. Do not silently combine later slices. If a slice proves very small, only continue into the next slice after the current slice is committed, documented and still leaves ample context.
 
@@ -839,4 +841,4 @@ Treat each numbered item as the default maximum scope for one development chat. 
 - 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
 
 ## Exact Next Step
-**Finish the final Step 8 runtime check on exact `1.11.56-dev` / `616047987a5fe4f141129b913534e1ad0120696a`: AutoBless targeting only.** All other Step 8 runtime checks are now user-passed on the corrected extension-capable runtime, including debug auto-refresh/read-only copy UX, Nampower Blessing add/remove, party/Hunter-pet add/remove persistence, visibility/range behavior, Buff Bar counts/colours and normal Buff Button targeting. **Do not begin Step 9** until AutoBless targeting passes and Step 8 is accepted; do not begin Step 10 or later work.
+**Runtime-test exact `1.11.57-dev` / `9ab31d49c4036928258219a389a06a17dde02d32` and finish Step 8.** Verify the Buff Bar `PallyPower` title controls: left-click triggers Auto Greater Blessing targeting, right-click opens Assignments, and dragging the title still moves the Buff Bar without firing the click action. This left-click test is also the final outstanding AutoBless targeting gate. All other Step 8 runtime checks are already user-passed. **Do not begin Step 9** until this passes and Step 8 is accepted; do not begin Step 10 or later work.
