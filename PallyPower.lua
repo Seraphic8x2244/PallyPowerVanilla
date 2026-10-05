@@ -6433,6 +6433,41 @@ function PallyPower_CastingSalvationOnTank(punit, castspell, overridespell)
     end
 end
 
+local function PallyPower_AutoBlessButtonNeedsAction(btn, mousebutton)
+    if not btn or type(btn.classID) ~= "number" or type(btn.buffID) ~= "number" then
+        return false
+    end
+
+    local classBuffs = CurrentBuffs[btn.classID]
+    if not classBuffs then
+        return false
+    end
+
+    for unit, stats in classBuffs do
+        if stats and stats.visible and not UnitIsDeadOrGhost(unit) then
+            local override = GetNormalBlessings(UnitName("player"), btn.classID, stats.name)
+            if mousebutton == "Hotkey2" then
+                -- Greater Blessing deliberately ignores members with an
+                -- individual override; those belong to the normal-Blessing
+                -- AutoBless path.
+                if override == -1 and not stats[btn.buffID] then
+                    return true
+                end
+            else
+                local wanted = btn.buffID
+                if override ~= -1 then
+                    wanted = override
+                end
+                if not stats[wanted] then
+                    return true
+                end
+            end
+        end
+    end
+
+    return false
+end
+
 function PallyPower_AutoBless(mousebutton)
     local playerName = UnitName("player")
     local rankInfo
@@ -6453,11 +6488,11 @@ function PallyPower_AutoBless(mousebutton)
 
     DoEmote("STAND") -- Force player stand
 
-    -- lastClassBtn persists between AutoBless presses so repeated use can
-    -- move through the visible class buttons. Buff Bar rebuilds deliberately
-    -- reset unused slots to table sentinels, though, and the legacy fallback
-    -- below used to snap an invalid slot back to 1 and return without doing
-    -- anything. Skip those invalid/hidden slots in this same invocation.
+    -- One AutoBless invocation should find an actionable class, not merely
+    -- the next assigned Buff Bar slot. Skip hidden/recycled slots and classes
+    -- whose visible living members already have the Blessing this hotkey can
+    -- apply. This keeps the existing one-cast-per-invocation behavior while
+    -- avoiding apparently dead clicks on already-satisfied classes.
     local assignments = PallyPower_Assignments[playerName]
     local attempts = 0
     local btn = nil
@@ -6465,7 +6500,8 @@ function PallyPower_AutoBless(mousebutton)
         classbtn = lastClassBtn
         btn = PallyPowerUIRefs.buffButtons[classbtn]
         if btn and type(btn.classID) == "number" and assignments
-            and assignments[btn.classID] and assignments[btn.classID] ~= -1 then
+            and assignments[btn.classID] and assignments[btn.classID] ~= -1
+            and PallyPower_AutoBlessButtonNeedsAction(btn, mousebutton) then
             break
         end
 
@@ -6491,30 +6527,22 @@ function PallyPower_AutoBless(mousebutton)
         end
 
         PP_Debug("Casting " .. btn.buffID .. " on " .. btn.classID)
-
-        -- Match the normal Buff Bar button semantics. Hotkey2 prefers Greater
-        -- Blessing, but without Symbols of Kings it must fall back to the
-        -- learned normal Blessing rather than silently starting an unusable
-        -- reagent-gated cast.
-        local wantsGreater = mousebutton == "Hotkey2"
-                             and not RegularBlessings
-                             and rankInfo[btn.buffID]["id"] ~= rankInfo[btn.buffID]["idsmall"]
-        local castAsGreater = wantsGreater and (PP_Symbols or 0) > 0
-        local blessingType = castAsGreater and PALLYPOWER_GREATERBLESSING or PALLYPOWER_SMALLBLESSING
-        local spellBookID = castAsGreater and rankInfo[btn.buffID]["id"] or rankInfo[btn.buffID]["idsmall"]
-
-        if not PallyPower_HasEnoughMana(btn.buffID, blessingType) then
-            PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-            PallyPower_ShowFeedback(PALLYPOWER_FEEDBACK_NOT_ENOUGH_MANA, 1, 0, 0)
-            return
-        end
-
-        if GetSpellCooldown(spellBookID, BOOKTYPE_SPELL) < 1 then
-            CastSpell(spellBookID, BOOKTYPE_SPELL)
-            castspellid = btn.buffID
-        else
-            PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
-            return
+        if (mousebutton == "Hotkey1") then
+            if GetSpellCooldown(rankInfo[btn.buffID]["idsmall"], BOOKTYPE_SPELL) < 1 then
+                CastSpell(rankInfo[btn.buffID]["idsmall"], BOOKTYPE_SPELL)
+                castspellid = btn.buffID
+            else
+                PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
+                return
+            end
+        elseif (mousebutton == "Hotkey2") then
+            if GetSpellCooldown(rankInfo[btn.buffID]["id"], BOOKTYPE_SPELL) < 1 then
+                CastSpell(rankInfo[btn.buffID]["id"], BOOKTYPE_SPELL)
+                castspellid = btn.buffID
+            else
+                PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
+                return
+            end
         end
 
         local RecentCast = false
@@ -6524,7 +6552,7 @@ function PallyPower_AutoBless(mousebutton)
                 RecentCast = true
             end
         else
-            if castAsGreater then
+            if (mousebutton == "Hotkey2" and not (rankInfo[btn.buffID]["id"] == rankInfo[btn.buffID]["idsmall"])) then
                 if LastCast[btn.buffID .. btn.classID] and LastCast[btn.buffID .. btn.classID] > (PALLYPOWER_GREATERBLESSINGDURATION) - PALLYPOWER_BLESSINGTRESHOLD then
                     RecentCast = true
                 end
@@ -6539,6 +6567,13 @@ function PallyPower_AutoBless(mousebutton)
             
             -- Sort units by proximity using the range of the spell this hotkey
             -- intends to cast. Hotkey1 = normal; Hotkey2 = Greater when learned.
+            local blessingType = PALLYPOWER_SMALLBLESSING
+            if mousebutton == "Hotkey2" and not RegularBlessings and
+               rankInfo[btn.buffID]["id"] ~=
+               rankInfo[btn.buffID]["idsmall"] then
+                blessingType = PALLYPOWER_GREATERBLESSING
+            end
+
             local sortedUnits
             if PP_PerUser and PP_UnitXPDllLoaded and PP_PerUser.useunitxp_sp3 then
                 sortedUnits = PallyPower_SortUnitsByProximity(
@@ -6562,11 +6597,11 @@ function PallyPower_AutoBless(mousebutton)
                     RecentCast = LastRecentCast
                 end
                 skipclear = false
-                if castAsGreater and GetNormalBlessings(UnitName("player"),btn.classID,UnitName(unit)) ~= -1 then
+                if mousebutton == "Hotkey2" and GetNormalBlessings(UnitName("player"),btn.classID,UnitName(unit)) ~= -1 then
                     --continue with next unit if GB and unit has Individual blessings assigned
                 else
                     -- Disable Greater Blessing Hotkey2 for pets if assignments differ
-                    if (btn.classID == 9) and castAsGreater then
+                    if (btn.classID == 9) and (mousebutton == "Hotkey2") then
                         local player = UnitName("player")
                         if PallyPower_Assignments[player][0] ~= PallyPower_Assignments[player][9] then
                             SpellStopTargeting()
@@ -6616,7 +6651,7 @@ function PallyPower_AutoBless(mousebutton)
                             LastCast[btn.buffID .. btn.classID] = PALLYPOWER_NORMALBLESSINGDURATION
                             LastCastPlayer[stats.name] = PALLYPOWER_NORMALBLESSINGDURATION
                         else
-                            if castAsGreater then
+                            if (mousebutton == "Hotkey2" and not(rankInfo[btn.buffID]["id"] == rankInfo[btn.buffID]["idsmall"])) then
                                 LastCast[btn.buffID .. btn.classID] = PALLYPOWER_GREATERBLESSINGDURATION
                             else
                                 if LastCast[btn.buffID .. btn.classID] == nil or LastCast[btn.buffID .. btn.classID] < PALLYPOWER_NORMALBLESSINGDURATION then 
@@ -6624,10 +6659,8 @@ function PallyPower_AutoBless(mousebutton)
                                 elseif LastCast[btn.buffID .. btn.classID] ~= nil and LastCast[btn.buffID .. btn.classID] > PALLYPOWER_NORMALBLESSINGDURATION and mousebutton == "Hotkey1" then 
                                     LastCastPlayer[stats.name] = PALLYPOWER_NORMALBLESSINGDURATION
                                 end
-                                if (blessing ~= -1 and mousebutton == "Hotkey1")
-                                    or (mousebutton == "Hotkey2" and not castAsGreater) then
+                                if blessing ~= -1 and mousebutton == "Hotkey1" then
                                     LastCastPlayer[stats.name] = PALLYPOWER_NORMALBLESSINGDURATION
-                                    LastCastPlayerStamp[stats.name] = GetTime()
                                 end
                             end
                         end
@@ -6638,7 +6671,7 @@ function PallyPower_AutoBless(mousebutton)
                             PallyPower_RemoveFromTable(btn.need,UnitName(unit))
                         end
         
-                        if castAsGreater then
+                        if (RegularBlessings == false and mousebutton == "Hotkey2" and not(rankInfo[btn.buffID]["id"] == rankInfo[btn.buffID]["idsmall"])) then
                             for unit, stats in CurrentBuffs[btn.classID] do
                                 if GetNormalBlessings(UnitName("player"),btn.classID,UnitName(unit)) == -1 then   
                                     if UnitIsVisible(unit) then
