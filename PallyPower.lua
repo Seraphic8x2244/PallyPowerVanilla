@@ -6761,11 +6761,11 @@ function PallyPower_AutoBless(mousebutton)
                                 selfCastName = selfSpellName .. "(" .. selfSpellRank .. ")"
                             end
 
-                            CastSpellByName(selfCastName, 1)
+                            CastSpellByName(selfCastName, "player")
                             PallyPower_AutoBlessTraceUpdate(
                                 "self-cast",
                                 "spell=" .. tostring(selfCastName)
-                                    .. " unit=player name=" .. tostring(stats.name)
+                                    .. " target=player name=" .. tostring(stats.name)
                             )
                         else
                             SpellTargetUnit(unit)
