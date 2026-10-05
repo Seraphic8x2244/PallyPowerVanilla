@@ -6761,12 +6761,29 @@ function PallyPower_AutoBless(mousebutton)
                                 selfCastName = selfSpellName .. "(" .. selfSpellRank .. ")"
                             end
 
-                            CastSpellByName(selfCastName, "player")
-                            PallyPower_AutoBlessTraceUpdate(
-                                "self-cast",
-                                "spell=" .. tostring(selfCastName)
-                                    .. " target=player name=" .. tostring(stats.name)
-                            )
+                            if type(CastSpellNoQueue) == "function" then
+                                -- Nampower's slot-based direct-cast API avoids
+                                -- reparsing the localized spell/rank text and
+                                -- accepts a unit token as an explicit target.
+                                CastSpellNoQueue(autoSpellBookID, 0, "player")
+                                PallyPower_AutoBlessTraceUpdate(
+                                    "self-cast-slot",
+                                    "slot=" .. tostring(autoSpellBookID)
+                                        .. " spell=" .. tostring(selfCastName)
+                                        .. " target=player name=" .. tostring(stats.name)
+                                )
+                            else
+                                -- Native Vanilla fallback when Nampower is
+                                -- unavailable. Preserve the original explicit
+                                -- self-cast form without making Nampower a hard
+                                -- dependency for AutoBless.
+                                CastSpellByName(selfCastName, 1)
+                                PallyPower_AutoBlessTraceUpdate(
+                                    "self-cast-native",
+                                    "spell=" .. tostring(selfCastName)
+                                        .. " target=player name=" .. tostring(stats.name)
+                                )
+                            end
                         else
                             SpellTargetUnit(unit)
                             PallyPower_AutoBlessTraceUpdate(
