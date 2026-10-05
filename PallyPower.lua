@@ -6616,6 +6616,7 @@ function PallyPower_AutoBless(mousebutton)
 
         local RecentCast = false
         local skipclear = false
+        local lastCandidateDetail = "none"
         if (RegularBlessings == true) then
             if LastCast[btn.buffID .. btn.classID] and LastCast[btn.buffID .. btn.classID] > (PALLYPOWER_NORMALBLESSINGDURATION) - PALLYPOWER_BLESSINGTRESHOLD then
                 RecentCast = true
@@ -6704,17 +6705,23 @@ function PallyPower_AutoBless(mousebutton)
                     local notRecent = not (RecentCast and string.find(lastCastString, unit))
                     local notSalvTank = not PallyPower_CastingSalvationOnTank(unit, castspellid, castspelloverride)
 
-                    PallyPower_AutoBlessTraceUpdate(
-                        "candidate",
+                    lastCandidateDetail =
                         "unit=" .. tostring(unit)
                             .. " name=" .. tostring(stats.name)
                             .. " visible=" .. tostring(stats.visible)
                             .. " canTarget=" .. tostring(canTarget)
                             .. " alive=" .. tostring(notDead)
                             .. " los=" .. tostring(hasLoS)
+                            .. " recentFlag=" .. tostring(RecentCast)
                             .. " recentOK=" .. tostring(notRecent)
+                            .. " lastCast=" .. tostring(LastCast[btn.buffID .. btn.classID])
+                            .. " lastCastOn=" .. tostring(lastCastString)
                             .. " salvOK=" .. tostring(notSalvTank)
                             .. " override=" .. tostring(GetNormalBlessings(UnitName("player"), btn.classID, stats.name))
+
+                    PallyPower_AutoBlessTraceUpdate(
+                        "candidate",
+                        lastCandidateDetail
                     )
 
                     if canTarget and notDead and hasLoS and notRecent and notSalvTank then
@@ -6813,7 +6820,9 @@ function PallyPower_AutoBless(mousebutton)
         end
         PallyPower_AutoBlessTraceUpdate(
             "no-target",
-            "class=" .. tostring(btn.classID) .. " buff=" .. tostring(btn.buffID)
+            "class=" .. tostring(btn.classID)
+                .. " buff=" .. tostring(btn.buffID)
+                .. " candidate={" .. tostring(lastCandidateDetail) .. "}"
         )
         SpellStopTargeting()
         PallyPower_RestoreFriendlyTarget(ppFriendlyTargetCleared)
