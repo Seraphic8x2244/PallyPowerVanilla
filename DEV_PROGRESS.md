@@ -2,10 +2,10 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.68-dev`
+- Version: `1.11.69-dev`
 - PPV 2.0 Step 8 runtime implementation: `98c97747ea5a319cd3e880cca7da4d60b19a71d9` (`1.11.48-dev`)
 - Development diagnostics / command consolidation runtime: `09ff34b030dbd34c01dff9184df52618464978de` (`1.11.52-dev`), built on unchanged Step 8 core.
-- Pre-Step-9 extension capability correction runtime: `25ccbccba69f0c8fe464d4b4ebc769b49f3c0c0e` (`1.11.53-dev`), built on unchanged Step 8 persistent-state ownership; Step 9 has not started.
+- Pre-Step-9 extension capability correction runtime: `25ccbccba69f0c8fe464d4b4ebc769b49f3c0c0e` (`1.11.53-dev`), built on unchanged Step 8 persistent-state ownership; prerequisite accepted and unchanged by Step 9.
 - GUID capability probe corrective runtime: `bd462aff3ae0930145046e176b74d071d5c0cc9b` (`1.11.54-dev`), superseded before user test by the diagnostics containment fix below.
 - `1.11.55-dev` runtime: `8221e89ac4509c29a9178834925c8e0ab143d94d` — corrected GUID probe plus `/pp debug` scroll containment; user-tested as recorded below.
 - `1.11.56-dev` runtime: `616047987a5fe4f141129b913534e1ad0120696a` — `/pp debug` auto-refresh/read-only-copy UX; user-tested as recorded below.
@@ -20,7 +20,8 @@
 - `1.11.65-dev` runtime: `ff971282ae5ba642874af0df7d5e4d02cdc5d314` — removed legacy forced-stand emotes. User runtime confirmed the movement error disappeared, but AutoBless still reached `stage=targeted` without applying BoM.
 - `1.11.66-dev` runtime: `845b17cf4240011c4c820152d302f66ae7d8bda1` — direct numeric self-cast attempt. User runtime reached `stage=self-cast` with `Greater Blessing of Might(Rank 2)` but no Blessing aura appeared.
 - `1.11.67-dev` runtime: `5f632e2c3bec7fba56cd6983e3836f763a5d63c9` — string unit-token self-cast attempt. User runtime reached `stage=self-cast` with the correct Greater BoM rank/`player` target, but persistent/local Blessing IDs remained empty.
-- Current runtime: `5dfa350550e1fb0d5946ccb20e8a5fa94b6ef2c5` (`1.11.68-dev`) — user runtime reached `stage=self-cast-slot` with slot `126`, `Greater Blessing of Might(Rank 2)`, target `player`, but no Blessing aura appeared. This confirms the remaining failure is in the inherited AutoBless execution model rather than Step 8 aura-state observation. Step 8 persistent raid-aura/state ownership is accepted; further patching of legacy AutoBless is explicitly stopped and its replacement is deferred to the revised planner/executor slices below. Step 9 is now unblocked and remains unstarted.
+- Prior Step 8 closure runtime: `5dfa350550e1fb0d5946ccb20e8a5fa94b6ef2c5` (`1.11.68-dev`) — user runtime reached `stage=self-cast-slot` with slot `126`, `Greater Blessing of Might(Rank 2)`, target `player`, but no Blessing aura appeared. This confirms the remaining failure is in the inherited AutoBless execution model rather than Step 8 aura-state observation. Step 8 persistent raid-aura/state ownership is accepted; further patching of legacy AutoBless is explicitly stopped and its replacement is deferred to the revised planner/executor slices below.
+- Current runtime: `3ea174db60d37de5042af8e95eae44d066854dda` (`1.11.69-dev`) — PPV 2.0 Step 9 incremental class aggregates implemented and statically reviewed; exact in-game runtime matrix is pending. Do not begin Step 10 until this runtime is accepted.
 - PPV 2.0 Step 7 runtime implementation: `162fa874787e35d92fdddce6062609be5ca5090d` (`1.11.47-dev`)
 - PPV 2.0 Step 6 runtime implementation: `72d86169d21553e7c163d2e0035604fb3a0a0238` (`1.11.46-dev`)
 - PPV 2.0 Step 5 runtime implementation: `932b70b6dbaf11c2de2c4508c6336282b8dde306` (`1.11.45-dev`)
@@ -86,6 +87,38 @@
 - Current stable runtime baseline: `main` / `1.11.39` at `fb4e960751b87ba2077c4277ec93325f65c39ed7`; later `main` commits through `a3c6d739992f958a8c45d03dacb3974ff146c99a` are README/image-only release presentation changes.
 - Goal: execute the PallyPowerVanilla 2.0 performance-core rewrite from the completed audit while preserving native WoW 1.12.1 / Lua 5.0 compatibility, existing user-facing behavior, SavedVariables and PLPWR communication compatibility. A later 3.0 line will reuse the 2.0 core with ClassicAPI as a hard requirement where it can replace the current Nampower/SuperWoW/UnitXP-era extension paths.
 - Current scope boundary: 2.0 implementation may now proceed, but only in the chat-sized slices recorded below. Each slice must end at a coherent committed/testable checkpoint with `DEV_PROGRESS.md` updated before moving on. Preserve stable `main`. ClassicAPI hard dependency remains deferred to 3.0; do not allow 2.0 implementation to become DLL-dependent.
+
+## PPV 2.0 Step 9 — Incremental Class Aggregates
+
+### Implementation status
+- Implemented in `3ea174db60d37de5042af8e95eae44d066854dda` / `1.11.69-dev`.
+- Step 8 persistent per-unit aura records remain the observation source of truth. Completed-scan diffs now mark only their old/new class IDs dirty for the derived Buff Bar aggregate cache.
+- Aggregate-affecting death/resurrection state is now carried in the same persistent unit record and participates in the existing per-unit diff so dead-count/backdrop state can invalidate its class without rebuilding every class.
+- `PP_BuffBarAggregateState` caches the derived `need/have/range/dead` view per class plus class-to-button bindings. On the normal completed-scan path, `PallyPower_UpdateUI(true)` recalculates only dirty class aggregates and, while the visible class-slot structure is unchanged, rerenders only those dirty class buttons.
+- If a changed class appears/disappears from the compact Buff Bar slot set, a structural rebind may rerender cached unaffected rows because their physical button slots move; unaffected class aggregates are still not recalculated.
+- Legacy mutable `btn.need/have/range/dead` arrays receive copies of the cached aggregate lists. This preserves inherited cast-path mutations without allowing those mutations to corrupt the canonical cached aggregate; an unchanged later scan can repaint that one class from cache if the legacy button list was mutated.
+- Non-scan/full `PallyPower_UpdateUI()` callers retain a full aggregate/layout rebuild. Assignment/individual-override/tank invalidation remains correctness-first and can dirty broader aggregate state; the Step 9 performance contract is specifically the Step 8 completed-scan aura-diff path.
+- Existing timer invalidation is still evaluated from the cached aggregate on completed scans; timer ownership/semantics themselves are unchanged and remain Step 10 work.
+- `PallyPower_ScanInventory()` is unchanged and remains in its pre-existing completed-scan position. Inventory ownership is not moved in this step.
+- Development diagnostics now report cached, dirty, recalculated and rendered class IDs plus whether a structural class-slot rebind occurred.
+
+### Focused static review
+- Handoff `fc3d334d50d49ea0c789c1624a5568a97b0fd142` was identical to `dev` before implementation; no branch drift was reconciled.
+- Runtime diff is limited to `PallyPower.lua`, `Debug.lua`, and `PallyPowerVanilla.toc`; version bumped once to `1.11.69-dev`.
+- The full inherited `PallyPower_AutoBless()` body is byte-for-byte unchanged from the handoff. The AssignmentStore/proxy implementation block is byte-for-byte unchanged. `PallyPower_ScanInventory()` is byte-for-byte unchanged.
+- Native no-DLL `UnitBuff(scanTarget, ...)` observation fallback remains present; optional capability-provider gates remain unchanged.
+- GitHub reports no commit status checks and no associated workflow runs for `3ea174db60d37de5042af8e95eae44d066854dda`.
+- Canonical Lua 5.0.3 compiler check is **not claimed**. The canonical `Seraphic8x2244/VanillaTemplate/tools/lua50` checker was located and its instructions verified, and the execution container has `cc`, but the vendored checker source is not mounted locally and the container cannot resolve GitHub to clone it. No substitute compiler result is being presented as equivalent.
+
+### Exact runtime matrix for 1.11.69-dev
+- First completed scan after reload: establish the aggregate cache and confirm `/pp debug` shows the new `Class aggregates` line.
+- Subsequent unchanged completed scan: expect `Last sweep diffs: 0`, `dirty=none`, `recalculated=none`, `rendered=none`, `structural=no` unless a legacy button-list mutation or non-aura assignment invalidation legitimately required a repaint.
+- One-class Blessing add/remove: only that class ID should appear in dirty/recalculated/rendered, with `structural=no` while the class button remains visible; Buff Bar count/colour and persistent/local Blessing IDs must remain correct.
+- Party member visibility/range change: only that member's class should be dirty/recalculated/rendered; range count and backdrop semantics must match pre-Step-9 behavior.
+- Death then resurrection: only the affected class should be dirty/recalculated/rendered; dead count/backdrop state must update correctly.
+- Member/class add or final member removal: only affected old/new class aggregates should be recalculated. `structural=yes` is expected if compact visible button slots change; cached unaffected rows may appear under rendered because slots move.
+- Individual Blessing override and Salvation/tank exception: verify the resulting class counts/colour remain correct after the next completed scan.
+- Manual Buff Bar casting and ordinary scan behavior must remain unchanged. The known inherited AutoBless execution defect is not a Step 9 gate and must not be patched in this slice.
 
 ## Pre-Step-9 Extension Capability Detection Correction
 
@@ -518,7 +551,7 @@ This correction is required **before Step 9**. It is a focused compatibility cor
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-- Current Step 8 gate: test exact current dev runtime `1.11.55-dev` / `8221e89ac4509c29a9178834925c8e0ab143d94d`. First open `/pp debug`, confirm the report remains clipped/scrollable above the buttons, press Refresh, and paste the Extensions section. Expected from the `1.11.53-dev` evidence: Nampower aura API remains usable=yes, SuperWoW still returns a player GUID, and the corrected GUID-unit result should now reflect only whether `UnitExists(normalizedGUID)` is usable. If Nampower aura API usable=yes, apply then remove a Blessing and confirm persistent/local IDs agree after completed scans. If GUID-unit usable=yes, repeat party scanning and include a Hunter pet where practical to exercise player and pet GUID targets. Then finish the still-pending Step 8 checks: member removal, visibility/range changes, Buff Bar counts/colours, normal Buff Button targeting, and AutoBless targeting. Do not begin Step 9 until this gate is accepted.
+- Current Step 9 gate: test exact current dev runtime `1.11.69-dev` / `3ea174db60d37de5042af8e95eae44d066854dda` using the Step 9 matrix above. The decisive performance/correctness checks are an unchanged completed scan (`dirty/recalculated/rendered=none`) and a single-class aura diff (only that class recalculated/rendered while `structural=no`). Exercise range, death/resurrection and roster structural transitions as separate cases. Do not begin Step 10 until this gate is accepted; do not reopen the deferred legacy AutoBless defect during this gate.
 - Step 8 partial runtime validation on `1.11.52-dev`: solo unchanged-scan persistence passed. After reload, the first completed scan created the player record (`Generation 1`, one diff, affected class 4, identity `first refresh`); after five additional completed scans with no aura changes, Generation advanced to 6 while the player record identity remained `same`, `changed=no`, `Last sweep diffs=0`, and affected classes were `none`. This validates persistent record identity and no-change diff suppression in solo state. Assignment dirty flags remained set while the Assignment window was closed, consistent with retained dirty-state ownership rather than a Step 8 failure.
 - Step 8 partial runtime validation on `1.11.52-dev`: self-Blessing add-state passed. After applying Blessing ID `1`, both `Player persistent Blessing IDs` and `Local player aura state` reported `1`, while the persistent player record identity remained `same`. The transient changed/diff sweep was not captured because a later unchanged scan completed before the diagnostics refresh; this is a diagnostics-observability limitation, not a recorded Step 8 failure.
 - Step 8 partial runtime validation on `1.11.52-dev`: self-Blessing removal passed and captured the changed sweep. The persistent player record remained the same table (`identity=same`), both persistent and local Blessing IDs returned to `none`, `changed=yes`, one diff was present, and affected class was correctly `4`.
@@ -892,4 +925,4 @@ Treat each numbered item as the default maximum scope for one development chat. 
 - 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
 
 ## Exact Next Step
-**Begin PPV 2.0 Step 9: Incremental class aggregates.** Build directly on the accepted Step 8 persistent raid-aura records/diffs. Recalculate and render only class aggregate(s) affected by changed unit records; do not modify legacy AutoBless, casting semantics, timers, inventory ownership, protocol, AssignmentStore, or later planner/executor work in this slice. Preserve the no-DLL native `UnitBuff` observation path and existing optional capability providers. End at a committed runtime-testable checkpoint with focused static review and an exact in-game matrix tied to the new version/commit.
+**Runtime-test PPV 2.0 Step 9 on exact `1.11.69-dev` / `3ea174db60d37de5042af8e95eae44d066854dda`.** Use the exact Step 9 matrix recorded above and fix only demonstrated Step 9 defects. Do not begin Step 10 timer work, inventory decoupling, protocol/AssignmentStore changes, legacy AutoBless repair, or later BlessPlanner/CastExecutor/Queue work until the Step 9 runtime gate is accepted.
