@@ -20,7 +20,7 @@
 - `1.11.65-dev` runtime: `ff971282ae5ba642874af0df7d5e4d02cdc5d314` — removed legacy forced-stand emotes. User runtime confirmed the movement error disappeared, but AutoBless still reached `stage=targeted` without applying BoM.
 - `1.11.66-dev` runtime: `845b17cf4240011c4c820152d302f66ae7d8bda1` — direct numeric self-cast attempt. User runtime reached `stage=self-cast` with `Greater Blessing of Might(Rank 2)` but no Blessing aura appeared.
 - `1.11.67-dev` runtime: `5f632e2c3bec7fba56cd6983e3836f763a5d63c9` — string unit-token self-cast attempt. User runtime reached `stage=self-cast` with the correct Greater BoM rank/`player` target, but persistent/local Blessing IDs remained empty.
-- Current runtime: `5dfa350550e1fb0d5946ccb20e8a5fa94b6ef2c5` (`1.11.68-dev`) — bypasses the failed spell-name re-resolution for self casts when Nampower is available by calling `CastSpellNoQueue(autoSpellBookID, 0, "player")` directly with PallyPower's already-resolved spellbook slot and explicit player target. Native `CastSpellByName(exactRank, 1)` remains as the non-Nampower fallback; non-player AutoBless targeting remains unchanged. Step 9 remains unstarted.
+- Current runtime: `5dfa350550e1fb0d5946ccb20e8a5fa94b6ef2c5` (`1.11.68-dev`) — user runtime reached `stage=self-cast-slot` with slot `126`, `Greater Blessing of Might(Rank 2)`, target `player`, but no Blessing aura appeared. This confirms the remaining failure is in the inherited AutoBless execution model rather than Step 8 aura-state observation. Step 8 persistent raid-aura/state ownership is accepted; further patching of legacy AutoBless is explicitly stopped and its replacement is deferred to the revised planner/executor slices below. Step 9 is now unblocked and remains unstarted.
 - PPV 2.0 Step 7 runtime implementation: `162fa874787e35d92fdddce6062609be5ca5090d` (`1.11.47-dev`)
 - PPV 2.0 Step 6 runtime implementation: `72d86169d21553e7c163d2e0035604fb3a0a0238` (`1.11.46-dev`)
 - PPV 2.0 Step 5 runtime implementation: `932b70b6dbaf11c2de2c4508c6336282b8dde306` (`1.11.45-dev`)
@@ -814,6 +814,15 @@ After generated-name/global lookup cleanup:
 - User runtime on exact `1.11.65-dev` confirmed the movement error was gone but AutoBless still did not apply BoM; trace remained `stage=targeted unit=player`. Vanilla API references confirm explicit self-casting through `CastSpellByName(spell, 1)`, and Nampower preserves that original behavior while extending the second parameter. `1.11.66-dev` / `845b17cf4240011c4c820152d302f66ae7d8bda1` therefore changes only self completion: AutoBless remembers the selected spellbook slot, resolves the exact spell name/rank, cancels any pending targeting cursor, and uses `CastSpellByName(exactRank, 1)` when the chosen unit is `player`. Party/raid candidates still use `SpellTargetUnit(unit)`. Trace instrumentation is retained. Focused static review confirms only `PallyPower.lua` and the TOC changed, version is `1.11.66-dev`, the direct self-cast path occurs once, there are zero forced-stand calls, and GitHub reports no checks/workflow runs; no Lua 5.0.3 compiler pass is claimed.
 - User runtime on exact `1.11.66-dev` reached `stage=self-cast` with `spell=Greater Blessing of Might(Rank 2) unit=player name=Revenga`, yet persistent/local Blessing IDs remained empty, so the numeric Vanilla self flag still did not complete the cast on this client stack. Nampower documentation and implementation show that a **string** second parameter to `CastSpellByName` is a distinct enhanced path: it resolves the unit token/GUID and calls the spellbook cast directly against that GUID, whereas numeric `1` falls through to the original client self-cast behavior. `1.11.67-dev` / `5f632e2c3bec7fba56cd6983e3836f763a5d63c9` therefore changes only `CastSpellByName(selfCastName, 1)` to `CastSpellByName(selfCastName, "player")`; trace and all non-player targeting remain unchanged. Focused static review confirms only `PallyPower.lua` and the TOC changed, version is `1.11.67-dev`, exactly one unit-token self-cast call is present, numeric self-cast call is absent, forced-stand calls remain absent, GitHub reports no checks/workflow runs, and no Lua 5.0.3 compiler pass is claimed.
 - User runtime on exact `1.11.67-dev` again reached the self-cast trace (`Greater Blessing of Might(Rank 2)`, target `player`) with no Blessing aura afterward. Direct review of Nampower's `Script_CastSpellByNameHook` showed that its string-target path first reparses the supplied spell-name/rank text via `GetSpellSlotAndTypeForName()` and silently returns if that lookup fails. Nampower also exposes `CastSpellNoQueue(spellIdOrSlot, spellBook, unit)`, whose string-unit path resolves the target GUID and calls `CGSpellBook_CastSpell` directly without reparsing the spell name. `1.11.68-dev` / `5dfa350550e1fb0d5946ccb20e8a5fa94b6ef2c5` uses that slot-based API for self when available: `CastSpellNoQueue(autoSpellBookID, 0, "player")`. The native fallback remains `CastSpellByName(exactRank, 1)` so Nampower is not made a hard dependency. Focused static review confirms only `PallyPower.lua` and the TOC changed, version is `1.11.68-dev`, exactly one slot-based self cast and one native fallback are present, the failed string-target self cast is absent, forced-stand calls remain absent, GitHub reports no checks/workflow runs, and no Lua 5.0.3 compiler pass is claimed.
+- User runtime on exact `1.11.68-dev` then reached `stage=self-cast-slot` with `slot=126 spell=Greater Blessing of Might(Rank 2) target=player name=Revenga`, while both persistent and local Blessing IDs remained empty. This is the terminal legacy-AutoBless experiment for Step 8. The completed Step 8 matrix has already established that persistent aura records, Blessing add/remove observation, party membership/pet observation, Buff Bar state, and manual Buff Bar casting work; the repeated AutoBless traces instead show that the inherited action path can reach its own terminal stages without a confirmed cast. Do not make further targeted patches to the inherited AutoBless implementation merely to satisfy the Step 8 gate. Its demonstrated defect is carried forward for replacement by the revised BlessPlanner + native CastExecutor + Bless Queue slices.
+## Step 8 Closure / Legacy AutoBless Deferral
+
+- **Accepted:** Step 8 persistent raid-aura/state ownership and its already-completed runtime matrix. The state/observation layer correctly identifies the solo player record, class, assignment, Blessing absence/presence changes, party/pet membership changes, and feeds the Buff Bar compatibility view.
+- **Known defect carried forward:** inherited `PallyPower_AutoBless()` execution can select the correct missing Blessing/candidate and reach terminal cast/target trace stages without the Blessing actually being applied. Builds `1.11.64-dev` through `1.11.68-dev` progressively proved target selection and wrapper invocation but did not produce a confirmed solo Greater BoM self-cast.
+- **Decision:** stop patching the inherited AutoBless execution path. Do not block state/performance work on making that legacy routine pass. The replacement will be designed explicitly in later slices as a pure BlessPlanner, a separately runtime-gated native CastExecutor, then manual Buff Bar and Bless Queue cutovers.
+- **Compatibility requirement:** this deferral does not remove Auto Normal/Auto Greater keybinds, Buff Bar click semantics, class/individual overrides, Greater/normal fallback policy, tank/Salvation safety, pet rules, PLPWR compatibility, SavedVariables, presets, or other user-facing PallyPower behavior. Those behaviors must be inventoried and preserved or intentionally superseded when the new planner/executor is introduced.
+- **No-DLL baseline remains authoritative:** 2.0 must work correctly on stock WoW 1.12.1 APIs without Nampower, SuperWoW or UnitXP. Optional extensions may enhance capability providers but may not become architectural requirements.
+
 ## 2.0 Chat-Sized Implementation Plan
 Treat each numbered item as the default maximum scope for one development chat. Do not silently combine later slices. If a slice proves very small, only continue into the next slice after the current slice is committed, documented and still leaves ample context.
 
@@ -837,20 +846,38 @@ Treat each numbered item as the default maximum scope for one development chat. 
    - Replace whole-tree `PP_ScanInfo -> CurrentBuffs` reconstruction with persistent per-unit records and explicit diffs.
 9. **Incremental class aggregates**
    - Recalculate/render only class aggregates affected by changed unit records.
+   - Preserve Step 8 persistent unit records as the source of observation truth; an aura diff should dirty only the affected class aggregate(s), not rebuild the whole Buff Bar.
 10. **Timer rewrite**
     - Replace per-frame countdown mutation with absolute expiration timestamps and event/change-driven timer aggregates.
+    - Separate observed aura truth from timer estimates: timers must never be treated as proof that a Blessing currently exists.
 11. **Inventory decoupling**
     - Make Symbol of Kings inventory state respond to appropriate bag/inventory invalidation rather than spell/aura scans.
-12. **CastPlanner extraction**
-    - Centralize target/blessing eligibility and selection as a pure decision layer without yet changing execution semantics.
-13. **Unify click casting and AutoBless execution**
-    - Route both input paths through the shared planner/executor and remove duplicated cast logic.
-14. **Protocol isolation/cleanup**
+    - Spell, aura, cast and raid-scan paths must not rescan bags as a hidden side effect.
+12. **BlessPlanner extraction / real queue model**
+    - Replace UI-slot-driven decision making with a pure planner that consumes canonical roster/aura/assignment/spell/resource state and produces ordered Blessing jobs.
+    - Preserve class Greater Blessings, individual normal overrides, Greater-to-normal fallback policy, tank/Salvation safety, pet rules and one-action-per-activation semantics.
+    - Do not cast from this slice; expose enough diagnostics to runtime-test queue decisions independently.
+13. **Native CastExecutor isolation**
+    - Build one no-DLL-first executor that accepts one resolved Blessing job and performs exactly one cast attempt.
+    - Runtime-gate self/party/raid, normal/Greater, movement, friendly/hostile selected target, failed/out-of-range attempts and target/CVar restoration before any UI or AutoBless cutover.
+    - A cast API invocation is not success; completion must be confirmed by authoritative aura/cast state before timer/queue state is committed.
+14. **Manual Buff Bar casting cutover**
+    - Route existing Buff Bar left/right-click Blessing actions through the shared planner/executor while preserving current user-facing click semantics and compatibility behavior.
+    - Remove only the duplicated manual casting logic demonstrated to be superseded; legacy AutoBless remains isolated until the next slice.
+15. **Bless Queue / AutoBless cutover**
+    - Replace inherited `PallyPower_AutoBless()` internals with current-state queue derivation -> first executable job -> CastExecutor -> confirmation.
+    - Preserve existing Auto Normal/Auto Greater keybind entry points and agreed Buff Bar title behavior.
+    - Retire `lastClassBtn`/UI-slot traversal only after runtime parity and queue behavior pass.
+16. **Protocol isolation/cleanup**
     - Put existing PLPWR encode/decode behind a compatibility adapter; remove duplicate/implicit broadcasts without changing the wire format.
-15. **AssignmentStore cleanup**
+17. **AssignmentStore cleanup**
     - Establish one canonical internal assignment owner; keep historical SavedVariable/proxy names only at migration/compatibility boundaries.
-16. **2.0 performance soak + stabilization**
-    - Re-run the baseline scenarios in realistic raid conditions, review GC/allocation/global/string churn, fix remaining measured hotspots, and stabilize the 2.0 line before opening 3.0.
+18. **Legacy execution-state removal**
+    - Remove superseded cast/buff truth mechanisms only after their replacements are runtime-proven, including gameplay dependence on `btn.need/have`, `LastCastOn`, duplicate cast code, generic cast-driven scans and UI-click simulation.
+    - Every removed legacy behavior must be classified as replaced, retained through compatibility, or intentionally dropped; do not delete accumulated edge-case behavior silently.
+19. **2.0 performance soak + stabilization**
+    - Re-run the established Step 1 baseline scenarios in realistic raid conditions, review GC/allocation/global/string churn, and fix remaining measured hotspots.
+    - Run the mixed-version PallyPower compatibility matrix and full no-DLL runtime regression before stabilizing 2.0 and opening 3.0/ClassicAPI work.
 
 ### 2.0 Slice Rules
 - One slice should normally fit one chat and end in a committed resumable state.
@@ -860,7 +887,9 @@ Treat each numbered item as the default maximum scope for one development chat. 
 - Every runtime/code revision follows the rulebook version-bump requirement.
 - Static/compiler checks and in-game validation must be recorded separately and tied to exact versions/commits.
 - Step 3 and later performance claims should be compared against the Step 1 baseline rather than judged subjectively.
+- Step 9 is no longer gated on a passing legacy AutoBless runtime; the known legacy AutoBless defect is deferred to Steps 12-15 by explicit decision above.
+- Do not begin a consumer cutover before its prerequisite runtime gate passes: in particular, Step 14 must not begin until the Step 13 native CastExecutor matrix is accepted.
 - 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
 
 ## Exact Next Step
-**Runtime-test exact `1.11.68-dev` / `5dfa350550e1fb0d5946ccb20e8a5fa94b6ef2c5` using the same minimal solo BoM reproduction.** Solo Paladin, BoM assigned to Paladin class, no BoM active, Symbols of Kings present: left-click the Buff Bar `PallyPower` title once. Expected result: Nampower's slot-based direct cast actually applies Greater BoM to Revenga; `/pp debug` should end at `stage=self-cast-slot`. If the aura still does not appear, capture that trace again before any further behavior change. **Do not begin Step 9** until the runtime pass is confirmed.
+**Begin PPV 2.0 Step 9: Incremental class aggregates.** Build directly on the accepted Step 8 persistent raid-aura records/diffs. Recalculate and render only class aggregate(s) affected by changed unit records; do not modify legacy AutoBless, casting semantics, timers, inventory ownership, protocol, AssignmentStore, or later planner/executor work in this slice. Preserve the no-DLL native `UnitBuff` observation path and existing optional capability providers. End at a committed runtime-testable checkpoint with focused static review and an exact in-game matrix tied to the new version/commit.
