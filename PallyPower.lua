@@ -1007,6 +1007,14 @@ function PallyPower_InvalidateAssignmentUI(domain)
         PP_AssignmentUIDirty.layout = true
     end
 
+    -- Blessing class aggregates depend on the local Paladin's class/individual
+    -- assignment state. Keep the AssignmentStore untouched; only invalidate the
+    -- derived Step 9 cache when that state changes.
+    if (domain == nil or domain == "all" or domain == "assignments")
+        and PallyPower_BuffBarMarkAllClassesDirty then
+        PP_BuffBarMarkAllClassesDirty()
+    end
+
     if PallyPower_RenderAssignmentUIIfDirty then
         PallyPower_RenderAssignmentUIIfDirty()
     end
@@ -1318,11 +1326,42 @@ PP_RaidAuraState = {
     records = {},
     seen = {},
     diffs = {},
+    dirtyClasses = {},
     scratchBuffs = {},
     scanning = false,
     generation = 0,
     changed = false,
 }
+
+-- Step 9 class-aggregate ownership. Persistent Step 8 unit records remain the
+-- observation source of truth; this layer caches only the derived per-class
+-- Buff Bar view so a completed sweep can recalculate/render the classes whose
+-- unit records actually changed.
+PP_BuffBarAggregateState = {
+    classes = {},
+    dirty = {},
+    buttonByClass = {},
+    visible = {},
+    assignments = {},
+    initialized = false,
+    structureDirty = true,
+    specialButtonCount = nil,
+    lastDirtyClasses = {},
+    lastRecalculatedClasses = {},
+    lastRenderedClasses = {},
+    lastStructural = false,
+}
+
+function PP_BuffBarMarkClassDirty(classID)
+    if type(classID) ~= "number" or classID < 0 or classID > 9 then return end
+    PP_BuffBarAggregateState.dirty[classID] = true
+end
+
+function PP_BuffBarMarkAllClassesDirty()
+    for classID = 0, 9 do
+        PP_BuffBarAggregateState.dirty[classID] = true
+    end
+end
 
 local RestorSelfAutoCastTimeOut = 1
 local RestorSelfAutoCast = false
@@ -3220,6 +3259,7 @@ function PallyPowerPlayerButton_OnClick(plbtn, mouseBtn)
                     end
                 end
             end
+            PallyPower_InvalidateAssignmentUI("assignments")
         end
     end
 end
@@ -3687,18 +3727,340 @@ function PallyPower_UpdateLocalAuraState()
 end
 
 
-function PallyPower_UpdateUI()
+function PP_BuffBarCopyAggregateList(source)
+    local result = {}
+    if source then
+        for i = 1, table.getn(source) do
+            result[i] = source[i]
+        end
+    end
+    return result
+end
+
+function PP_BuffBarCalculateClassAggregate(namePlayer, classID, buffID)
+    local aggregate = {
+        need = {},
+        have = {},
+        range = {},
+        dead = {},
+        nneed = 0,
+        nhave = 0,
+        ndead = 0,
+        naway = 0,
+        show = false,
+    }
+    local members = CurrentBuffs[classID]
+
+    if members then
+        for member, stats in members do
+            if stats["visible"] then
+                local hasBuffs = false
+                local normalBlessing = GetNormalBlessings(namePlayer, classID, UnitName(member))
+                if normalBlessing ~= -1 then
+                    if stats[normalBlessing] then
+                        hasBuffs = true
+                    end
+                elseif stats[buffID] then
+                    hasBuffs = true
+                end
+
+                if not hasBuffs then
+                    if stats["dead"] == true then
+                        aggregate.ndead = aggregate.ndead + 1
+                        tinsert(aggregate.dead, stats["name"])
+                    else
+                        -- Preserve the legacy Salvation/tank exception exactly;
+                        -- only the derived aggregate ownership changes here.
+                        if not (buffID == 2 and PallyPower_Tanks[stats["name"]] == true and normalBlessing == -1) then
+                            aggregate.nneed = aggregate.nneed + 1
+                            tinsert(aggregate.need, stats["name"])
+                        end
+                    end
+                else
+                    tinsert(aggregate.have, stats["name"])
+                    aggregate.nhave = aggregate.nhave + 1
+                end
+            else
+                tinsert(aggregate.range, stats["name"])
+                aggregate.nhave = aggregate.nhave + 1
+                aggregate.naway = aggregate.naway + 1
+            end
+        end
+    end
+
+    aggregate.show = aggregate.nneed > 0 or aggregate.nhave > 0 or aggregate.ndead > 0
+    return aggregate
+end
+
+function PP_BuffBarApplyLegacyTimerInvalidation(classID, buffID, aggregate)
+    -- Step 10 owns timer semantics. Step 9 preserves the existing completed-scan
+    -- invalidation without forcing an aggregate rebuild for every class.
+    if not aggregate or aggregate.nhave ~= 0 then return end
+
+    LastCast[buffID .. classID] = nil
+    if CurrentBuffs[classID] then
+        for unit, stats in CurrentBuffs[classID] do
+            if LastCastPlayer[stats.name] then
+                LastCastPlayer[stats.name] = nil
+                LastCastPlayerStamp[stats.name] = nil
+            end
+        end
+    end
+end
+
+function PP_BuffBarRenderClassButton(btn, classID, buffID, aggregate)
+    btn.ppClassIcon:SetTexture(PallyPower_ClassTexture[classID])
+    btn.ppBuffIcon:SetTexture(BlessingIcon[buffID])
+
+    btn.classID = classID
+    btn.buffID = buffID
+
+    local countText = btn.ppText
+    local timeText = btn.ppTime
+    local time2Text = btn.ppTime2
+    local classColor = PP_BuffBarClassColors[classID]
+    if classColor then
+        if timeText then timeText:SetTextColor(classColor[1], classColor[2], classColor[3]) end
+        if time2Text then time2Text:SetTextColor(classColor[1], classColor[2], classColor[3]) end
+    end
+    if countText then
+        countText:SetTextColor(1, 0, 0)
+    end
+
+    -- Legacy cast paths are allowed to mutate the button lists between scans.
+    -- Keep the cached aggregate independent so the next completed sweep can
+    -- restore the canonical derived view even when the aura record is unchanged.
+    btn.need = PP_BuffBarCopyAggregateList(aggregate.need)
+    btn.have = PP_BuffBarCopyAggregateList(aggregate.have)
+    btn.range = PP_BuffBarCopyAggregateList(aggregate.range)
+    btn.dead = PP_BuffBarCopyAggregateList(aggregate.dead)
+
+    local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
+    btn.ppTime:SetText(PallyPower_FormatTime(primaryTimer))
+    btn.ppTime2:SetText(PallyPower_FormatTime(secondaryTimer))
+
+    local counter = btn.ppText
+    if aggregate.nneed == 0 then
+        counter:SetText("")
+        counter:Hide()
+    else
+        if aggregate.ndead > 0 then
+            counter:SetText(aggregate.nneed .. " (" .. aggregate.ndead .. ")")
+        else
+            counter:SetText(aggregate.nneed)
+        end
+        counter:Show()
+    end
+
+    if aggregate.nhave == 0 then
+        btn:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
+    elseif aggregate.nneed > 0 or aggregate.ndead > 0 then
+        btn:SetBackdropColor(1, 1, 0.5, PP_PerUser.transparency)
+    elseif aggregate.nneed == 0 and aggregate.ndead == 0 and aggregate.naway == 0 then
+        btn:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
+    else
+        btn:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
+    end
+    btn:Show()
+end
+
+function PP_BuffBarRecycleButton(btn)
+    btn.classID = {}
+    btn.buffID = {}
+    btn.need = {}
+    btn.have = {}
+    btn.range = {}
+    btn.dead = {}
+    btn:Hide()
+end
+
+function PP_BuffBarButtonMatchesAggregate(btn, aggregate)
+    if not btn or not aggregate then return false end
+    if not btn.need or not btn.have or not btn.range or not btn.dead then return false end
+    return table.getn(btn.need) == aggregate.nneed
+        and table.getn(btn.have) == aggregate.nhave
+        and table.getn(btn.range) == aggregate.naway
+        and table.getn(btn.dead) == aggregate.ndead
+end
+
+function PP_BuffBarResizeForCounts(specialButtonCount, blessingButtonCount)
+    local totalVisibleButtons = specialButtonCount + blessingButtonCount
+    local buffBarWidth
+    local buffBarHeight
+
+    if PP_PerUser.horizontal == false then
+        buffBarWidth = PP_UI.BUFF_LONG
+        buffBarHeight = PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons)
+    else
+        buffBarWidth = PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons)
+        buffBarHeight = PP_UI.BUFF_LONG
+    end
+
+    if PP_BuffBarLayoutState.width ~= buffBarWidth
+        or PP_BuffBarLayoutState.height ~= buffBarHeight then
+        PallyPowerBuffBar:SetWidth(buffBarWidth)
+        PallyPowerBuffBar:SetHeight(buffBarHeight)
+        PP_BuffBarLayoutState.width = buffBarWidth
+        PP_BuffBarLayoutState.height = buffBarHeight
+    end
+end
+
+function PP_BuffBarRebuildClassStructure(namePlayer, assign, specialButtonCount)
+    local state = PP_BuffBarAggregateState
+
+    for key in pairs(state.buttonByClass) do
+        state.buttonByClass[key] = nil
+    end
+    for key in pairs(state.visible) do
+        state.visible[key] = nil
+    end
+
+    BuffNum = 1
+    if assign then
+        for classID = 0, 9 do
+            local buffID = assign[classID]
+            local aggregate = state.classes[classID]
+            if buffID and buffID ~= -1 and aggregate then
+                PP_BuffBarApplyLegacyTimerInvalidation(classID, buffID, aggregate)
+                if aggregate.show then
+                    local btn = PallyPowerUIRefs.buffButtons[BuffNum]
+                    PP_BuffBarRenderClassButton(btn, classID, buffID, aggregate)
+                    state.buttonByClass[classID] = btn
+                    state.visible[classID] = true
+                    state.lastRenderedClasses[classID] = true
+                    BuffNum = BuffNum + 1
+                end
+            end
+        end
+    end
+
+    for rest = BuffNum, 10 do
+        PP_BuffBarRecycleButton(PallyPowerUIRefs.buffButtons[rest])
+    end
+
+    PP_BuffBarResizeForCounts(specialButtonCount, BuffNum - 1)
+    state.specialButtonCount = specialButtonCount
+    state.structureDirty = false
+    state.initialized = true
+    state.lastStructural = true
+end
+
+function PP_BuffBarUpdateClassAggregates(namePlayer, assign, specialButtonCount, incremental)
+    local state = PP_BuffBarAggregateState
+
+    for key in pairs(state.lastDirtyClasses) do state.lastDirtyClasses[key] = nil end
+    for key in pairs(state.lastRecalculatedClasses) do state.lastRecalculatedClasses[key] = nil end
+    for key in pairs(state.lastRenderedClasses) do state.lastRenderedClasses[key] = nil end
+    state.lastStructural = false
+
+    -- Assignment changes are a separate invalidation source from Step 8 aura
+    -- diffs. Compare the ten class slots directly so protocol/storage behavior
+    -- stays untouched and only the derived class view is invalidated.
+    for classID = 0, 9 do
+        local oldAssignment = state.assignments[classID]
+        local newAssignment = assign and assign[classID] or nil
+        if oldAssignment ~= newAssignment then
+            local oldActive = oldAssignment ~= nil and oldAssignment ~= -1
+            local newActive = newAssignment ~= nil and newAssignment ~= -1
+            state.dirty[classID] = true
+            if state.initialized and oldActive ~= newActive then
+                state.structureDirty = true
+            end
+            state.assignments[classID] = newAssignment
+        end
+    end
+
+    if incremental ~= true then
+        PP_BuffBarMarkAllClassesDirty()
+        state.structureDirty = true
+    end
+
+    for classID = 0, 9 do
+        if state.dirty[classID] then
+            state.lastDirtyClasses[classID] = true
+            local buffID = assign and assign[classID] or nil
+            if buffID and buffID ~= -1 then
+                state.classes[classID] = PP_BuffBarCalculateClassAggregate(namePlayer, classID, buffID)
+                state.lastRecalculatedClasses[classID] = true
+            else
+                state.classes[classID] = nil
+            end
+        end
+    end
+
+    -- Safety for first construction or a cache invalidated before this build.
+    for classID = 0, 9 do
+        local buffID = assign and assign[classID] or nil
+        if buffID and buffID ~= -1 and not state.classes[classID] then
+            state.dirty[classID] = true
+            state.lastDirtyClasses[classID] = true
+            state.classes[classID] = PP_BuffBarCalculateClassAggregate(namePlayer, classID, buffID)
+            state.lastRecalculatedClasses[classID] = true
+        end
+    end
+
+    if state.initialized then
+        for classID = 0, 9 do
+            local buffID = assign and assign[classID] or nil
+            local aggregate = state.classes[classID]
+            local shouldBeVisible = buffID and buffID ~= -1 and aggregate and aggregate.show or false
+            if shouldBeVisible ~= (state.visible[classID] == true) then
+                state.structureDirty = true
+            end
+        end
+        if state.specialButtonCount ~= specialButtonCount then
+            state.structureDirty = true
+        end
+    end
+
+    if not state.initialized or state.structureDirty then
+        PP_BuffBarRebuildClassStructure(namePlayer, assign, specialButtonCount)
+    else
+        -- Preserve Step 10 timer ownership: the legacy completed-scan timer
+        -- invalidation still runs for every assigned class, but aggregate
+        -- calculation/rendering does not.
+        for classID = 0, 9 do
+            local buffID = assign and assign[classID] or nil
+            local aggregate = state.classes[classID]
+            if buffID and buffID ~= -1 and aggregate then
+                PP_BuffBarApplyLegacyTimerInvalidation(classID, buffID, aggregate)
+
+                if aggregate.show then
+                    local btn = state.buttonByClass[classID]
+                    local needsRender = state.dirty[classID] == true
+                    if not needsRender and not PP_BuffBarButtonMatchesAggregate(btn, aggregate) then
+                        -- Legacy manual/AutoBless paths can remove names from
+                        -- btn.need before the next scan. If Step 8 observed no
+                        -- aura change, repaint this class from the cached truth
+                        -- without recalculating any other aggregate.
+                        needsRender = true
+                    end
+                    if needsRender and btn then
+                        PP_BuffBarRenderClassButton(btn, classID, buffID, aggregate)
+                        state.lastRenderedClasses[classID] = true
+                    end
+                end
+            end
+        end
+    end
+
+    for classID = 0, 9 do
+        state.dirty[classID] = nil
+    end
+end
+
+function PallyPower_UpdateUI(incrementalClassAggregates)
     if PP_UI_READY then PP_UI_UpdateState() end
     if not initialized then
         PallyPower_ScanSpells()
     end
 
     if PP_PerUser.hideblizzaura == true then
-	    if ShapeshiftBarFrame:IsVisible() then ShapeshiftBarFrame:Hide() end
-    else   
+        if ShapeshiftBarFrame:IsVisible() then ShapeshiftBarFrame:Hide() end
+    else
         if not ShapeshiftBarFrame:IsVisible() then ShapeshiftBarFrame:Show() end
-    end 
-	
+    end
+
     -- Buff Bar
     PP_BuffBarLayoutState = PP_BuffBarLayoutState or {}
     local buffBarScale = (PP_PerUser.uiscale or 1) * PP_PerUser.scalebar
@@ -3709,7 +4071,6 @@ function PallyPower_UpdateUI()
     if PallyPowerBuffBarSelfCombined then
         PallyPowerBuffBarSelfCombined:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
     end
-
 
     local namePlayer = UnitName("player")
 
@@ -3734,149 +4095,17 @@ function PallyPower_UpdateUI()
 
         PallyPowerBuffBar:Show()
         PallyPowerBuffBarTitleText:SetText(PALLYPOWER_UI_TITLE)
-        BuffNum = 1
-        if PallyPower_Assignments[namePlayer] then
-            local assign = PallyPower_Assignments[namePlayer]
-            for class = 0, 9 do
-                if (assign[class] and assign[class] ~= -1) then
-                    local btn = PallyPowerUIRefs.buffButtons[BuffNum]
-                    btn.ppClassIcon:SetTexture(PallyPower_ClassTexture[class])
-                    btn.ppBuffIcon:SetTexture(BlessingIcon[assign[class]])
 
-                    btn.classID = class
-                    btn.buffID = assign[class]
-                    local countText = btn.ppText
-                    local timeText = btn.ppTime
-                    local time2Text = btn.ppTime2
-                    local classColor = PP_BuffBarClassColors[class]
-                    if classColor then
-                        if timeText then timeText:SetTextColor(classColor[1], classColor[2], classColor[3]) end
-                        if time2Text then time2Text:SetTextColor(classColor[1], classColor[2], classColor[3]) end
-                    end
-                    if countText then
-                        countText:SetTextColor(1, 0, 0)
-                    end
-                    btn.need = {}
-                    btn.have = {}
-                    btn.range = {}
-                    btn.dead = {}
-                    -- Calculate number of people who need buff.
-                    local nneed = 0
-                    local nhave = 0
-                    local ndead = 0
-                    local naway = 0
-                    if CurrentBuffs[class] then
-                        for member, stats in CurrentBuffs[class] do
-                            if stats["visible"] then
-                                local hasBuffs = false
-                                if GetNormalBlessings(namePlayer,class, UnitName(member)) ~= -1 then
-                                    if stats[GetNormalBlessings(namePlayer,class, UnitName(member))] then
-                                        hasBuffs = true
-                                    end
-                                elseif stats[assign[class]] then
-                                    hasBuffs = true
-                                end
-                                
-                                if not hasBuffs then
-                                    if UnitIsDeadOrGhost(member) then
-                                        ndead = ndead + 1
-                                        tinsert(btn.dead, stats["name"])
-                                    else
-                                        -- If Salvation is assigned, user is tank, and no individual blessings, do not count against nneed 
-                                        -- ( So the buffbar button stays green even with tank missing Salvation)
-                                        if not (assign[class] == 2 and PallyPower_Tanks[stats["name"]] == true and GetNormalBlessings(namePlayer, class, UnitName(member)) == -1) then
-                                            nneed = nneed + 1
-                                            tinsert(btn.need, stats["name"])
-                                        end
-                                    end
-                                else
-                                    tinsert(btn.have, stats["name"])
-                                    nhave = nhave + 1
-                                end
-                            else
-                                tinsert(btn.range, stats["name"])
-                                nhave = nhave + 1
-                                naway = naway + 1
-                            end
-                        end
-                    end
-
-                    -- Invalidate inferred timers when a completed class sweep
-                    -- finds nobody with the assigned Blessing.
-                    if nhave == 0 then
-                        LastCast[assign[btn.classID] .. btn.classID] = nil
-                        if CurrentBuffs[btn.classID] then
-                            for unit, stats in CurrentBuffs[btn.classID] do
-                                if LastCastPlayer[stats.name] then
-                                    LastCastPlayer[stats.name] = nil
-                                    LastCastPlayerStamp[stats.name] = nil
-                                end
-                            end
-                        end
-                    end
-
-                    local primaryTimer, secondaryTimer = PP_GetBlessingTimerDisplayForButton(btn)
-                    btn.ppTime:SetText(PallyPower_FormatTime(primaryTimer))
-                    btn.ppTime2:SetText(PallyPower_FormatTime(secondaryTimer))
-
-                    local counter = btn.ppText
-                    if nneed == 0 then
-                        counter:SetText("")
-                        counter:Hide()
-                    else
-                        if ndead > 0 then
-                            counter:SetText(nneed .. " (" .. ndead .. ")")
-                        else
-                            counter:SetText(nneed)
-                        end
-                        counter:Show()
-                    end
-                    if not (nneed > 0 or nhave > 0 or ndead > 0) then
-                    else
-                        BuffNum = BuffNum + 1
-                        if (nhave == 0) then
-                            btn:SetBackdropColor(1, 0, 0, PP_PerUser.transparency)
-                        elseif (nneed > 0 or ndead > 0) then
-                            btn:SetBackdropColor(1, 1, 0.5, PP_PerUser.transparency)
-                        elseif (nneed == 0 and ndead == 0 and naway == 0) then
-                            btn:SetBackdropColor(0, 1, 0, PP_PerUser.transparency)
-                        else
-                            btn:SetBackdropColor(0, 0, 0, PP_PerUser.transparency)
-                        end
-                        btn:Show()
-                    end
-                end
-            end
-        end
-        for rest = BuffNum, 10 do
-            local btn = PallyPowerUIRefs.buffButtons[rest]
-            btn.classID = {}
-            btn.buffID = {}
-            btn.need = {}
-            btn.have = {}
-            btn.range = {}
-            btn.dead = {}
-            btn:Hide()
-        end
-        local totalVisibleButtons = specialButtonCount + (BuffNum - 1)
-        local buffBarWidth
-        local buffBarHeight
-        if PP_PerUser.horizontal == false then
-            buffBarWidth = PP_UI.BUFF_LONG
-            buffBarHeight = PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons)
-        else
-            buffBarWidth = PP_UI.BUFF_SHORT + (PP_UI.BUFF_SHORT * totalVisibleButtons)
-            buffBarHeight = PP_UI.BUFF_LONG
-        end
-        if PP_BuffBarLayoutState.width ~= buffBarWidth
-            or PP_BuffBarLayoutState.height ~= buffBarHeight then
-            PallyPowerBuffBar:SetWidth(buffBarWidth)
-            PallyPowerBuffBar:SetHeight(buffBarHeight)
-            PP_BuffBarLayoutState.width = buffBarWidth
-            PP_BuffBarLayoutState.height = buffBarHeight
-        end
+        PP_BuffBarUpdateClassAggregates(
+            namePlayer,
+            PallyPower_Assignments[namePlayer],
+            specialButtonCount,
+            incrementalClassAggregates == true
+        )
     else
         PallyPowerBuffBar:Hide()
+        PP_BuffBarAggregateState.initialized = false
+        PP_BuffBarAggregateState.structureDirty = true
     end
 end
 
@@ -4398,6 +4627,8 @@ function PallyPower_InvalidateAssignmentUIFromMessage(msg)
         or string.find(msg, "^JASSIGN")
         or string.find(msg, "^RFASSIGN")
         or string.find(msg, "^MASSIGN")
+        or string.find(msg, "^TANK")
+        or string.find(msg, "^CLTNK")
         or string.find(msg, "^CLEAR")
     then
         PallyPower_InvalidateAssignmentUI("assignments")
@@ -5799,6 +6030,7 @@ function PP_RaidAuraBeginScan()
 
     PP_RaidAuraClearTable(state.seen)
     PP_RaidAuraClearTable(state.diffs)
+    PP_RaidAuraClearTable(state.dirtyClasses)
     PP_RaidAuraClearTable(state.scratchBuffs)
     state.changed = false
     state.scanning = true
@@ -5818,7 +6050,7 @@ function PP_RaidAuraBeginScan()
     end
 end
 
-function PP_RaidAuraCaptureDiff(unitID, classID, unitName, visible, scanTarget)
+function PP_RaidAuraCaptureDiff(unitID, classID, unitName, visible, dead, scanTarget)
     local state = PP_RaidAuraState
     local buffs = state.scratchBuffs
 
@@ -5876,6 +6108,10 @@ function PP_RaidAuraCaptureDiff(unitID, classID, unitName, visible, scanTarget)
         if not diff then diff = {} end
         diff.visibilityChanged = true
     end
+    if stats and stats.dead ~= dead then
+        if not diff then diff = {} end
+        diff.deadChanged = true
+    end
 
     for buffID in pairs(buffs) do
         if not stats or not stats[buffID] then
@@ -5900,6 +6136,7 @@ function PP_RaidAuraCaptureDiff(unitID, classID, unitName, visible, scanTarget)
         diff.newClassID = classID
         diff.name = unitName
         diff.visible = visible
+        diff.dead = dead
         state.diffs[unitID] = diff
         state.changed = true
     end
@@ -5924,6 +6161,15 @@ function PP_RaidAuraFinishScan()
     -- in place so unchanged unit records keep their identity across sweeps.
     for unitID, diff in pairs(state.diffs) do
         local record = state.records[unitID]
+
+        if diff.oldClassID ~= nil then
+            state.dirtyClasses[diff.oldClassID] = true
+            PP_BuffBarMarkClassDirty(diff.oldClassID)
+        end
+        if diff.newClassID ~= nil then
+            state.dirtyClasses[diff.newClassID] = true
+            PP_BuffBarMarkClassDirty(diff.newClassID)
+        end
 
         if diff.removed then
             if record then
@@ -5963,6 +6209,7 @@ function PP_RaidAuraFinishScan()
 
             stats.name = diff.name
             stats.visible = diff.visible
+            stats.dead = diff.dead
             record.classID = diff.newClassID
             record.stats = stats
 
@@ -6012,7 +6259,7 @@ function PallyPower_ScanRaid()
                     local pet_name = UnitName(petId)
 
                     if pet_name then
-                        PP_RaidAuraCaptureDiff(petId, 9, pet_name, UnitIsVisible(petId), petId)
+                        PP_RaidAuraCaptureDiff(petId, 9, pet_name, UnitIsVisible(petId), UnitIsDeadOrGhost(petId) and true or false, petId)
                     end
                 else
                     local petId = "partypet" .. string.sub(unit, 6)
@@ -6028,7 +6275,7 @@ function PallyPower_ScanRaid()
                                 petScanTarget = guid
                             end
                         end
-                        PP_RaidAuraCaptureDiff(petId, 9, pet_name, UnitIsVisible(petId), petScanTarget)
+                        PP_RaidAuraCaptureDiff(petId, 9, pet_name, UnitIsVisible(petId), UnitIsDeadOrGhost(petId) and true or false, petScanTarget)
                     end
                 end
             end
@@ -6043,7 +6290,7 @@ function PallyPower_ScanRaid()
                 end
             end
 
-            PP_RaidAuraCaptureDiff(unit, cid, name, UnitIsVisible(unit), scanTarget)
+            PP_RaidAuraCaptureDiff(unit, cid, name, UnitIsVisible(unit), UnitIsDeadOrGhost(unit) and true or false, scanTarget)
         end
 
         tremove(PP_Scanners, 1)
@@ -6058,7 +6305,7 @@ function PallyPower_ScanRaid()
     PallyPower_InvalidateAssignmentUI("roster")
     PP_NextScan = PP_PerUser.scanfreq
     PallyPower_ScanInventory()
-    PallyPower_UpdateUI()
+    PallyPower_UpdateUI(true)
 
     if type(PPV_Debug_OnRaidAuraScanFinished) == "function" then
         PPV_Debug_OnRaidAuraScanFinished()

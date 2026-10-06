@@ -500,6 +500,7 @@ local function PPV_DebugBuildReport()
     local playerName = UnitName("player") or "?"
     local _, classToken = UnitClass("player")
     local state = PP_RaidAuraState
+    local aggregateState = PP_BuffBarAggregateState
     local generation = state and state.generation or 0
     local classes, units, visible = PPV_DebugCurrentBuffSummary()
     local playerUnitID, playerRecord = PPV_DebugFindPlayerRecord()
@@ -528,6 +529,11 @@ local function PPV_DebugBuildReport()
     table.insert(lines, "Generation: " .. tostring(generation) .. " (delta since Refresh: " .. generationDelta .. ")    scanning=" .. PPV_DebugYesNo(state and state.scanning) .. " changed=" .. PPV_DebugYesNo(state and state.changed))
     table.insert(lines, "Records: " .. tostring(state and PPV_DebugCount(state.records) or 0) .. "    CurrentBuffs: classes=" .. tostring(classes) .. " units=" .. tostring(units) .. " visible=" .. tostring(visible))
     table.insert(lines, "Last sweep diffs: " .. tostring(state and PPV_DebugCount(state.diffs) or 0) .. "    affected classes=" .. PPV_DebugDiffClasses())
+    table.insert(lines, "Class aggregates: cached=" .. tostring(aggregateState and PPV_DebugCount(aggregateState.classes) or 0)
+        .. " dirty=" .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastDirtyClasses))
+        .. " recalculated=" .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastRecalculatedClasses))
+        .. " rendered=" .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastRenderedClasses))
+        .. " structural=" .. PPV_DebugYesNo(aggregateState and aggregateState.lastStructural))
     table.insert(lines, "Player record: " .. tostring(playerUnitID or "none") .. " class=" .. tostring(playerRecord and playerRecord.classID or "n/a") .. "    identity=" .. identity)
     local playerBlessings = {}
     if playerStats then
