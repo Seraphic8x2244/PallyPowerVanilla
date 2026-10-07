@@ -2,7 +2,7 @@
 
 ## Current
 - Branch: `dev`
-- Version: `1.11.69-dev`
+- Version: `1.11.70-dev`
 - PPV 2.0 Step 8 runtime implementation: `98c97747ea5a319cd3e880cca7da4d60b19a71d9` (`1.11.48-dev`)
 - Development diagnostics / command consolidation runtime: `09ff34b030dbd34c01dff9184df52618464978de` (`1.11.52-dev`), built on unchanged Step 8 core.
 - Pre-Step-9 extension capability correction runtime: `25ccbccba69f0c8fe464d4b4ebc769b49f3c0c0e` (`1.11.53-dev`), built on unchanged Step 8 persistent-state ownership; prerequisite accepted and unchanged by Step 9.
@@ -21,7 +21,8 @@
 - `1.11.66-dev` runtime: `845b17cf4240011c4c820152d302f66ae7d8bda1` — direct numeric self-cast attempt. User runtime reached `stage=self-cast` with `Greater Blessing of Might(Rank 2)` but no Blessing aura appeared.
 - `1.11.67-dev` runtime: `5f632e2c3bec7fba56cd6983e3836f763a5d63c9` — string unit-token self-cast attempt. User runtime reached `stage=self-cast` with the correct Greater BoM rank/`player` target, but persistent/local Blessing IDs remained empty.
 - Prior Step 8 closure runtime: `5dfa350550e1fb0d5946ccb20e8a5fa94b6ef2c5` (`1.11.68-dev`) — user runtime reached `stage=self-cast-slot` with slot `126`, `Greater Blessing of Might(Rank 2)`, target `player`, but no Blessing aura appeared. This confirms the remaining failure is in the inherited AutoBless execution model rather than Step 8 aura-state observation. Step 8 persistent raid-aura/state ownership is accepted; further patching of legacy AutoBless is explicitly stopped and its replacement is deferred to the revised planner/executor slices below.
-- Current runtime: `3ea174db60d37de5042af8e95eae44d066854dda` (`1.11.69-dev`) — PPV 2.0 Step 9 incremental class aggregates implemented and statically reviewed; exact in-game runtime matrix is pending. Do not begin Step 10 until this runtime is accepted.
+- Step 9 core runtime: `3ea174db60d37de5042af8e95eae44d066854dda` (`1.11.69-dev`) — PPV 2.0 Step 9 incremental class aggregates implementation; core logic unchanged by the diagnostics-only runtime below.
+- Current runtime: `03a245bc3bedafb0daa0f56b20a86156e28269c4` (`1.11.70-dev`) — dev-only Step 9 diagnostics UX correction on the unchanged `1.11.69-dev` Step 9 core. Adds a visible live scan countdown, holds the most recent changed sweep across later unchanged scans, adds a human-readable Step 9 summary, and replaces the unreliable Select All flow with a freeze/select-to-copy + Resume Live flow. No `PallyPower.lua`, casting, timers, inventory, protocol, AssignmentStore, planner/executor, or Step 10 logic changed.
 - PPV 2.0 Step 7 runtime implementation: `162fa874787e35d92fdddce6062609be5ca5090d` (`1.11.47-dev`)
 - PPV 2.0 Step 6 runtime implementation: `72d86169d21553e7c163d2e0035604fb3a0a0238` (`1.11.46-dev`)
 - PPV 2.0 Step 5 runtime implementation: `932b70b6dbaf11c2de2c4508c6336282b8dde306` (`1.11.45-dev`)
@@ -110,7 +111,13 @@
 - GitHub reports no commit status checks and no associated workflow runs for `3ea174db60d37de5042af8e95eae44d066854dda`.
 - Canonical Lua 5.0.3 compiler check is **not claimed**. The canonical `Seraphic8x2244/VanillaTemplate/tools/lua50` checker was located and its instructions verified, and the execution container has `cc`, but the vendored checker source is not mounted locally and the container cannot resolve GitHub to clone it. No substitute compiler result is being presented as equivalent.
 
-### Exact runtime matrix for 1.11.69-dev
+### Runtime results so far
+- Exact `1.11.69-dev` unchanged completed-scan path **passed**: user snapshot showed `Last sweep diffs: 0`, `affected classes=none`, `dirty=none`, `recalculated=none`, `rendered=none`, `structural=no`, persistent/local Blessing IDs both `none`, and player record identity `same`.
+- Exact `1.11.69-dev` BoM add/remove end-state observation remained correct: user snapshots showed persistent/local ID `1` after BoM and persistent/local `none` after removal. The transient changed sweep itself was repeatedly overwritten by the following auto-refreshed unchanged sweep before it could be copied, so the one-class recalculation evidence was not accepted from those attempts.
+- The testing friction was a diagnostics defect, not demonstrated Step 9 gameplay failure: the panel exposed no clear live countdown, auto-refresh destroyed transient evidence, Select All was unreliable, and the raw report required manual interpretation.
+- Diagnostics-only correction implemented in `03a245bc3bedafb0daa0f56b20a86156e28269c4` / `1.11.70-dev`. Static review confirms its runtime diff is only `Debug.lua` and `PallyPowerVanilla.toc`; the Step 9 core implementation remains byte-for-byte unchanged from `1.11.69-dev`. Canonical Lua 5.0.3 compiler check is not claimed in this connector-only environment.
+
+### Exact runtime matrix for Step 9 core (continue on 1.11.70-dev diagnostics runtime)
 - First completed scan after reload: establish the aggregate cache and confirm `/pp debug` shows the new `Class aggregates` line.
 - Subsequent unchanged completed scan: expect `Last sweep diffs: 0`, `dirty=none`, `recalculated=none`, `rendered=none`, `structural=no` unless a legacy button-list mutation or non-aura assignment invalidation legitimately required a repaint.
 - One-class Blessing add/remove: only that class ID should appear in dirty/recalculated/rendered, with `structural=no` while the class button remains visible; Buff Bar count/colour and persistent/local Blessing IDs must remain correct.
@@ -551,7 +558,7 @@ This correction is required **before Step 9**. It is a focused compatibility cor
   - class override flyouts should start above the entire Assignment frame, not merely above the class icon inside its header;
 
 ### Next Runtime Test
-- Current Step 9 gate: test exact current dev runtime `1.11.69-dev` / `3ea174db60d37de5042af8e95eae44d066854dda` using the Step 9 matrix above. The decisive performance/correctness checks are an unchanged completed scan (`dirty/recalculated/rendered=none`) and a single-class aura diff (only that class recalculated/rendered while `structural=no`). Exercise range, death/resurrection and roster structural transitions as separate cases. Do not begin Step 10 until this gate is accepted; do not reopen the deferred legacy AutoBless defect during this gate.
+- Current Step 9 gate: continue on exact current diagnostics runtime `1.11.70-dev` / `03a245bc3bedafb0daa0f56b20a86156e28269c4`, which contains the unchanged Step 9 core from `3ea174db60d37de5042af8e95eae44d066854dda`. First verify the debug UX itself: visible scan countdown, held last-changed sweep, and reliable Select to Copy / Resume Live interaction. Then repeat the single-class BoM add/remove check; the held changed-sweep line must show only class 4 dirty/recalculated/rendered with `structural=no`. The unchanged completed-scan path has already passed on `1.11.69-dev`. Continue range, death/resurrection and roster structural transitions one case at a time. Do not begin Step 10 until this gate is accepted; do not reopen the deferred legacy AutoBless defect during this gate.
 - Step 8 partial runtime validation on `1.11.52-dev`: solo unchanged-scan persistence passed. After reload, the first completed scan created the player record (`Generation 1`, one diff, affected class 4, identity `first refresh`); after five additional completed scans with no aura changes, Generation advanced to 6 while the player record identity remained `same`, `changed=no`, `Last sweep diffs=0`, and affected classes were `none`. This validates persistent record identity and no-change diff suppression in solo state. Assignment dirty flags remained set while the Assignment window was closed, consistent with retained dirty-state ownership rather than a Step 8 failure.
 - Step 8 partial runtime validation on `1.11.52-dev`: self-Blessing add-state passed. After applying Blessing ID `1`, both `Player persistent Blessing IDs` and `Local player aura state` reported `1`, while the persistent player record identity remained `same`. The transient changed/diff sweep was not captured because a later unchanged scan completed before the diagnostics refresh; this is a diagnostics-observability limitation, not a recorded Step 8 failure.
 - Step 8 partial runtime validation on `1.11.52-dev`: self-Blessing removal passed and captured the changed sweep. The persistent player record remained the same table (`identity=same`), both persistent and local Blessing IDs returned to `none`, `changed=yes`, one diff was present, and affected class was correctly `4`.
@@ -925,4 +932,4 @@ Treat each numbered item as the default maximum scope for one development chat. 
 - 3.0/ClassicAPI work does not begin until the 2.0 core boundaries are stable.
 
 ## Exact Next Step
-**Runtime-test PPV 2.0 Step 9 on exact `1.11.69-dev` / `3ea174db60d37de5042af8e95eae44d066854dda`.** Use the exact Step 9 matrix recorded above and fix only demonstrated Step 9 defects. Do not begin Step 10 timer work, inventory decoupling, protocol/AssignmentStore changes, legacy AutoBless repair, or later BlessPlanner/CastExecutor/Queue work until the Step 9 runtime gate is accepted.
+**Continue the PPV 2.0 Step 9 runtime gate on exact `1.11.70-dev` / `03a245bc3bedafb0daa0f56b20a86156e28269c4`.** Verify the corrected debug interaction first, then repeat only the single-class BoM add/remove case using the retained changed-sweep summary before proceeding one matrix case at a time. Fix only demonstrated Step 9 defects. Do not begin Step 10 timer work, inventory decoupling, protocol/AssignmentStore changes, legacy AutoBless repair, or later BlessPlanner/CastExecutor/Queue work until the Step 9 runtime gate is accepted.
