@@ -410,10 +410,37 @@ end
 
 local PPV_DebugFrame = nil
 local PPV_DebugEditBox = nil
+local PPV_DebugScanStatus = nil
+local PPV_DebugHint = nil
 local PPV_DebugLastGeneration = nil
 local PPV_DebugLastPlayerStats = nil
 local PPV_DebugDisplayedText = ""
 local PPV_DebugWritingText = false
+local PPV_DebugCopyMode = false
+local PPV_DebugLastChangedSweep = nil
+local PPV_DebugCountdownElapsed = 0
+
+local PPV_DebugClassLabels = {
+    [0] = "Warrior",
+    [1] = "Rogue",
+    [2] = "Priest",
+    [3] = "Druid",
+    [4] = "Paladin",
+    [5] = "Hunter",
+    [6] = "Mage",
+    [7] = "Warlock",
+    [8] = "Shaman",
+    [9] = "Pet"
+}
+
+local PPV_DebugBlessingLabels = {
+    [0] = "Wisdom",
+    [1] = "Might",
+    [2] = "Salvation",
+    [3] = "Light",
+    [4] = "Kings",
+    [5] = "Sanctuary"
+}
 
 local function PPV_DebugYesNo(value)
     if value then return "yes" end
@@ -449,6 +476,32 @@ local function PPV_DebugJoinNumbers(keys)
         table.insert(parts, tostring(value))
     end
     return table.concat(parts, ",")
+end
+
+local function PPV_DebugLabelNumbers(keys, labels)
+    if table.getn(keys) == 0 then return "none" end
+    local parts = {}
+    for _, value in ipairs(keys) do
+        local label = labels and labels[value]
+        if label then
+            table.insert(parts, tostring(value) .. " (" .. label .. ")")
+        else
+            table.insert(parts, tostring(value))
+        end
+    end
+    return table.concat(parts, ", ")
+end
+
+local function PPV_DebugPlayerBlessings(playerStats)
+    local blessings = {}
+    if playerStats then
+        for buffID, active in pairs(playerStats) do
+            if type(buffID) == "number" and buffID >= 0 and buffID <= 5 and active then
+                blessings[buffID] = true
+            end
+        end
+    end
+    return blessings
 end
 
 local function PPV_DebugFindPlayerRecord()
@@ -494,6 +547,50 @@ local function PPV_DebugDiffClasses()
     return PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(affected))
 end
 
+local function PPV_DebugCaptureChangedSweep()
+    local state = PP_RaidAuraState
+    if not state or not state.diffs or PPV_DebugCount(state.diffs) == 0 then
+        return
+    end
+
+    local aggregateState = PP_BuffBarAggregateState
+    local _, playerRecord = PPV_DebugFindPlayerRecord()
+    local playerStats = playerRecord and playerRecord.stats or nil
+    local persistentBlessings = PPV_DebugPlayerBlessings(playerStats)
+    local localBlessings = PP_LocalAuraState and PP_LocalAuraState.blessings or nil
+
+    PPV_DebugLastChangedSweep = {
+        time = date("%H:%M:%S"),
+        generation = state.generation or 0,
+        diffs = PPV_DebugCount(state.diffs),
+        affected = PPV_DebugDiffClasses(),
+        dirty = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastDirtyClasses)),
+        recalculated = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastRecalculatedClasses)),
+        rendered = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastRenderedClasses)),
+        structural = PPV_DebugYesNo(aggregateState and aggregateState.lastStructural),
+        persistentBlessings = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(persistentBlessings)),
+        localBlessings = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(localBlessings))
+    }
+end
+
+local function PPV_DebugUpdateScanStatus()
+    if not PPV_DebugScanStatus then return end
+
+    local state = PP_RaidAuraState
+    local generation = state and state.generation or 0
+    if state and state.scanning then
+        PPV_DebugScanStatus:SetText("SCAN: reading units now    |    last completed generation " .. tostring(generation))
+    else
+        local nextScan = tonumber(PP_NextScan)
+        if nextScan then
+            if nextScan < 0 then nextScan = 0 end
+            PPV_DebugScanStatus:SetText(string.format("SCAN: next scan in %.1f sec    |    last completed generation %d", nextScan, generation))
+        else
+            PPV_DebugScanStatus:SetText("SCAN: waiting for scheduler    |    last completed generation " .. tostring(generation))
+        end
+    end
+end
+
 local function PPV_DebugBuildReport()
     local lines = {}
     local version = GetAddOnMetadata("PallyPowerVanilla", "Version") or "?"
@@ -519,8 +616,42 @@ local function PPV_DebugBuildReport()
         end
     end
 
+    local playerBlessings = PPV_DebugPlayerBlessings(playerStats)
+    local playerBlessingKeys = PPV_DebugSortedNumericKeys(playerBlessings)
+    local localBlessingKeys = PPV_DebugSortedNumericKeys(PP_LocalAuraState and PP_LocalAuraState.blessings)
+    local playerBlessingRaw = PPV_DebugJoinNumbers(playerBlessingKeys)
+    local localBlessingRaw = PPV_DebugJoinNumbers(localBlessingKeys)
+    local currentDiffCount = state and PPV_DebugCount(state.diffs) or 0
+    local currentDirty = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastDirtyClasses))
+    local currentRecalculated = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastRecalculatedClasses))
+    local currentRendered = PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastRenderedClasses))
+    local currentStructural = PPV_DebugYesNo(aggregateState and aggregateState.lastStructural)
+
     table.insert(lines, "PallyPowerVanilla Development Diagnostics")
     table.insert(lines, "Version: " .. version .. "    Time: " .. date("%H:%M:%S"))
+    table.insert(lines, "")
+    table.insert(lines, "=== STEP 9 TEST SUMMARY ===")
+    if currentDiffCount == 0 then
+        table.insert(lines, "Latest completed scan: UNCHANGED (generation " .. tostring(generation) .. ")")
+    else
+        table.insert(lines, "Latest completed scan: CHANGED (generation " .. tostring(generation) .. ", diffs " .. tostring(currentDiffCount) .. ")")
+    end
+    table.insert(lines, "Current aggregate work: dirty=" .. currentDirty .. "  recalculated=" .. currentRecalculated .. "  rendered=" .. currentRendered .. "  structural=" .. currentStructural)
+    table.insert(lines, "Player Blessing truth: scanned=" .. PPV_DebugLabelNumbers(playerBlessingKeys, PPV_DebugBlessingLabels) .. "  live=" .. PPV_DebugLabelNumbers(localBlessingKeys, PPV_DebugBlessingLabels) .. "  => " .. (playerBlessingRaw == localBlessingRaw and "MATCH" or "WAITING FOR NEXT SCAN"))
+
+    if PPV_DebugLastChangedSweep then
+        local held = PPV_DebugLastChangedSweep
+        table.insert(lines, "Last changed scan (held): generation " .. tostring(held.generation) .. " at " .. tostring(held.time) .. "  diffs=" .. tostring(held.diffs) .. "  classes=" .. tostring(held.affected))
+        table.insert(lines, "  aggregate work: dirty=" .. tostring(held.dirty) .. "  recalculated=" .. tostring(held.recalculated) .. "  rendered=" .. tostring(held.rendered) .. "  structural=" .. tostring(held.structural))
+        table.insert(lines, "  player Blessings then: scanned=" .. tostring(held.persistentBlessings) .. "  live=" .. tostring(held.localBlessings))
+    else
+        table.insert(lines, "Last changed scan (held): none captured since reload")
+    end
+
+    table.insert(lines, "Class IDs: 0 Warrior | 1 Rogue | 2 Priest | 3 Druid | 4 Paladin | 5 Hunter | 6 Mage | 7 Warlock | 8 Shaman | 9 Pet")
+    table.insert(lines, "Blessing IDs: 0 Wisdom | 1 Might | 2 Salvation | 3 Light | 4 Kings | 5 Sanctuary")
+    table.insert(lines, "")
+    table.insert(lines, "=== RAW DETAILS ===")
     table.insert(lines, "Character: " .. playerName .. " / " .. tostring(classToken or "?") .. "    Test profile: " .. tostring(PP_TestMode or "off"))
     table.insert(lines, "Group: raid=" .. tostring(GetNumRaidMembers()) .. " party=" .. tostring(GetNumPartyMembers()) .. "    Assignment=" .. (PallyPowerFrame and PallyPowerFrame:IsVisible() and "open" or "closed"))
     table.insert(lines, "Buff Bar: " .. (PallyPowerBuffBar and PallyPowerBuffBar:IsVisible() and "visible" or "hidden") .. "    Layout test: " .. tostring(PP_AssignmentLayoutTest or "off"))
@@ -535,18 +666,10 @@ local function PPV_DebugBuildReport()
         .. " rendered=" .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(aggregateState and aggregateState.lastRenderedClasses))
         .. " structural=" .. PPV_DebugYesNo(aggregateState and aggregateState.lastStructural))
     table.insert(lines, "Player record: " .. tostring(playerUnitID or "none") .. " class=" .. tostring(playerRecord and playerRecord.classID or "n/a") .. "    identity=" .. identity)
-    local playerBlessings = {}
-    if playerStats then
-        for buffID, active in pairs(playerStats) do
-            if type(buffID) == "number" and buffID >= 0 and buffID <= 5 and active then
-                playerBlessings[buffID] = true
-            end
-        end
-    end
-    table.insert(lines, "Player persistent Blessing IDs: " .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(playerBlessings)))
+    table.insert(lines, "Player persistent Blessing IDs: " .. playerBlessingRaw)
     table.insert(lines, "")
     table.insert(lines, "Local player aura state")
-    table.insert(lines, "Blessing IDs: " .. PPV_DebugJoinNumbers(PPV_DebugSortedNumericKeys(PP_LocalAuraState and PP_LocalAuraState.blessings)) .. "    RF=" .. PPV_DebugYesNo(PP_LocalAuraState and PP_LocalAuraState.rfActive))
+    table.insert(lines, "Blessing IDs: " .. localBlessingRaw .. "    RF=" .. PPV_DebugYesNo(PP_LocalAuraState and PP_LocalAuraState.rfActive))
     table.insert(lines, "")
     table.insert(lines, "Runtime")
     table.insert(lines, "Scan: next=" .. tostring(PP_NextScan or "?") .. "s interval=" .. tostring(PP_PerUser and PP_PerUser.scanfreq or "?") .. "s per-frame=" .. tostring(PP_PerUser and PP_PerUser.scanperframe or "?"))
@@ -573,21 +696,27 @@ local function PPV_DebugBuildReport()
     return table.concat(lines, "\n")
 end
 
-local function PPV_DebugRefresh()
+local function PPV_DebugRefresh(force)
+    if PPV_DebugCopyMode and not force then
+        PPV_DebugUpdateScanStatus()
+        return
+    end
+
     if PPV_DebugEditBox then
         PPV_DebugDisplayedText = PPV_DebugBuildReport()
         PPV_DebugWritingText = true
         PPV_DebugEditBox:SetText(PPV_DebugDisplayedText)
         PPV_DebugWritingText = false
         PPV_DebugEditBox:SetCursorPosition(0)
-        PPV_DebugEditBox:ClearFocus()
     end
+    PPV_DebugUpdateScanStatus()
 end
 
 -- Called by the Step 8 scan owner after all completed-scan side effects have
 -- finished. Keep this dev-only display synchronized to completed generations
 -- without adding a second timer or polling path.
 function PPV_Debug_OnRaidAuraScanFinished()
+    PPV_DebugCaptureChangedSweep()
     if PPV_DebugFrame and PPV_DebugFrame:IsVisible() then
         PPV_DebugRefresh()
     end
@@ -636,14 +765,28 @@ local function PPV_DebugCreateFrame()
     title:SetPoint("TOP", frame, "TOP", 0, -18)
     title:SetText("PallyPowerVanilla - Development Debug")
 
+    local scanStatus = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    scanStatus:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, -43)
+    scanStatus:SetText("SCAN: loading...")
+    PPV_DebugScanStatus = scanStatus
+
     local hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    hint:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, -45)
-    hint:SetText("Updates after each completed scan. Select All, then Ctrl+C to copy.")
+    hint:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, -61)
+    hint:SetText("Live report updates after completed scans. 'Select to Copy' freezes it so Ctrl+C is reliable.")
+    PPV_DebugHint = hint
+
+    frame:SetScript("OnUpdate", function()
+        PPV_DebugCountdownElapsed = PPV_DebugCountdownElapsed + arg1
+        if PPV_DebugCountdownElapsed >= 0.1 then
+            PPV_DebugCountdownElapsed = 0
+            PPV_DebugUpdateScanStatus()
+        end
+    end)
 
     local textFrame = CreateFrame("Frame", nil, frame)
-    textFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -66)
+    textFrame:SetPoint("TOPLEFT", frame, "TOPLEFT", 24, -82)
     textFrame:SetWidth(632)
-    textFrame:SetHeight(350)
+    textFrame:SetHeight(334)
     textFrame:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8X8",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -662,7 +805,7 @@ local function PPV_DebugCreateFrame()
     local scrollFrame = CreateFrame("ScrollFrame", "PallyPowerDevelopmentDebugScrollFrame", textFrame, "UIPanelScrollFrameTemplate")
     scrollFrame:SetPoint("TOPLEFT", textFrame, "TOPLEFT", 10, -10)
     scrollFrame:SetWidth(586)
-    scrollFrame:SetHeight(330)
+    scrollFrame:SetHeight(314)
 
     local editBox = CreateFrame("EditBox", "PallyPowerDevelopmentDebugText", scrollFrame)
     editBox:SetWidth(566)
@@ -676,8 +819,18 @@ local function PPV_DebugCreateFrame()
     editBox:SetJustifyV("TOP")
     editBox:EnableMouse(true)
     editBox:SetScript("OnEscapePressed", function()
+        PPV_DebugCopyMode = false
         this:ClearFocus()
         if PPV_DebugFrame then PPV_DebugFrame:Hide() end
+    end)
+    editBox:SetScript("OnEditFocusLost", function()
+        if PPV_DebugCopyMode then
+            PPV_DebugCopyMode = false
+            if PPV_DebugHint then
+                PPV_DebugHint:SetText("Live report resumed. 'Select to Copy' freezes it so Ctrl+C is reliable.")
+            end
+            PPV_DebugRefresh(true)
+        end
     end)
     editBox:SetScript("OnTextChanged", function()
         if PPV_DebugWritingText then
@@ -695,16 +848,28 @@ local function PPV_DebugCreateFrame()
     scrollFrame:SetScrollChild(editBox)
     PPV_DebugEditBox = editBox
 
-    PPV_DebugCreateButton(frame, "Refresh", 90, 28, function()
-        PPV_DebugRefresh()
-    end)
-    PPV_DebugCreateButton(frame, "Select All", 100, 128, function()
+    PPV_DebugCreateButton(frame, "Select to Copy", 110, 28, function()
+        PPV_DebugCopyMode = false
+        PPV_DebugRefresh(true)
+        PPV_DebugCopyMode = true
         if PPV_DebugEditBox then
             PPV_DebugEditBox:SetFocus()
             PPV_DebugEditBox:HighlightText()
         end
+        if PPV_DebugHint then
+            PPV_DebugHint:SetText("Report frozen and selected. Press Ctrl+C now, then click Resume Live.")
+        end
     end)
-    PPV_DebugCreateButton(frame, "Close", 90, 238, function()
+    PPV_DebugCreateButton(frame, "Resume Live", 100, 148, function()
+        PPV_DebugCopyMode = false
+        if PPV_DebugEditBox then PPV_DebugEditBox:ClearFocus() end
+        if PPV_DebugHint then
+            PPV_DebugHint:SetText("Live report resumed. 'Select to Copy' freezes it so Ctrl+C is reliable.")
+        end
+        PPV_DebugRefresh(true)
+    end)
+    PPV_DebugCreateButton(frame, "Close", 90, 258, function()
+        PPV_DebugCopyMode = false
         if PPV_DebugEditBox then PPV_DebugEditBox:ClearFocus() end
         if PPV_DebugFrame then PPV_DebugFrame:Hide() end
     end)
@@ -715,11 +880,14 @@ end
 
 function PPV_Debug_Show()
     PPV_DebugCreateFrame()
-    PPV_DebugRefresh()
+    PPV_DebugCopyMode = false
+    PPV_DebugRefresh(true)
     PPV_DebugFrame:Show()
+    PPV_DebugUpdateScanStatus()
 end
 
 function PPV_Debug_Hide()
+    PPV_DebugCopyMode = false
     if PPV_DebugEditBox then PPV_DebugEditBox:ClearFocus() end
     if PPV_DebugFrame then PPV_DebugFrame:Hide() end
 end
